@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>屁眼王國大冒險</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="屁眼王國">
+<meta name="theme-color" content="#0b1020">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@900&display=swap" rel="stylesheet">
 <style>
@@ -44,13 +52,28 @@ h1{margin:0;font:900 clamp(24px,4vw,36px)/1.1 "Noto Serif TC",serif;color:var(--
 .t-j{right:10px;top:74px;width:66px;height:66px}.t-z{right:84px;top:76px;width:62px;height:62px;background:#c0392bcc!important}
 .t-x,.t-c,.t-v,.t-b,.t-n,.t-m{width:42px;height:42px;font-size:12px}.t-x{right:104px;top:6px}.t-c{right:57px;top:6px}.t-v{right:10px;top:6px}.t-b{right:104px;top:146px}.t-n{right:57px;top:146px}.t-m{right:10px;top:146px}
 .t-mnt{left:8px;top:6px;width:50px!important;height:36px!important;border-radius:10px!important;font-size:12px!important;background:#5a3a1acc!important}
-.t-pot,.t-eth{width:46px!important;height:34px!important;border-radius:10px!important;font-size:12px!important;top:150px}.t-pot{left:8px;background:#7a1a24cc!important}.t-eth{left:132px;background:#1a3a7acc!important}
+.t-pot,.t-eth{width:56px!important;height:34px!important;border-radius:10px!important;font-size:12px!important;top:150px}.t-pot{left:8px;background:#7a1a24cc!important}.t-eth{left:132px;background:#1a3a7acc!important}
 @media(hover:none),(max-width:760px){.touch{display:block}}
 .joy{position:absolute;left:24px;top:12px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,#ffffff18,#ffffff06 70%);border:2px solid #ffffff45;touch-action:none}
 .knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#ffffff45;border:2px solid #ffffffa0;pointer-events:none;transition:transform .05s}
 .joy.on .knob{background:#ffd23f99}
-.t-mnt{top:152px!important;left:8px!important}.t-pot{left:62px!important;top:152px!important}.t-eth{left:116px!important;top:152px!important}
+.t-mnt{top:152px!important;left:8px!important}.t-pot{left:62px!important;top:152px!important}.t-eth{left:124px!important;top:152px!important}
 .rot{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:24px;background:#070a14f0;text-align:center}.rot[hidden]{display:none}.rot b{font:900 24px "Noto Serif TC",serif;color:var(--gold)}.rot p{color:var(--dim)}
+/* 手機專用（body.mob）：選單收合、技能按鈕顯示冷卻 */
+.menub,.pwa-tip{display:none}
+body.mob.fs #fsBtn{display:none}
+body.mob.fs #ui{width:min(330px,42vw)!important;grid-template-columns:auto minmax(0,1fr) auto!important;padding:4px 6px!important;align-items:center}
+body.mob.fs #ui .bars{grid-template-columns:1fr 1fr;gap:3px 5px}
+body.mob.fs #ui .menub{display:block;min-height:30px;padding:0 9px;font-size:16px}
+body.mob.fs #ui .inv{display:none!important}
+body.mob.fs.menu-open #ui .inv{display:flex!important;position:absolute;left:0;top:calc(100% + 4px);width:min(330px,80vw);flex-wrap:wrap;gap:6px;padding:8px;background:#0b1020ee;border:1px solid #ffffff22;border-radius:10px}
+body.mob.fs.menu-open #ui .inv .btn.sm{min-height:34px;font-size:13px;padding:0 10px}
+body.mob .pwa-tip{display:block;flex-basis:100%;font-size:11px;color:var(--dim);white-space:normal;line-height:1.4}
+body.mob.standalone .pwa-tip{display:none}
+body.mob .touch button.cdw{position:absolute}
+body.mob .touch button[data-k^="s"],body.mob .touch .t-z{--cd:0;background-image:conic-gradient(#000c calc(var(--cd)*1turn),transparent 0)!important}
+body.mob .touch button.nomp{border-color:#5a8aff!important;color:#9ab8ff}
+body.mob .touch button .cdt{position:absolute;inset:auto 0 -2px 0;font-size:10px;color:#ffd23f;text-shadow:0 1px 2px #000;pointer-events:none}
 /* 全螢幕／手機橫向：畫面佔滿，狀態列與按鍵疊在畫面上 */
 body.fs{overflow:hidden}
 body.fs .frame{position:fixed;inset:0;z-index:40;border:0;border-radius:0;padding:0;background:#000;box-shadow:none}
@@ -66,7 +89,7 @@ body.fs .t-j{right:max(10px,env(safe-area-inset-right));top:auto;bottom:12px;wid
 body.fs .t-z{right:78px;top:auto;bottom:16px;width:58px;height:58px}
 body.fs .t-x{right:112px;top:auto;bottom:90px}body.fs .t-c{right:64px;top:auto;bottom:90px}body.fs .t-v{right:16px;top:auto;bottom:90px}
 body.fs .t-b{right:112px;top:auto;bottom:138px}body.fs .t-n{right:64px;top:auto;bottom:138px}body.fs .t-m{right:16px;top:auto;bottom:138px}
-body.fs .t-mnt{left:max(16px,env(safe-area-inset-left))!important;top:auto!important;bottom:176px}body.fs .t-pot{left:72px!important;top:auto!important;bottom:176px}body.fs .t-eth{left:126px!important;top:auto!important;bottom:176px}
+body.fs .t-mnt{left:max(16px,env(safe-area-inset-left))!important;top:auto!important;bottom:176px}body.fs .t-pot{left:72px!important;top:auto!important;bottom:176px}body.fs .t-eth{left:134px!important;top:auto!important;bottom:176px}
 @media(hover:hover) and (pointer:fine){body.fs .touch{display:none}}
 .ov{position:absolute;inset:0;z-index:6;display:grid;place-items:center;padding:12px;background:#070a14e6;overflow:auto}
 .ov[hidden]{display:none}
@@ -124,7 +147,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
 </style>
 </head>
 <body>
-<div class="rot" id="rot" hidden><div><b>把手機轉成橫向</b><p>橫向會自動切換成全螢幕遊玩，畫面更大、輪盤更好操作。</p><button class="btn pri" id="rotOk" type="button">先用直向玩</button></div></div>
+<div class="rot" id="rot" hidden><div><b>把手機轉成橫向</b><p>橫向會自動切換成全螢幕遊玩，畫面更大、輪盤更好操作。<br>（LINE 和 iPhone 的瀏覽器會留著網址列；想要真正全螢幕，可以用 Safari／Chrome 開啟後「加入主畫面」。）</p><button class="btn pri" id="rotOk" type="button">先用直向玩</button></div></div>
 <div class="wrap">
   <div class="top"><h1>屁眼王國大冒險</h1><span class="netinfo" id="net">連線中…</span></div>
   <p class="sub">連線版 2D 橫向捲軸打怪：和朋友在同一張地圖一起打怪，一起出手的人都分得到經驗。15、30、45、60 級轉職，一路打到 80 級，組隊挑戰虛空之主搶傳說武器。</p>
@@ -171,7 +194,8 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
         <div class="b mp"><i id="uMp"></i><span id="uMpT"></span></div>
         <div class="b xp"><i id="uXp"></i><span id="uXpT"></span></div>
       </div>
-      <div class="inv"><span class="g" id="uGold">0</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button></div>
+      <button class="btn sm menub" id="menuBtn" type="button" aria-expanded="false" aria-label="選單">☰</button>
+      <div class="inv"><span class="g" id="uGold">0</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
     </div>
     <div class="chat" id="chat" hidden>
       <div class="log" id="log" aria-live="polite"></div>
@@ -232,7 +256,8 @@ document.querySelectorAll('#touch button').forEach(bt=>{const k=bt.dataset.k;
   ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>bt.addEventListener(ev,()=>{K[k]=false;bt.classList.remove('on')}))});
 const tap=k=>{const v=pressed[k];pressed[k]=false;return v};
 // ---- 輪盤搖桿 ----
-const TOUCH=matchMedia('(hover:none) and (pointer:coarse)').matches;
+const TOUCH=matchMedia('(hover:none) and (pointer:coarse)').matches;if(TOUCH)document.body.classList.add('mob');
+const STANDALONE=matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone===true;if(STANDALONE)document.body.classList.add('standalone');
 {const joy=$('#joy'),knob=$('#knob');let jid=null,cx=0,cy=0;
   const setK=(k,v)=>{if(v&&!K[k])pressed[k]=true;K[k]=v};
   const move=e=>{const r=joy.clientWidth/2,dx=e.clientX-cx,dy=e.clientY-cy,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx),cl=Math.min(d,r*.62);knob.style.transform=`translate(${Math.cos(a)*cl}px,${Math.sin(a)*cl}px)`;
@@ -248,8 +273,24 @@ function setFS(on,api){document.body.classList.toggle('fs',on);$('#fsBtn').textC
     else if(document.fullscreenElement||document.webkitFullscreenElement){try{(document.exitFullscreen||document.webkitExitFullscreen).call(document)}catch(e){}}}
   setTimeout(resize,60);setTimeout(resize,400)}
 const isLand=()=>matchMedia('(orientation:landscape)').matches;
-function checkOri(){if(!TOUCH)return;const land=isLand();if(land&&!document.body.classList.contains('fs'))setFS(true,false);else if(!land&&!userFS&&document.body.classList.contains('fs'))setFS(false,false);$('#rot').hidden=land||rotOk||document.body.classList.contains('fs')}
-$('#fsBtn').onclick=()=>{const on=!document.body.classList.contains('fs');userFS=on;setFS(on,true);if(!on)rotOk=true;checkOri()};
+function checkOri(){if(!TOUCH)return;const land=isLand(),fs=document.body.classList.contains('fs');
+  // 手機：橫向自動全螢幕版面；直向一律維持「上面遊戲、下面按鍵」
+  if(land&&!fs)setFS(true,false);else if(!land&&fs)setFS(false,false);if(!land)document.body.classList.remove('menu-open');
+  $('#rot').hidden=land||rotOk}
+$('#fsBtn').onclick=()=>{const on=!document.body.classList.contains('fs');
+  if(TOUCH&&on&&!isLand()){userFS=true;setFS(false,true);try{const el=document.documentElement,r=(el.requestFullscreen||el.webkitRequestFullscreen)?.call(el);r&&r.catch&&r.catch(()=>{})}catch(e){}
+    setTimeout(()=>{if(!isLand()){rotOk=false;$('#rot').hidden=false}},700);return}
+  if(TOUCH&&!on){userFS=false;document.body.classList.remove('menu-open');try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}if(isLand()){toast('手機橫向時固定使用全螢幕版面');return}}
+  userFS=on;setFS(on,true);if(!on)rotOk=true;checkOri()};
+function touchCD(){if(!TOUCH||!P||!ready)return;const sk=SK[P.cls];
+  ['#tX','#tC','#tV','#tB','#tN','#tM'].forEach((id,i)=>{const k=(P.slots||[])[i],el=$(id);if(!el)return;const s=k&&sk[k],cd=s?(P.cd[k]||0):0,r=s&&cd>0?Math.min(1,cd/Math.max(1,s.cd)):0;
+    el.style.setProperty('--cd',r.toFixed(3));el.classList.toggle('nomp',!!(s&&s.mp&&P.mp<s.mp));const sec=cd>0?Math.ceil(cd/60):'';let t=el.querySelector('.cdt');if(sec){if(!t){t=document.createElement('span');t.className='cdt';el.appendChild(t)}if(t.textContent!==String(sec))t.textContent=sec}else if(t)t.remove()});
+  const z=$('.t-z');if(z){const s=sk.atk;z.style.setProperty('--cd',(P.cd.atk>0?Math.min(1,P.cd.atk/s.cd):0).toFixed(3))}
+  const pb=$('.t-pot'),eb=$('.t-eth'),pl=`紅藥 ${P.pot}`,el2=`藍藥 ${P.eth}`;if(pb&&pb.textContent!==pl)pb.textContent=pl;if(eb&&eb.textContent!==el2)eb.textContent=el2}
+setInterval(touchCD,120);
+$('#menuBtn').onclick=e=>{e.stopPropagation();const o=!document.body.classList.contains('menu-open');document.body.classList.toggle('menu-open',o);$('#menuBtn').setAttribute('aria-expanded',String(o))};
+$('#ui').addEventListener('click',e=>{if(e.target.closest('.inv .btn')&&document.body.classList.contains('menu-open'))setTimeout(()=>document.body.classList.remove('menu-open'),50)});
+$('#screen').addEventListener('pointerdown',()=>document.body.classList.remove('menu-open'));
 $('#rotOk').onclick=()=>{rotOk=true;$('#rot').hidden=true;try{sessionStorage.setItem('rotOk','1')}catch(e){}};
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{if(!(document.fullscreenElement||document.webkitFullscreenElement)&&userFS){userFS=false;if(!(TOUCH&&isLand()))setFS(false,false)}}));
 addEventListener('resize',checkOri);addEventListener('orientationchange',()=>setTimeout(checkOri,200));setTimeout(checkOri,0);
@@ -636,10 +677,10 @@ function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
   for(const m of mons){if(m.dead||!MON[m.t].boss)continue;label(m.x,m.y+6,`Lv${MON[m.t].lv} ${MON[m.t].name}`,'#ffd23f')}
   for(const o of others.values()){label(o.x,o.y+3,`${o.name}　Lv${o.lv} ${CL[o.cls].jobs[o.job]}`,'#9fe0ff');if(o.chatT>0)bubble(o.x,o.y-34,o.chat)}
   if(P){label(P.x,P.y+3,`${myName}　${CL[P.cls].jobs[P.job]}`,'#fff');if(P.chatT>0)bubble(P.x,P.y-34,P.chat)}
-  ctx.textAlign='left';ctx.font='700 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';const nt=`此地圖 ${others.size+1} 人`;ctx.fillRect(8,8,ctx.measureText(nt).width+14,20);ctx.fillStyle='#7dff9a';ctx.fillText(nt,15,22);ctx.textAlign='center';
+  ctx.textAlign='left';ctx.font='700 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';const nt=`此地圖 ${others.size+1} 人`,ntw=ctx.measureText(nt).width+14,nx=TOUCH&&document.body.classList.contains('fs')?SW-ntw-8:8;ctx.fillRect(nx,8,ntw,20);ctx.fillStyle='#7dff9a';ctx.fillText(nt,nx+7,22);ctx.textAlign='center';
   if(zoneT>0){ctx.globalAlpha=Math.min(1,zoneT/30);ctx.font='900 18px "Noto Serif TC",serif';ctx.fillStyle='#000a';const w=ctx.measureText(zoneName).width+30;ctx.fillRect(SW/2-w/2,14,w,30);ctx.fillStyle='#fff';ctx.fillText(zoneName,SW/2,35);ctx.globalAlpha=1}
   if(msgT>0){ctx.globalAlpha=Math.min(1,msgT/30);ctx.font='700 15px "Noto Sans TC",sans-serif';const w=ctx.measureText(msg).width+28;ctx.fillStyle='#000c';ctx.fillRect(SW/2-w/2,54,w,28);ctx.strokeStyle='#ffd23f';ctx.strokeRect(SW/2-w/2+.5,54.5,w-1,27);ctx.fillStyle='#fff';ctx.fillText(msg,SW/2,73);ctx.globalAlpha=1}
-  if(P){const ks=['atk',...(P.slots||D.DEFSLOTS)],bw=Math.min(52,(SW-20)/7-3),top=document.body.classList.contains('fs')&&TOUCH;ks.forEach((k,i)=>{const s=k?SK[P.cls][k]:null,x=SW-10-(7-i)*(bw+3),y=top?8:SH-50,lock=k?sklOk(k):'空';
+  if(P&&!TOUCH){const ks=['atk',...(P.slots||D.DEFSLOTS)],bw=Math.min(52,(SW-20)/7-3),top=document.body.classList.contains('fs')&&TOUCH;ks.forEach((k,i)=>{const s=k?SK[P.cls][k]:null,x=SW-10-(7-i)*(bw+3),y=top?8:SH-50,lock=k?sklOk(k):'空';
     ctx.fillStyle='#000b';ctx.fillRect(x,y,bw,42);ctx.strokeStyle=lock?'#555':'#ffd23f';ctx.strokeRect(x+.5,y+.5,bw-1,41);
     if(s&&P.cd[k]>0){ctx.fillStyle='#ffffff30';ctx.fillRect(x,y+42*(1-P.cd[k]/s.cd),bw,42*Math.min(1,P.cd[k]/s.cd))}
     ctx.fillStyle=lock?'#777':'#fff';ctx.font=`700 ${bw<46?9:11}px "Noto Sans TC",sans-serif`;ctx.fillText(s?s.n:'—',x+bw/2,y+17);ctx.fillStyle='#aab';ctx.font='10px sans-serif';ctx.fillText(s?(lock||`${'ZXCVBNM'[i]}${s.mp?' '+s.mp:''}`):'ZXCVBNM'[i],x+bw/2,y+33)})}}
@@ -663,7 +704,7 @@ function ui(){if(!P)return;$('#ui').hidden=false;$('#chat').hidden=false;$('#uLv
   if(P.lv>=MAXLV){$('#uXp').style.width='100%';$('#uXpT').textContent='EXP MAX（滿等）'}else{const ne=needExp(P.lv);$('#uXp').style.width=(P.exp/ne*100)+'%';$('#uXpT').textContent=`EXP ${P.exp} / ${ne}（${(P.exp/ne*100).toFixed(1)}%）`}
   $('#uGold').textContent=`${P.gold.toLocaleString()} 金幣`;$('#uPot').textContent=P.pot;$('#uEth').textContent=P.eth;
   {const bd=$('#apBadge');if(bd&&P){bd.hidden=!(P.ap>0);bd.textContent=P.ap>99?'99+':P.ap}}
-  ['#tX','#tC','#tV','#tB','#tN','#tM'].forEach((id,i)=>{const k=(P.slots||[])[i],el=$(id);el.classList.toggle('lock',!k||!!sklOk(k));const lb=k?SK[P.cls][k].n.slice(0,2):'—';if(el.textContent!==lb)el.textContent=lb})}
+  ['#tX','#tC','#tV','#tB','#tN','#tM'].forEach((id,i)=>{const k=(P.slots||[])[i],el=$(id);el.classList.toggle('lock',!k||!!sklOk(k));const lb=k?SK[P.cls][k].n.slice(0,2):'—';if(el.dataset.lb!==lb){el.dataset.lb=lb;el.firstChild&&el.firstChild.nodeType===3?el.firstChild.textContent=lb:el.prepend(document.createTextNode(lb));for(const n of [...el.childNodes].slice(1))if(n.nodeType===3)n.remove()}})}
 let popHandler=null;
 function openPop(html,handler){paused=true;$('#popBody').innerHTML=html;popHandler=handler;$('#pop').hidden=false;$('#popBody').querySelector('button')?.focus()}
 function closePop(){$('#pop').hidden=true;paused=false;popHandler=null;for(const k in K)K[k]=false;ui()}

@@ -9,6 +9,13 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   const pick = f => { const a = path.join(dir, 'public', f); return fs.existsSync(a) ? a : path.join(dir, f); };
   app.get(routes, (req, res) => res.sendFile(pick(page)));
   app.get('/rpg-data.js', (req, res) => res.type('application/javascript').sendFile(pick('rpg-data.js')));
+  // 手機「加入主畫面」：從桌面圖示開啟時沒有網址列，以全螢幕遊玩
+  app.get('/manifest.webmanifest', (req, res) => res.type('application/manifest+json').send(JSON.stringify({
+    name: '屁眼王國大冒險', short_name: '屁眼王國', start_url: '/', scope: '/', display: 'fullscreen', orientation: 'landscape', background_color: '#0b1020', theme_color: '#0b1020',
+    icons: [{ src: '/icon.png', sizes: '512x512', type: 'image/png', purpose: 'any' }],
+  })));
+  app.get(['/icon.png', '/apple-touch-icon.png'], (req, res) => { const f = pick('icon.png'); fs.existsSync(f) ? res.sendFile(f) : res.status(404).end(); });
+  app.get('/icon.svg', (req, res) => res.type('image/svg+xml').send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="crispEdges"><rect width="32" height="32" fill="#4a8cf0"/><rect y="22" width="32" height="10" fill="#8a5a2b"/><rect y="22" width="32" height="2" fill="#5cbf4a"/><rect x="12" y="8" width="8" height="7" fill="#f4c79c"/><rect x="11" y="6" width="10" height="3" fill="#7a4a22"/><rect x="11" y="15" width="10" height="6" fill="#d8433a"/><rect x="22" y="9" width="2" height="10" fill="#e6ebf3"/><rect x="3" y="17" width="7" height="5" fill="#5cd65c"/></svg>'));
   if (!S.rpg) S.rpg = {};
   // 多角色：S.rpg[uid] 是目前使用中的角色；其他欄位的角色放在 S.rpgAlt[uid].slots（使用中的那格是 null）
   if (!S.rpgAlt) S.rpgAlt = {};
