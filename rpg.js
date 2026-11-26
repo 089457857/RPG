@@ -19,8 +19,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   if (!S.rpg) S.rpg = {};
   // 多角色：S.rpg[uid] 是目前使用中的角色；其他欄位的角色放在 S.rpgAlt[uid].slots（使用中的那格是 null）
   if (!S.rpgAlt) S.rpgAlt = {};
-  const MAXSLOT = 3;
-  const alt = uid => (S.rpgAlt[uid] ||= { slots: [null, null, null], act: 0 });
+  const MAXSLOT = D.MAXSLOT || 6;
+  const alt = uid => { const a = (S.rpgAlt[uid] ||= { slots: [], act: 0 }); while (a.slots.length < MAXSLOT) a.slots.push(null); return a; };
   const slotList = uid => { const a = alt(uid); return a.slots.map((c, i) => { const x = i === a.act ? S.rpg[uid] : c; return x ? { cls: x.cls, lv: x.lv, job: x.job, jobName: D.CL[x.cls].jobs[x.job], map: D.MAPS[x.map || 0].name } : null; }); };
 
   const ns = io.of('/rpg');
@@ -31,7 +31,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   const worlds = D.MAPS.map((m, mi) => ({ mi, mons: m.spawns.map((sp, i) => mkMon(sp, i, mi)), drops: new Map(), players: new Map(), dseq: 1 }));
   function mkMon(sp, i, mi) {
     const m = D.MON[sp.t], seg = D.MAPS[mi].seg[sp.s], a = sp.a ?? seg.x1 + 10, b = sp.b ?? seg.x2 - 10;
-    return { mi, i, t: sp.t, sp, x: rnd(a, b), seg: sp.s, a, b, vx: 0, f: Math.random() < .5 ? -1 : 1, hp: m.hp, max: m.hp, dead: 0, hurt: 0, aggro: 0, target: null, think: ri(30, 120), hop: 0, vy: 0, w: m.w, kx: 0, frozen: 0, stomp: ri(120, 200), dmgBy: {}, warn: 0, dash: 0, rage: 0, pend: null, root: 0, vuln: 0 };
+    return { mi, i, t: sp.t, sp, x: rnd(a, b), seg: sp.s, a, b, vx: 0, f: Math.random() < .5 ? -1 : 1, hp: m.hp, max: m.hp, dead: 0, hurt: 0, aggro: 0, target: null, think: ri(30, 120), hop: 0, vy: 0, w: m.w, kx: 0, frozen: 0, stomp: ri(120, 200), dmgBy: {}, warn: 0, dash: 0, leap: 0, rage: 0, pend: null, root: 0, vuln: 0 };
   }
   const char = uid => D.fix(S.rpg[uid]);
   const nameOf = uid => S.users[uid]?.name || '玩家';
@@ -83,10 +83,11 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     }
     const rage = m.hp < m.max * .3;
     if (rage && !m.rage) { m.rage = 1; ns.to('m' + w.mi).emit('sys', { t: `${d.name} 暴怒了！招式變得更快更兇！` }); }
-    if (m.warn > 0) { m.vx = 0; if ((m.warn -= 1) <= 0 && m.pend === 'charge') { m.dash = 16; } return; }
+    if (m.warn > 0) { m.vx = 0; if ((m.warn -= 1) <= 0) { if (m.pend === 'charge') m.dash = 12; else if (m.pend === 'leap') { m.leap = 12; m.vy = -4.2; m.hop = -.01; m.pend = null; } } return; }
+    if (m.leap > 0) { m.leap--; m.x += (m.ltx - m.x) / Math.max(1, m.leap); m.vx = 0; return; }
     if (m.dash > 0) {
       m.dash--; const seg = D.MAPS[m.mi].seg[m.seg], lo = Math.max(seg.x1 + m.w / 2, m.a), hi = Math.min(seg.x2 - m.w / 2, m.b);
-      m.x = clamp(m.x + m.f * 8, lo, hi); m.vx = 0; return;
+      m.x = clamp(m.x + m.f * 7, lo, hi); m.vx = 0; return;
     }
     if (!m.aggro || m.frozen || m.hop < 0 || (m.stomp -= rage ? 3 : 2) > 0) return;
     m.stomp = ri(120, 190);
@@ -95,15 +96,31 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     if (tp && !tp.dead) m.f = tp.x < m.x ? -1 : 1;
     const ev = { i: m.i, k, n: (d.skn && d.skn[k]) || '', x: Math.round(m.x), y: seg.y, f: m.f, atk, rage: rage ? 1 : 0 };
     if (k === 'slam') { m.vy = -4.5; m.hop = -.01; m.stomping = 1; return; }
-    if (k === 'rain') {
-      const xs = [], near = [...w.players.values()].filter(p => !p.dead && Math.abs(p.x - m.x) < 420);
-      for (const p of near) for (let j = 0; j < (rage ? 3 : 2); j++) xs.push(Math.round(clamp(p.x + rnd(-60, 60), 10, D.WW - 10)));
-      for (let j = 0; j < (rage ? 6 : 4); j++) xs.push(Math.round(clamp(m.x + rnd(-300, 300), 10, D.WW - 10)));
-      ev.xs = xs; ev.warn = 1000; m.warn = 18;
-    } else if (k === 'breath') { ev.warn = 800; ev.len = 260; m.warn = 40; }
-    else if (k === 'quake') { ev.warn = 700; m.warn = 30; }
-    else if (k === 'charge') { ev.warn = 700; m.warn = 21; m.pend = 'charge'; }
-    if (k !== 'charge') m.pend = null;
+    // 每隻 Boss 的 3 招都是牠獨有的；預警時間明顯、範圍收斂，看到提示就來得及躲
+    const near = [...w.players.values()].filter(p => !p.dead && Math.abs(p.x - m.x) < 320);
+    const lo = Math.max(seg.x1 + m.w / 2, m.a), hi = Math.min(seg.x2 - m.w / 2, m.b);
+    if (k === 'rain') {          // 隕石雨：每位玩家附近一顆＋Boss 周圍兩顆
+      const xs = []; for (const p of near) xs.push(Math.round(clamp(p.x + rnd(-30, 30), 10, D.WW - 10)));
+      for (let j = 0; j < (rage ? 3 : 2); j++) xs.push(Math.round(clamp(m.x + rnd(-150, 150), 10, D.WW - 10)));
+      ev.xs = xs; ev.warn = 1200; m.warn = 24;
+    } else if (k === 'breath') { ev.warn = 1000; ev.len = 150; m.warn = 45; }
+    else if (k === 'quake') { ev.warn = 900; ev.r = 180; m.warn = 34; }
+    else if (k === 'charge') { ev.warn = 900; m.warn = 27; m.pend = 'charge'; }
+    else if (k === 'roll') { ev.warn = 800; ev.dist = 240; m.warn = 24; }
+    else if (k === 'pillars') { const off = rnd(0, 80), xs = []; for (let x = m.x - 240 + off; x < m.x + 240; x += 80) xs.push(Math.round(clamp(x, 10, D.WW - 10))); ev.xs = xs; ev.warn = 1300; m.warn = 30; }
+    else if (k === 'pull') { ev.warn = 800; ev.dur = 1600; ev.r = 200; m.warn = 72; }
+    else if (k === 'homing') { ev.tg = near.slice(0, rage ? 3 : 2).map(p => p.uid); ev.warn = 600; m.warn = 18; }
+    else if (k === 'safe') { const n = rage ? 1 : 2, xs = []; for (let j = 0; j < n; j++) xs.push(Math.round(clamp(m.x + rnd(-170, 170), 40, D.WW - 40))); ev.xs = xs; ev.w = 80; ev.r = 260; ev.warn = 1800; m.warn = 60; }
+    else if (k === 'bounce') {   // 蘑菇跳壓：跳到目標玩家所在位置
+      const tg = (tp && !tp.dead ? tp : near[0]) || { x: m.x }; ev.tx = Math.round(clamp(tg.x, lo, hi)); ev.warn = 1000; m.warn = 30; m.pend = 'leap'; m.ltx = ev.tx;
+    } else if (k === 'frostbreath') { ev.warn = 900; ev.len = 140; m.warn = 46; }
+    else if (k === 'icering') { ev.warn = 900; ev.r = 75; m.warn = 40; }
+    else if (k === 'firefloor') { ev.warn = 900; ev.len = 230; m.warn = 64; }
+    else if (k === 'tail') { ev.warn = 650; ev.len = 95; m.warn = 28; }
+    else if (k === 'laser') { ev.warn = 1000; ev.r = 240; m.warn = 46; }
+    else if (k === 'orbit') { ev.warn = 700; ev.n = rage ? 4 : 3; ev.r = 85; ev.dur = 3200; m.warn = 40; }
+    else if (k === 'split') { ev.warn = 700; ev.dist = 260; m.warn = 50; }
+    if (k !== 'charge' && k !== 'bounce') m.pend = null;
     ns.to('m' + w.mi).emit('bskill', ev);
   }
   // 10Hz 廣播

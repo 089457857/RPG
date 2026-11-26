@@ -301,8 +301,8 @@ function landOn(prevY,ny,x,ignore){let best=null;for(let i=0;i<SEG.length;i++){i
 function segUnder(x,y){for(let i=0;i<SEG.length;i++){const s=SEG[i];if(Math.abs(s.y-y)<.5&&x>=s.x1&&x<=s.x2)return i}return -1}
 let reviving=false;
 function updHero(){const p=P;if(p.dead){p.dead--;if(p.dead<=0&&!reviving){reviving=true;sock.emit('revive',{},()=>{reviving=false;p.dead=0;p.hp=p.max.hp;p.mp=Math.round(p.max.mp*.5);p.inv=120})}return}
-  for(const k in p.bf)if(p.bf[k]>0)p.bf[k]--;
-  if(tap('mount')){if(p.mount){p.mount=0;toast('下坐騎')}else if(p.lv<D.MOUNTLV)toast(`Lv ${D.MOUNTLV} 才能騎坐騎`);else if(p.rope)toast('爬繩子時不能騎坐騎');else{p.mount=1;const mt=D.MOUNTS[p.mnt||'horse'];toast(`騎上${mt.n}！移動速度 ×${mt.spd}${mt.glide?'，按住跳躍可以滑翔':''}（騎乘中無法攻擊）`);fx.push({t:'poof',x:p.x,y:p.y-8,life:16})}}
+  for(const k in p.bf)if(p.bf[k]>0)p.bf[k]--;if(p.slowT>0)p.slowT--;
+  if(tap('mount')){if(p.mount){p.mount=0;toast('下坐騎')}else if(p.lv<D.MOUNTLV)toast(`Lv ${D.MOUNTLV} 才能騎坐騎`);else if(p.rope)toast('爬繩子時不能騎坐騎');else{p.mount=1;const mt=D.MOUNTS[p.mnt||'horse'];toast(`騎上${mt.n}！速度 ×${mt.spd}、受到傷害 -${Math.round(mt.dr*100)}%${mt.glide?'，按住跳躍可以滑翔':''}（騎乘中無法攻擊）`);fx.push({t:'poof',x:p.x,y:p.y-8,life:16})}}
   if(p.rope&&p.mount)p.mount=0;
   if(p.inv>0)p.inv--;if(p.clone>0)p.clone--;for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;if(p.act>0)p.act--;if(p.drop>0)p.drop--;
   if(tap('pot'))usePot('pot');if(tap('eth'))usePot('eth');
@@ -316,7 +316,7 @@ function updHero(){const p=P;if(p.dead){p.dead--;if(p.dead<=0&&!reviving){revivi
     for(const pt of MAPS[MI].portals)if(Math.abs(p.x-pt.x)<18&&Math.abs(p.y-GY)<1){K.up=false;usePortal(pt);return}}
   if(K.up||(K.down&&p.ground)){for(const r of ROPES){if(Math.abs(p.x-r.x)<10&&((K.up&&p.y>r.y1+2&&p.y<=r.y2+1)||(K.down&&Math.abs(p.y-r.y1)<1))){p.rope=r;p.x=r.x;if(K.down)p.y=r.y1+3;p.ground=false;return}}}
   const busy=p.act>0&&p.ground;let ax=0;if(!busy){if(K.left){ax=-1;p.f=-1}if(K.right){ax=1;p.f=1}}
-  const MT=p.mount?D.MOUNTS[p.mnt||'horse']||D.MOUNTS.horse:null,sp=SPD*(MT?MT.spd:1)*(p.bf.rage>0?1.15:1)*(p.bf.haste>0?1.25:1)*(1+(p.max.spdB||0));if(p.ground)p.vx=ax*sp;else p.vx+=(ax*sp-p.vx)*(p.dj?.02:.08);
+  const MT=p.mount?D.MOUNTS[p.mnt||'horse']||D.MOUNTS.horse:null,sp=SPD*(MT?MT.spd:1)*(p.bf.rage>0?1.15:1)*(p.bf.haste>0?1.25:1)*(1+(p.max.spdB||0))*(p.slowT>0?.5:1);if(p.ground)p.vx=ax*sp;else p.vx+=(ax*sp-p.vx)*(p.dj?.02:.08);
   if(p.ground)p.dj=0;
   if(p.cls==='rogue'&&!p.ground&&!p.dj&&pressed.jump&&p.vy>-3.5){pressed.jump=false;p.dj=1;p.vy=-4.6;p.vx=p.f*3.4;fx.push({t:'dj',x:p.x,y:p.y,f:p.f,life:14});sock.emit('cast',{k:'dj',x:Math.round(p.x),y:Math.round(p.y),f:p.f})}
   if(tap('jump')&&p.ground){if(K.down){const si=segUnder(p.x,p.y);if(si>0){p.drop=14;p.ignore=si;p.ground=false;p.vy=1}}else{p.vy=JUMP*(p.mount?Math.sqrt((D.MOUNTS[p.mnt]||D.MOUNTS.horse).jump):1);p.ground=false}}
@@ -441,25 +441,66 @@ function updShots(){for(const s of shots){s.x+=s.vx;if(s.vy)s.y+=s.vy;s.life--;i
 // ================= 怪物（伺服器同步） =================
 function mkLocalMon(sp,i,st){const m=MON[sp.t],seg=SEG[sp.s];return{i,t:sp.t,sp,seg:sp.s,x:st.x,tx:st.x,y:seg.y,hop:st.hop||0,f:st.f||1,hp:st.hp,max:m.hp,dead:st.dead,hurt:0,frozen:0,w:m.w,h:m.h}}
 let haz=[];const HCOL=['#b8f07a','#bfe8ff','#ff7a2a','#b46aff','#ffe680','#3affc8'];
+// Boss 招式：伺服器決定招式與位置，每位玩家的畫面依預警範圍自行判定有沒有被打中
 function addBoss(d){const m=mons[d.i],now=performance.now();if(m&&d.n&&P&&Math.abs(P.x-d.x)<560)toast(`${MON[m.t].name}：${d.n}！${d.rage?'（暴怒）':''}`);
-  if(d.k==='rain')d.xs.forEach((x,j)=>haz.push({k:'rain',x,y:d.y,t0:now,warn:d.warn+j*60,atk:d.atk}));else haz.push({k:d.k,x:d.x,y:d.y,f:d.f,t0:now,warn:d.warn,len:d.len||260,atk:d.atk})}
-const HEND={rain:330,breath:700,quake:1200,charge:600};
-function updHaz(){const now=performance.now(),p=P;for(const h of haz){const t=now-h.t0-h.warn;h.on=t>=0;if(t>HEND[h.k])h.done=1;if(!p||p.dead||p.inv>0||h.hit||t<0||h.done)continue;let hit=0,mul=1;
-    if(h.k==='rain'){if(t>=250&&Math.abs(p.x-h.x)<20&&p.y>h.y-160&&p.y<=h.y+4){hit=1;mul=1.1}}
-    else if(h.k==='breath'){const d=(p.x-h.x)*h.f;if(d>-10&&d<h.len&&Math.abs(p.y-h.y)<48){hit=1;mul=1.25}}
-    else if(h.k==='quake'){const r=t*.28;if(p.ground&&Math.abs(p.y-h.y)<3&&Math.abs(Math.abs(p.x-h.x)-r)<14){hit=1;mul=1.15}}
+  const base={x:d.x,y:d.y,f:d.f,t0:now,warn:d.warn,atk:d.atk,mi:d.i};
+  if(d.k==='rain')d.xs.forEach((x,j)=>haz.push({...base,k:'rain',x,warn:d.warn+j*70}));
+  else if(d.k==='pillars')haz.push({...base,k:'pillars',xs:d.xs});
+  else if(d.k==='homing')(d.tg||[]).forEach((u,j)=>haz.push({...base,k:'homing',tg:u,hx:d.x+(j-1)*14,hy:d.y-30,warn:d.warn+j*150}));
+  else if(d.k==='orbit')for(let j=0;j<(d.n||3);j++)haz.push({...base,k:'orbit',a0:j*6.283/(d.n||3),r:d.r||85,dur:d.dur||3200});
+  else if(d.k==='split')for(const [dl,hi] of [[0,0],[800,1]])for(const dir of [-1,1])haz.push({...base,k:'split',f:dir,hi,warn:d.warn+dl,dist:d.dist||260});
+  else haz.push({...base,k:d.k,len:d.len||150,r:d.r||180,dist:d.dist||240,dur:d.dur||1600,xs:d.xs,w:d.w||80,tx:d.tx})}
+const HEND={rain:330,breath:650,quake:900,charge:600,roll:1400,pillars:520,pull:1750,homing:3600,safe:450,bounce:470,frostbreath:620,icering:430,firefloor:2050,tail:270,laser:530,orbit:3300,split:1350};
+function updHaz(){const now=performance.now(),p=P;
+  for(const h of haz){const t=now-h.t0-h.warn;h.on=t>=0;if(t>(h.k==='pull'?h.dur+150:HEND[h.k]||1000))h.done=1;if(!p||p.dead||h.done)continue;
+    // 火海輪替：先燒一邊、再燒另一邊，各判定一次
+    if(h.k==='firefloor'&&t>=0&&p.inv<=0){const onG=p.y>h.y-12&&p.y<=h.y+4;for(const [ph,a,b2,sd] of [[1,0,900,h.f],[2,1100,2000,-h.f]]){const d=(p.x-h.x)*sd;if(!h['hit'+ph]&&t>=a&&t<b2&&onG&&d>-12&&d<h.len){h['hit'+ph]=1;hurtHero(h.atk*1.1,h.x);break}}continue}
+    // 漩渦：持續把玩家往中心吸（不受無敵影響），玩家走路速度比吸力快
+    if(h.k==='pull'&&t>=0&&t<h.dur&&Math.abs(p.x-h.x)<h.r&&Math.abs(p.y-h.y)<120&&!p.rope){p.x+=Math.sign(h.x-p.x)*.95}
+    // 追蹤彈：慢慢飛向目標玩家
+    if(h.k==='homing'&&t>=0&&!h.hit){const tp=h.tg===myId?p:others.get(h.tg);if(tp){const dx=tp.x-h.hx,dy=(tp.y-14)-h.hy,dd=Math.hypot(dx,dy)||1,sp=1.15;h.hx+=dx/dd*sp;h.hy+=dy/dd*sp}}
+    if(p.inv>0||h.hit||t<0)continue;let hit=0,mul=1;
+    if(h.k==='rain'){if(t>=250&&Math.abs(p.x-h.x)<18&&p.y>h.y-150&&p.y<=h.y+4){hit=1;mul=1.1}}
+    else if(h.k==='breath'){const d=(p.x-h.x)*h.f;if(d>-6&&d<h.len&&Math.abs(p.y-h.y)<40){hit=1;mul=1.25}}
+    else if(h.k==='quake'){const r=t*.22;if(r<h.r&&p.ground&&Math.abs(p.y-h.y)<3&&Math.abs(Math.abs(p.x-h.x)-r)<12){hit=1;mul=1.15}}
+    else if(h.k==='roll'){const bx=h.x+h.f*Math.min(h.dist,t*.18);if(t*.18<h.dist&&Math.abs(p.x-bx)<14&&p.y>h.y-14&&p.y<=h.y+4){hit=1;mul=1.2}}
+    else if(h.k==='pillars'){if(t>=0&&t<500&&p.y>h.y-130&&p.y<=h.y+4&&h.xs.some(x=>Math.abs(p.x-x)<13)){hit=1;mul=1.2}}
+    else if(h.k==='pull'){if(t>=h.dur&&Math.abs(p.x-h.x)<70&&Math.abs(p.y-h.y)<60){hit=1;mul=1.5}}
+    else if(h.k==='homing'){if(h.tg===myId&&Math.abs(p.x-h.hx)<10&&Math.abs(p.y-14-h.hy)<14){hit=1;mul=1.0}}
+    else if(h.k==='safe'){if(Math.abs(p.x-h.x)<h.r&&Math.abs(p.y-h.y)<90&&!h.xs.some(x=>Math.abs(p.x-x)<h.w/2)){hit=1;mul=1.6}}
+    else if(h.k==='bounce'){if(t>=380&&Math.abs(p.x-h.tx)<52&&Math.abs(p.y-h.y)<45){hit=1;mul=1.3}}
+    else if(h.k==='frostbreath'){const d=(p.x-h.x)*h.f;if(t<600&&d>-6&&d<h.len&&Math.abs(p.y-h.y)<40){hit=1;mul=.9;p.slowT=150;toast('被凍住了！移動速度減半 2.5 秒')}}
+    else if(h.k==='icering'){if(t<420&&Math.abs(p.x-h.x)<h.r&&Math.abs(p.y-h.y)<40){hit=1;mul=1.3}}
+    else if(h.k==='tail'){const d=(p.x-h.x)*-h.f;if(t<260&&d>-4&&d<h.len&&Math.abs(p.y-h.y)<40){hit=1;mul=1.4}}
+    else if(h.k==='laser'){if(t<520&&Math.abs(p.x-h.x)<h.r&&p.y<h.y-8&&p.y>h.y-140){hit=1;mul=1.4}}
+    else if(h.k==='orbit'){if(t<h.dur){const a=h.a0+t/420,ox2=h.x+Math.cos(a)*h.r,oy2=h.y-22+Math.sin(a)*h.r*.45;if(Math.abs(p.x-ox2)<12&&Math.abs(p.y-14-oy2)<15){hit=1;mul=1.0}}}
+    else if(h.k==='split'){const sx=h.x+h.f*t*.2;if(t*.2<h.dist&&Math.abs(p.x-sx)<10&&(h.hi?p.y<h.y-6&&p.y>h.y-60:p.y>h.y-12&&p.y<=h.y+4)){hit=1;mul=1.1}}
     if(hit){h.hit=1;hurtHero(h.atk*mul,h.x)}}
   haz=haz.filter(h=>!h.done)}
 function drawHaz(ox,oy){const now=performance.now(),col=HCOL[MI]||'#fff',blink=.25+.2*Math.sin(now/60);
   for(const h of haz){const t=now-h.t0-h.warn,x=Math.round(h.x-ox),y=Math.round(h.y-oy);
-    if(h.k==='rain'){if(t<0){b.globalAlpha=blink;R(x-18,y-2,36,3,'#ff3b3b');R(x-12,y-4,24,2,'#ff3b3b');b.globalAlpha=1}else if(t<250){const yy=y-200+t*.8;R(x-3,yy-12,6,12,col);R(x-1,yy-20,2,8,col+'80')}else{b.globalAlpha=1-(t-250)/80;R(x-14,y-8,28,8,col);R(x-8,y-14,16,6,'#ffffff');b.globalAlpha=1}}
-    else if(h.k==='breath'){const x1=h.f>0?x:x-h.len;if(t<0){b.globalAlpha=blink*.8;R(x1,y-46,h.len,46,'#ff3b3b');b.globalAlpha=1}else{b.globalAlpha=.75;for(let k=0;k<26;k++){const dx=(k*37+now/3)%h.len;R(h.f>0?x+dx:x-dx,y-40+((k*13+now/20)%36),8,6,k%3?col:'#ffffff')}b.globalAlpha=1}}
-    else if(h.k==='quake'){if(t<0){b.globalAlpha=blink;R(x-90,y-2,180,3,'#ff3b3b');b.globalAlpha=1}else{const r=Math.round(t*.28);for(const sx of [x-r,x+r]){R(sx-4,y-16,8,16,col);R(sx-2,y-24,4,8,'#ffffff');R(sx-7,y-6,14,6,col)}}}
-    else if(h.k==='charge'&&t<0){b.globalAlpha=blink;const x1=h.f>0?x:x-140;R(x1,y-10,140,4,'#ff3b3b');R(h.f>0?x+136:x-142,y-14,6,12,'#ff3b3b');b.globalAlpha=1}}}
+    if(h.k==='rain'){if(t<0){b.globalAlpha=blink;R(x-16,y-2,32,3,'#ff3b3b');R(x-10,y-4,20,2,'#ff3b3b');b.globalAlpha=1}else if(t<250){const yy=y-200+t*.8;R(x-3,yy-12,6,12,col);R(x-1,yy-20,2,8,col+'80')}else{b.globalAlpha=Math.max(0,1-(t-250)/80);R(x-14,y-8,28,8,col);R(x-8,y-14,16,6,'#ffffff');b.globalAlpha=1}}
+    else if(h.k==='breath'){const x1=h.f>0?x:x-h.len;if(t<0){b.globalAlpha=blink*.8;R(x1,y-40,h.len,40,'#ff3b3b');b.globalAlpha=1}else{b.globalAlpha=.75;for(let k=0;k<20;k++){const dx=(k*37+now/3)%h.len;R(h.f>0?x+dx:x-dx,y-36+((k*13+now/20)%32),8,6,k%3?col:'#ffffff')}b.globalAlpha=1}}
+    else if(h.k==='quake'){if(t<0){b.globalAlpha=blink;R(x-h.r,y-2,h.r*2,3,'#ff3b3b');R(x-2,y-14,4,12,'#ff3b3b');b.globalAlpha=1}else{const r=Math.round(t*.22);if(r<h.r)for(const sx of [x-r,x+r]){R(sx-4,y-16,8,16,col);R(sx-2,y-24,4,8,'#ffffff');R(sx-7,y-6,14,6,col)}}}
+    else if(h.k==='charge'&&t<0){b.globalAlpha=blink;const x1=h.f>0?x:x-90;R(x1,y-10,90,4,'#ff3b3b');R(h.f>0?x+86:x-92,y-14,6,12,'#ff3b3b');b.globalAlpha=1}
+    else if(h.k==='roll'){if(t<0){b.globalAlpha=blink;R(h.f>0?x:x-h.dist,y-2,h.dist,3,'#ff3b3b');b.globalAlpha=1}else if(t*.18<h.dist){const bx=Math.round(x+h.f*t*.18),rot=Math.floor(t/60)%2;R(bx-10,y-18,20,18,col);R(bx-8,y-16,16,2,'#ffffff');R(bx-(rot?6:2),y-12,4,4,'#0005');R(bx+(rot?2:-4),y-7,4,4,'#0005')}}
+    else if(h.k==='pillars'){for(const px0 of h.xs){const px=Math.round(px0-ox);if(t<0){b.globalAlpha=blink;R(px-12,y-2,24,3,'#ff3b3b');R(px-1,y-10,2,8,'#ff3b3b');b.globalAlpha=1}else if(t<500){const hh=Math.min(130,t*.9);b.globalAlpha=.85;R(px-11,y-hh,22,hh,col);R(px-4,y-hh,8,hh,'#ffffff');b.globalAlpha=1}}}
+    else if(h.k==='pull'){const a=t<0?.3:.55;b.globalAlpha=a;for(let k=0;k<14;k++){const ang=k*.45-now/(t<0?400:160),rr=(t<0?h.r:h.r*(1-Math.min(1,t/h.dur)))*(0.3+(k%5)*.15);R(x+Math.cos(ang)*rr-2,y-20+Math.sin(ang)*rr*.25-2,4,4,col)}b.globalAlpha=1;if(t>=h.dur-300){b.globalAlpha=blink+.2;R(x-70,y-3,140,3,'#ff3b3b');b.globalAlpha=1}if(t>=h.dur){b.globalAlpha=.8;R(x-70,y-40,140,40,col);b.globalAlpha=1}}
+    else if(h.k==='bounce'){const tx=Math.round(h.tx-ox);if(t<0){b.globalAlpha=blink;R(tx-52,y-2,104,3,'#ff3b3b');R(tx-36,y-5,72,2,'#ff3b3b');R(tx-1,y-14,2,10,'#ff3b3b');b.globalAlpha=1}else if(t>=380){b.globalAlpha=Math.max(0,1-(t-380)/90);R(tx-50,y-8,100,8,col);R(tx-30,y-14,60,6,'#ffffff');b.globalAlpha=1}}
+    else if(h.k==='frostbreath'){const x1=h.f>0?x:x-h.len;if(t<0){b.globalAlpha=blink*.8;R(x1,y-40,h.len,40,'#5ab0ff');b.globalAlpha=1}else{b.globalAlpha=.7;for(let k=0;k<18;k++){const dx=(k*29+now/4)%h.len;R(h.f>0?x+dx:x-dx,y-36+((k*11+now/25)%32),6,6,k%2?'#bfe8ff':'#ffffff')}b.globalAlpha=1}}
+    else if(h.k==='icering'){if(t<0){b.globalAlpha=blink;R(x-h.r,y-2,h.r*2,3,'#ff3b3b');R(x-h.r,y-10,3,10,'#ff3b3b');R(x+h.r-3,y-10,3,10,'#ff3b3b');b.globalAlpha=1}else{const hh=Math.min(40,t*.25);for(let sx=-h.r;sx<h.r;sx+=12){R(x+sx,y-hh,8,hh,'#bfe8ff');R(x+sx+3,y-hh,2,hh,'#ffffff')}}}
+    else if(h.k==='firefloor'){const seg=(sd,on)=>{const x1=sd>0?x+12:x-12-h.len;b.globalAlpha=on?.8:blink;R(x1,y-(on?10:2),h.len,on?10:3,on?'#ff7a2a':'#ff3b3b');if(!on){b.globalAlpha=blink*.6;R(x1,y-34,h.len,32,'#ff3b3b')}if(on)for(let k=0;k<10;k++)R(x1+((k*23+now/5)%h.len),y-14-((k*7+now/30)%10),4,6,'#ffd23f');b.globalAlpha=1};
+      if(t<0)seg(h.f,0);else if(t<900){seg(h.f,1);if(t>500)seg(-h.f,0)}else if(t<1100)seg(-h.f,0);else if(t<2000)seg(-h.f,1)}
+    else if(h.k==='tail'){const x1=h.f>0?x-h.len:x;if(t<0){b.globalAlpha=blink;R(x1,y-30,h.len,30,'#ff3b3b');b.globalAlpha=1}else if(t<260){b.globalAlpha=.8;R(x1,y-22,h.len,8,col);R(x1,y-18,h.len,2,'#ffffff');b.globalAlpha=1}}
+    else if(h.k==='laser'){if(t<0){b.globalAlpha=blink;R(x-h.r,y-130,h.r*2,120,'#ff3b3b');b.globalAlpha=1;b.globalAlpha=.5;R(x-h.r,y-8,h.r*2,8,'#3aff7a');b.globalAlpha=1}else if(t<520){b.globalAlpha=.85;R(x-h.r,y-100,h.r*2,14,col);R(x-h.r,y-96,h.r*2,6,'#ffffff');R(x-h.r,y-60,h.r*2,14,col);R(x-h.r,y-56,h.r*2,6,'#ffffff');b.globalAlpha=1}}
+    else if(h.k==='orbit'){if(t<h.dur){const a=h.a0+Math.max(0,t)/420,ox2=Math.round(h.x+Math.cos(a)*h.r-ox),oy2=Math.round(h.y-22+Math.sin(a)*h.r*.45-oy);b.globalAlpha=t<0?blink+.3:1;R(ox2-6,oy2-6,12,12,col);R(ox2-2,oy2-2,4,4,'#ffffff');b.globalAlpha=.3;R(ox2-9,oy2-9,18,18,'#b46aff');b.globalAlpha=1}}
+    else if(h.k==='split'){const yy=h.hi?y-34:y-8;if(t<0){if(h.f>0){b.globalAlpha=blink;R(x-h.dist,yy-1,h.dist*2,2,h.hi?'#ffb34d':'#ff3b3b');b.globalAlpha=1}}else if(t*.2<h.dist){const sx=Math.round(x+h.f*t*.2);R(sx-7,yy-6,14,12,col);R(sx-3,yy-3,6,6,'#ffffff')}}
+    else if(h.k==='homing'){const hx=Math.round(h.hx-ox),hy=Math.round(h.hy-oy);if(t<0){b.globalAlpha=blink+.3;R(hx-3,hy-3,6,6,col);b.globalAlpha=1}else if(!h.hit){R(hx-5,hy-5,10,10,col);R(hx-2,hy-2,4,4,'#ffffff');b.globalAlpha=.4;R(hx-8,hy-8,16,16,col);b.globalAlpha=1}}
+    else if(h.k==='safe'){if(t<0){b.globalAlpha=blink*.6;R(x-h.r,y-90,h.r*2,90,'#ff3b3b');b.globalAlpha=1;for(const sx0 of h.xs){const sx=Math.round(sx0-ox);b.globalAlpha=.55;R(sx-h.w/2,y-90,h.w,90,'#3aff7a');b.globalAlpha=1;R(sx-h.w/2,y-2,h.w,3,'#3aff7a')}}else{b.globalAlpha=Math.max(0,.8-t/500);R(x-h.r,y-90,h.r*2,90,col);b.globalAlpha=1}}}}
 function updMons(){updHaz();const p=P;for(const m of mons){if(m.dead)continue;if(m.hurt>0)m.hurt--;
   const dx=m.tx-m.x;m.x+=Math.abs(dx)>60?dx:dx*.25;
   if(p&&!p.dead&&p.inv<=0&&!m.frozen&&Math.abs(p.x-m.x)<(m.w/2+5)&&p.y>m.y-m.h+m.hop-2&&p.y-20<m.y+m.hop)hurtHero(MON[m.t].atk,m.x)}}
-function hurtHero(atk,fromX){const p=P;const dmg=Math.max(1,Math.round((atk*rnd(.9,1.1)-p.max.def*.7)*(CL[p.cls].dr||1)*(p.bf.shield>0?.6:1)*(p.bf.wing>0?.5:1)*(p.bf.guard>0?.7:1)));p.hp-=dmg;p.inv=Math.round(70*(1+(p.max.invB||0)));num(p.x,p.y-30,dmg,'hurt');
+function hurtHero(atk,fromX){const p=P;const dmg=Math.max(1,Math.round((atk*rnd(.9,1.1)-p.max.def*.7)*(CL[p.cls].dr||1)*(p.bf.shield>0?.6:1)*(p.bf.wing>0?.5:1)*(p.bf.guard>0?.7:1)*(p.mount?1-((D.MOUNTS[p.mnt]||{}).dr||.25):1)));p.hp-=dmg;p.inv=Math.round(70*(1+(p.max.invB||0)));num(p.x,p.y-30,dmg,'hurt');
   if(!p.rope){p.vy=-2.6;p.vx=(p.x<fromX?-1:1)*1.6;p.ground=false}
   if(p.hp<=0){p.hp=0;p.dead=110;p.rope=null;toast('你倒下了……稍後在晨露村復活')}ui()}
 function updDrops(){const p=P;for(const d of drops){if(d.vy!==null){d.vy+=G*.7;d.y+=d.vy;if(d.vy>0&&d.y>=d.ty){d.y=d.ty;d.vy=null}}
@@ -479,7 +520,9 @@ function drawOthers(ox,oy){for(const o of others.values()){const fake={x:o.x,y:o
   if(o.clone){b.globalAlpha=.4;drawBody({...fake,x:o.x-o.f*12},ox,oy,'#1a1030');b.globalAlpha=1}
   drawBody(fake,ox,oy);const x=Math.round(o.x-ox),y=Math.round(o.y-oy);R(x-8,y-30,16,2,'#000a');R(x-8,y-30,Math.round(16*o.hp/100),2,'#ff4d5e')}}
 // ================= 繪圖：角色 =================
-function drawPet(p,k,ox,oy){const x=Math.round(p.x-p.f*15-ox),y=Math.round(p.y-24-oy+Math.sin(frame/14+p.x/50)*2.5),f=p.f,fl=Math.floor(frame/8)%2;
+function drawPet(p,k,ox,oy){const x=Math.round(p.x-p.f*25-ox),y=Math.round(p.y-15-oy+Math.sin(frame/14+p.x/50)*2.5),f=p.f,fl=Math.floor(frame/8)%2,K=2.1;
+  // 寵物放大成玩家的約 0.6 倍：以 (x,y) 為中心把每一塊像素放大 K 倍
+  const R=(X,Y,w,h,c)=>{b.fillStyle=c;b.fillRect(Math.round(x+(X-x)*K),Math.round(y+(Y-y)*K),Math.ceil(w*K),Math.ceil(h*K))};
   if(k==='qinglong'){for(let i=0;i<5;i++)R(x-f*i*3-2,y+Math.round(Math.sin(frame/6+i)*2),4,4,i%2?'#2fb888':'#3fd6a0');R(x+f*3-3,y-2,6,5,'#3fd6a0');R(x+f*5,y-1,1,1,'#000');R(x+f*2-1,y-4,1,2,'#ffd23f');R(x+f*4,y-4,1,2,'#ffd23f');R(x-f*15,y+1,2,2,'#ffd23f')}
   else if(k==='xuanwu'){R(x-5,y-1,10,6,'#2f4a3e');R(x-4,y-2,8,2,'#4a6a5a');R(x-3,y,2,2,'#6a8a6a');R(x+1,y+1,2,2,'#6a8a6a');R(x+f*5-1,y+1,4,3,'#8aa88a');R(x+f*7,y+1,1,1,'#000');R(x-4,y+5,2,1+fl,'#8aa88a');R(x+2,y+5,2,2-fl,'#8aa88a');R(x-f*6-1,y+1,3,2,'#5a8a4a');R(x-f*8-1,y-1+fl,2,2,'#5a8a4a')}
   else if(k==='baihu'){R(x-6,y,12,5,'#f4f4f4');R(x-4,y,1,4,'#333');R(x,y,1,4,'#333');R(x+f*5-2,y-3,6,5,'#f4f4f4');R(x+f*6,y-2,1,1,'#2a7aff');R(x+f*4-1,y-4,2,2,'#f4f4f4');R(x-5,y+5,2,2-fl,'#ddd');R(x+3,y+5,2,1+fl,'#ddd');R(x-f*7-1,y-2+fl,2,4,'#f4f4f4');R(x-f*7-1,y-1+fl,2,1,'#333')}
@@ -494,7 +537,8 @@ function drawMount(p,ox,oy,type){type=type||p.mnt||'horse';const x=Math.round(p.
   else if(type==='void'){const gl=frame%30<15;R(x-12,y-11,24,8,'#0f3a30');R(x-12,y-11,24,2,'#3affc8');R(x+f*10-3,y-16,9,7,'#0f3a30');R(x+f*14,y-14,2,2,gl?'#3affc8':'#b46aff');R(x+f*9-1,y-19,2,4,'#b46aff');R(x+f*12,y-19,2,4,'#b46aff');leg('#062a24');R(x-f*14-3,y-12+st,5,3,'#3affc8');b.globalAlpha=.25;R(x-14,y-14,28,12,'#3affc8');b.globalAlpha=1}
   else drawMount(p,ox,oy,'horse')}
 function drawHero(p,ox,oy){if(p.pet&&!p.dead)drawPet(p,p.pet,ox,oy);if(p.mount&&!p.dead){drawMount(p,ox,oy);drawBody({...p,y:p.y-8,ground:false,walk:0},ox,oy);return}
-  if(p.bf&&!p.dead){const x=Math.round(p.x-ox),y=Math.round(p.y-oy);if(p.bf.shield>0){b.globalAlpha=.25+.1*Math.sin(frame/5);R(x-10,y-28,20,28,'#5af0ff');b.globalAlpha=1}if(p.bf.wing>0){R(x-13,y-22,5,10,'#ffffff');R(x+8,y-22,5,10,'#ffffff')}if(p.bf.rage>0){b.globalAlpha=.3;R(x-9,y-27,18,27,'#ff2a4a');b.globalAlpha=1}if(p.bf.bless>0&&frame%20<10)R(x-1,y-32,2,2,'#ffd23f');if(p.bf.pow>0){b.globalAlpha=.25;R(x-8,y-26,16,26,'#ffb34d');b.globalAlpha=1}if(p.bf.guard>0){R(x-9,y-28,18,1,'#c9ced9');R(x-9,y-1,18,1,'#c9ced9')}if(p.bf.haste>0&&frame%6<3)R(x-p.f*9,y-10,4,1,'#ffffff')}if(p.dead){b.globalAlpha=Math.max(0,p.dead/110);drawBody(p,ox,oy);b.globalAlpha=1;return}
+  if(p.bf&&!p.dead){const x=Math.round(p.x-ox),y=Math.round(p.y-oy);if(p.bf.shield>0){b.globalAlpha=.25+.1*Math.sin(frame/5);R(x-10,y-28,20,28,'#5af0ff');b.globalAlpha=1}if(p.bf.wing>0){R(x-13,y-22,5,10,'#ffffff');R(x+8,y-22,5,10,'#ffffff')}if(p.bf.rage>0){b.globalAlpha=.3;R(x-9,y-27,18,27,'#ff2a4a');b.globalAlpha=1}if(p.bf.bless>0&&frame%20<10)R(x-1,y-32,2,2,'#ffd23f');if(p.bf.pow>0){b.globalAlpha=.25;R(x-8,y-26,16,26,'#ffb34d');b.globalAlpha=1}if(p.bf.guard>0){R(x-9,y-28,18,1,'#c9ced9');R(x-9,y-1,18,1,'#c9ced9')}if(p.bf.haste>0&&frame%6<3)R(x-p.f*9,y-10,4,1,'#ffffff')}
+  if(p.slowT>0&&!p.dead){const x=Math.round(p.x-ox),y=Math.round(p.y-oy);b.globalAlpha=.35;R(x-8,y-26,16,26,'#9ad8ff');b.globalAlpha=1;R(x-7,y-1,14,2,'#bfe8ff')}if(p.dead){b.globalAlpha=Math.max(0,p.dead/110);drawBody(p,ox,oy);b.globalAlpha=1;return}
   if(p.clone>0){b.globalAlpha=.4;drawBody({...p,x:p.x-p.f*12},ox,oy,'#1a1030');b.globalAlpha=1}
   if(p.inv>0&&Math.floor(p.inv/4)%2&&!p.rope)return;drawBody(p,ox,oy)}
 function drawBody(p,ox,oy,tint){const c=CL[p.cls],x=Math.round(p.x-ox),y=Math.round(p.y-oy),f=p.f,job=p.job||0,T=col=>tint||col;
@@ -720,9 +764,9 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#pop').hidden)closePop()
 let shopTab='use';
 function mountList(shop){const own=P.mounts||['horse'];return `<div class="list">${Object.entries(D.MOUNTS).map(([id,m])=>{const has=own.includes(id),cur=P.mnt===id,lk=P.lv<m.lv;
   const btn=cur?'<span class="ds">使用中</span>':has?`<button class="btn sm pri" data-usemnt="${id}" ${lk?'disabled':''}>${lk?'Lv '+m.lv:'使用'}</button>`:m.price&&shop?`<button class="btn pri sm" data-k="mount" data-i="${id}" ${lk||P.gold<m.price?'disabled':''}>${lk?'Lv '+m.lv:m.price.toLocaleString()+' 金'}</button>`:`<span class="ds">${m.price?'到晨露村商店購買':'Boss 掉落'}</span>`;
-  return `<div class="item${cur?' on':''}"><div style="display:flex;gap:10px;align-items:center"><canvas width="36" height="36" data-mnt="${id}" style="width:64px;height:64px;image-rendering:pixelated;background:#8fd3ff33;border-radius:8px"></canvas><div><div class="nm">${m.n}${has?'　<span class="badge" style="background:#3a7a4a">已擁有</span>':''}</div><div class="ds">Lv ${m.lv} · 速度 ×${m.spd} · 跳躍 ×${m.jump}${m.glide?' · 可滑翔':''} · ${m.d}</div></div></div>${btn}</div>`}).join('')}</div>`}
+  return `<div class="item${cur?' on':''}"><div style="display:flex;gap:10px;align-items:center"><canvas width="36" height="36" data-mnt="${id}" style="width:64px;height:64px;image-rendering:pixelated;background:#8fd3ff33;border-radius:8px"></canvas><div><div class="nm">${m.n}${has?'　<span class="badge" style="background:#3a7a4a">已擁有</span>':''}</div><div class="ds">Lv ${m.lv} · 速度 ×${m.spd} · 跳躍 ×${m.jump} · 騎乘時受傷 -${Math.round(m.dr*100)}%${m.glide?' · 可滑翔':''} · ${m.d}</div></div></div>${btn}</div>`}).join('')}</div>`}
 function paintMounts(){document.querySelectorAll('[data-mnt]').forEach(c=>{const id=c.dataset.mnt,c2=c.getContext('2d');b.clearRect(0,0,36,36);drawMount({x:18,y:34,f:1,vx:0},0,0,id);drawBody({x:18,y:26,f:1,cls:P.cls,ground:false,walk:0,act:0,rope:null,job:P.job,wep:P.wep},0,0);c2.clearRect(0,0,36,36);c2.drawImage(buf,0,0,36,36,0,0,36,36)})}
-function openMounts(){const render=()=>{openPop(`<h2>坐騎</h2><p class="sub" style="margin:0">Lv ${D.MOUNTLV} 起按 F（手機按「坐騎」）上下坐騎，騎乘中不能攻擊。商店買得到前四種，另外三種要打 Boss 才有機會掉落。</p>${mountList(false)}<div class="row"><button class="btn" data-close="1">關閉</button></div>`,bt=>{
+function openMounts(){const render=()=>{openPop(`<h2>坐騎</h2><p class="sub" style="margin:0">Lv ${D.MOUNTLV} 起按 F（手機按「坐騎」）上下坐騎，騎乘中不能攻擊，但受到的傷害減少 40%。商店買得到前四種，另外三種要打 Boss 才有機會掉落。</p>${mountList(false)}<div class="row"><button class="btn" data-close="1">關閉</button></div>`,bt=>{
   if(bt.dataset.usemnt)sock.emit('setMount',{id:bt.dataset.usemnt},r=>{if(!r||!r.ok){toast(r&&r.msg||'失敗');return}applyMe(r.me);toast(`換成了${D.MOUNTS[P.mnt].n}`);render()})});paintMounts()};render()}
 function openShop(){const render=()=>{const W=WEAPONS[P.cls];
   const list=shopTab==='use'?`<div class="list">
@@ -796,7 +840,7 @@ $('#classes').innerHTML=Object.entries(CL).map(([k,c])=>`<button class="cls" dat
 document.querySelectorAll('[data-pc]').forEach(pc=>{const k=pc.dataset.pc,c2=pc.getContext('2d');b.clearRect(0,0,26,26);drawBody({x:13,y:25,f:1,cls:k,ground:true,walk:0,act:0,rope:null,job:0,wep:0},0,0);c2.drawImage(buf,0,0,26,26,0,0,26,26)});
 $('#classes').addEventListener('click',e=>{const bt=e.target.closest('.cls');if(!bt||!sock)return;sock.emit('create',{cls:bt.dataset.cls,slot:curSlot},r=>{if(r&&r.ok){P=null;applyMe(r.me);enterWorld(true)}else toast(r&&r.msg||'建立失敗')})});
 let curSlot=0,inWorld=false;
-function showChars(list,act){$('#ui').hidden=true;$('#chat').hidden=true;$('#charHi').textContent=`${myName}，最多可以建立 3 個角色，點一個開始冒險。`;
+function showChars(list,act){$('#ui').hidden=true;$('#chat').hidden=true;$('#charHi').textContent=`${myName}，最多可以建立 6 個角色，點一個開始冒險。`;
   $('#slots').innerHTML=list.map((c,i)=>c?`<div class="slotc${i===act?' act':''}"><canvas width="26" height="26" data-sc="${i}"></canvas><b>${CL[c.cls].name}　Lv ${c.lv}</b><span class="d">${c.jobName} · ${c.map}</span><div class="row"><button class="btn pri sm" data-use="${i}">進入遊戲</button><button class="btn sm" data-del="${i}">刪除</button></div></div>`
     :`<button class="slotc empty" data-new="${i}"><b>＋</b><span class="d">第 ${i+1} 格・建立新角色</span></button>`).join('');
   list.forEach((c,i)=>{if(!c)return;const pc=$(`[data-sc="${i}"]`),c2=pc.getContext('2d');b.clearRect(0,0,26,26);drawBody({x:13,y:25,f:1,cls:c.cls,ground:true,walk:0,act:0,rope:null,job:c.job,wep:0},0,0);c2.drawImage(buf,0,0,26,26,0,0,26,26)});
@@ -826,7 +870,7 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
   sock.on('respawn',d=>{const m=mons[d.i];if(m){m.dead=0;m.hp=m.max;fx.push({t:'poof',x:m.x,y:m.y-m.h/2,life:14})}});
   sock.on('drop',list=>{for(const x of list)drops.push({...x,ty:x.y,y:x.fy,vy:-2.6})});
   sock.on('dgone',d=>{drops=drops.filter(x=>x.id!==d.id)});
-  sock.on('stomp',d=>{if(P&&!P.dead&&P.ground&&P.inv<=0&&Math.abs(P.x-d.x)<120&&Math.abs(P.y-GY)<10)hurtHero(d.atk,d.x);fx.push({t:'wave',x:d.x,y:GY,life:24})});
+  sock.on('stomp',d=>{if(P&&!P.dead&&P.ground&&P.inv<=0&&Math.abs(P.x-d.x)<85&&Math.abs(P.y-GY)<10)hurtHero(d.atk,d.x);fx.push({t:'wave',x:d.x,y:GY,life:24})});
   sock.on('aid',d=>{if(!P)return;const who=d.by===myId?'':`${d.name} 的`;
     const hb=1+(d.hb||0);
     if(d.k==='s1'){if(P.dead)return;const h=Math.round(P.max.hp*.2*hb);P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}

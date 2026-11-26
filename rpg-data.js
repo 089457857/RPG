@@ -1,6 +1,7 @@
 // 屁眼王國大冒險 — 伺服器與瀏覽器共用的遊戲資料
 (function (root) {
   const MAXLV = 80;
+  const MAXSLOT = 6; // 每個帳號最多 6 個角色
   const CL = {
     warrior: { name: '戰士', col: '#d8433a', col2: '#8c2a24', desc: '近戰揮砍，血厚耐打，一刀打一排。', base: { hp: 100, mp: 30, atk: 12, def: 6, crit: 5 }, grow: { hp: 22, mp: 4, atk: 2.9, def: 1.7 }, dr: .75,
       jobs: ['戰士', '騎士', '聖騎士', '龍騎士', '劍聖'], jobDesc: ['', '鍛鍊劍技的騎士，破甲斬能讓敵人受到更多傷害。', '受聖光守護的騎士，召喚光柱審判周圍一切。', '與龍魂締約，龍息能焚盡前方一整排敵人。', '劍道的極致，五把巨劍接連飛出貫穿一切。'] },
@@ -63,27 +64,27 @@
     slime: { name: '果凍史萊姆', lv: 1, hp: 32, atk: 8, exp: 8, gold: [3, 6], w: 14, h: 11, spd: .45 },
     shroom: { name: '紅帽蘑菇', lv: 4, hp: 75, atk: 14, exp: 18, gold: [6, 12], w: 14, h: 16, spd: .55 },
     stump: { name: '憤怒樹墩', lv: 7, hp: 150, atk: 22, exp: 34, gold: [12, 20], w: 16, h: 17, spd: .4 },
-    king: { name: '巨菇王', lv: 10, hp: 2400, atk: 34, exp: 600, gold: [250, 320], w: 44, h: 40, spd: .5, boss: true, sk: ['slam', 'rain', 'charge'], skn: { rain: '孢子雨', charge: '蘑菇衝撞', slam: '重壓' } },
+    king: { name: '巨菇王', lv: 10, hp: 2400, atk: 34, exp: 600, gold: [250, 320], w: 44, h: 40, spd: .5, boss: true, sk: ['slam', 'roll', 'bounce'], skn: { slam: '巨菇重壓（跳起來躲）', roll: '滾動巨菇（跳過去）', bounce: '蘑菇跳壓（離開紅圈）' } },
     snowslime: { name: '雪球史萊姆', lv: 16, hp: 380, atk: 62, exp: 72, gold: [30, 45], w: 14, h: 11, spd: .5 },
     icewolf: { name: '冰原狼', lv: 20, hp: 520, atk: 80, exp: 96, gold: [40, 60], w: 20, h: 13, spd: .75 },
     yeti: { name: '雪怪', lv: 24, hp: 740, atk: 100, exp: 128, gold: [55, 80], w: 18, h: 22, spd: .4 },
-    frost: { name: '冰霜巨人', lv: 28, hp: 13000, atk: 150, exp: 2600, gold: [1500, 2000], w: 46, h: 48, spd: .45, boss: true, sk: ['slam', 'rain', 'breath', 'quake'], skn: { rain: '冰錐墜落', breath: '寒冰吐息', quake: '冰原震波', slam: '重壓' } },
+    frost: { name: '冰霜巨人', lv: 28, hp: 13000, atk: 150, exp: 2600, gold: [1500, 2000], w: 46, h: 48, spd: .45, boss: true, sk: ['pillars', 'frostbreath', 'icering'], skn: { pillars: '冰錐陣（站在空隙）', frostbreath: '寒霜吐息（會被減速，繞到背後）', icering: '冰環爆發（離開它身邊）' } },
     fireslime: { name: '熔岩史萊姆', lv: 30, hp: 900, atk: 130, exp: 190, gold: [80, 110], w: 14, h: 11, spd: .5 },
     imp: { name: '火焰小惡魔', lv: 33, hp: 1150, atk: 155, exp: 232, gold: [95, 130], w: 14, h: 16, spd: .7 },
     golem: { name: '岩漿魔像', lv: 36, hp: 1550, atk: 185, exp: 285, gold: [120, 160], w: 20, h: 22, spd: .35 },
-    balrog: { name: '炎魔王', lv: 38, hp: 42000, atk: 260, exp: 8000, gold: [5000, 6000], w: 50, h: 52, spd: .45, boss: true, sk: ['slam', 'rain', 'breath', 'charge', 'quake'], skn: { rain: '隕石雨', breath: '烈焰吐息', charge: '炎魔突進', quake: '熔岩震波', slam: '重壓' } },
+    balrog: { name: '炎魔王', lv: 38, hp: 42000, atk: 260, exp: 8000, gold: [5000, 6000], w: 50, h: 52, spd: .45, boss: true, sk: ['rain', 'pull', 'firefloor'], skn: { rain: '隕石雨（避開紅點）', pull: '熔岩漩渦（往外跑）', firefloor: '火海輪替（跑到另一邊）' } },
     knight: { name: '暗影騎士', lv: 45, hp: 3200, atk: 300, exp: 520, gold: [200, 260], w: 16, h: 24, spd: .55 },
     gargoyle: { name: '石像鬼', lv: 50, hp: 4300, atk: 350, exp: 650, gold: [240, 320], w: 20, h: 20, spd: .6 },
     reaper: { name: '死神', lv: 56, hp: 5600, atk: 410, exp: 800, gold: [300, 400], w: 18, h: 26, spd: .5 },
-    dragon: { name:'黑龍王',lv:65,hp:120000,atk:480, exp: 32000, gold: [20000, 25000], w: 60, h: 50, spd: .45, boss: true, sk: ['breath', 'rain', 'quake', 'charge', 'slam'], skn: { rain: '暗黑流星', breath: '龍息', charge: '龍爪突襲', quake: '龍威震地', slam: '重壓' } },
+    dragon: { name:'黑龍王',lv:65,hp:120000,atk:480, exp: 32000, gold: [20000, 25000], w: 60, h: 50, spd: .45, boss: true, sk: ['breath', 'charge', 'tail'], skn: { breath: '龍息（繞到背後）', charge: '龍爪突襲（躲開箭頭方向）', tail: '甩尾（別站在牠背後）' } },
     seraph: { name: '墮落天使', lv: 66, hp: 8000, atk: 480, exp: 1100, gold: [340, 440], w: 18, h: 24, spd: .6 },
     stargolem: { name: '星辰魔像', lv: 70, hp: 10000, atk: 520, exp: 1300, gold: [380, 480], w: 22, h: 24, spd: .35 },
     phoenix: { name: '不死鳥', lv: 74, hp: 12000, atk: 560, exp: 1550, gold: [420, 540], w: 22, h: 18, spd: .75 },
     voidling: { name: '虛空獵手', lv: 86, hp: 34000, atk: 950, exp: 4200, gold: [1500, 2000], w: 16, h: 18, spd: .8, leg: .004 },
     chaosknight: { name: '混沌騎士', lv: 90, hp: 48000, atk: 1050, exp: 5200, gold: [1800, 2400], w: 18, h: 26, spd: .5, leg: .006 },
     abyssmage: { name: '深淵魔導師', lv: 94, hp: 62000, atk: 1150, exp: 6400, gold: [2200, 2800], w: 16, h: 24, spd: .45, leg: .008 },
-    voidking: { name: '虛空之主', lv: 100, hp: 1200000, atk: 1300, exp: 250000, gold: [80000, 100000], w: 64, h: 62, spd: .45, boss: true, leg: .35, sk: ['quake', 'rain', 'breath', 'charge', 'rain', 'breath'], skn: { rain: '虛空隕滅', breath: '混沌吐息', charge: '裂隙突進', quake: '維度崩塌', slam: '重壓' } },
-    titan: { name: '天穹泰坦', lv: 80, hp: 240000, atk: 600, exp: 60000, gold: [30000, 40000], w: 62, h: 60, spd: .4, boss: true, sk: ['quake', 'rain', 'breath', 'charge', 'slam', 'rain'], skn: { rain: '星墜', breath: '天罰光柱', charge: '泰坦衝鋒', quake: '天崩地裂', slam: '重壓' } },
+    voidking: { name: '虛空之主', lv: 100, hp: 1200000, atk: 1300, exp: 250000, gold: [80000, 100000], w: 64, h: 62, spd: .45, boss: true, leg: .35, sk: ['homing', 'orbit', 'split'], skn: { homing: '混沌追蹤（一直移動甩掉）', orbit: '虛空環繞（別貼在它身邊）', split: '虛空分裂（低的跳過、高的別跳）' } },
+    titan: { name: '天穹泰坦', lv: 80, hp: 240000, atk: 600, exp: 60000, gold: [30000, 40000], w: 62, h: 60, spd: .4, boss: true, sk: ['quake', 'laser', 'safe'], skn: { quake: '天崩地裂（跳過震波）', laser: '天罰橫掃（站在地上別跳）', safe: '神之審判（站進綠色安全區）' } },
   };
   const GY = 300, WH = 340, WW = 2600;
   const SEG = [{ x1: 0, x2: WW, y: GY, g: 1 },
@@ -167,15 +168,15 @@
   const MOUNTLV = 10;
   // 坐騎：spd 移動倍率、jump 跳躍高度倍率、glide 按住跳躍可以滑翔；price 0 = 不能買（drop 表示由哪隻 Boss 掉落）
   const MOUNTS = {
-    horse: { n: '棕色小馬', lv: 10, price: 0, spd: 2.2, jump: 1, d: '10 等送的基本坐騎' },
-    wolf: { n: '雪原狼', lv: 20, price: 8000, spd: 2.4, jump: 1.15, d: '跑得快、跳得也比較高' },
-    lion: { n: '黃金獅子', lv: 35, price: 30000, spd: 2.6, jump: 1.25, d: '威風凜凜的萬獸之王' },
-    moto: { n: '重型機車', lv: 50, price: 80000, spd: 2.95, jump: 1, d: '直線速度很快，但跳不高' },
-    dragon: { n: '黑龍', lv: 55, price: 0, drop: 'dragon', rate: .08, spd: 3.1, jump: 1.4, glide: 1, d: '黑龍王掉落（8%）。按住跳躍可以滑翔' },
-    cloud: { n: '筋斗雲', lv: 65, price: 0, drop: 'titan', rate: .06, spd: 3.25, jump: 1.55, glide: 1, d: '天穹泰坦掉落（6%）。跳得最高，可以滑翔' },
-    void: { n: '虛空戰獸', lv: 75, price: 0, drop: 'voidking', rate: .12, spd: 3.45, jump: 1.45, glide: 1, d: '虛空之主掉落（12%）。最快的坐騎' },
+    horse: { dr: 0.25, n: '棕色小馬', lv: 10, price: 0, spd: 2.2, jump: 1, d: '10 等送的基本坐騎' },
+    wolf: { dr: 0.28, n: '雪原狼', lv: 20, price: 8000, spd: 2.4, jump: 1.15, d: '跑得快、跳得也比較高' },
+    lion: { dr: 0.32, n: '黃金獅子', lv: 35, price: 30000, spd: 2.6, jump: 1.25, d: '威風凜凜的萬獸之王' },
+    moto: { dr: 0.3, n: '重型機車', lv: 50, price: 80000, spd: 2.95, jump: 1, d: '直線速度很快，但跳不高' },
+    dragon: { dr: 0.36, n: '黑龍', lv: 55, price: 0, drop: 'dragon', rate: .08, spd: 3.1, jump: 1.4, glide: 1, d: '黑龍王掉落（8%）。按住跳躍可以滑翔' },
+    cloud: { dr: 0.38, n: '筋斗雲', lv: 65, price: 0, drop: 'titan', rate: .06, spd: 3.25, jump: 1.55, glide: 1, d: '天穹泰坦掉落（6%）。跳得最高，可以滑翔' },
+    void: { dr: 0.4, n: '虛空戰獸', lv: 75, price: 0, drop: 'voidking', rate: .12, spd: 3.45, jump: 1.45, glide: 1, d: '虛空之主掉落（12%）。最快的坐騎' },
   };
   for (const m of MAPS) { if (!m.seg) m.seg = SEG; if (!m.ropes) m.ropes = ROPES; }
-  const D = { MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
