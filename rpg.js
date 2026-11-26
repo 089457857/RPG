@@ -21,10 +21,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   const G = .34;
 
   // ---------------- 世界（每張地圖一個） ----------------
-  const worlds = D.MAPS.map((m, mi) => ({ mi, mons: m.spawns.map((sp, i) => mkMon(sp, i)), drops: new Map(), players: new Map(), dseq: 1 }));
-  function mkMon(sp, i) {
-    const m = D.MON[sp.t], seg = D.SEG[sp.s], a = sp.a ?? seg.x1 + 10, b = sp.b ?? seg.x2 - 10;
-    return { i, t: sp.t, sp, x: rnd(a, b), seg: sp.s, a, b, vx: 0, f: Math.random() < .5 ? -1 : 1, hp: m.hp, max: m.hp, dead: 0, hurt: 0, aggro: 0, target: null, think: ri(30, 120), hop: 0, vy: 0, w: m.w, kx: 0, frozen: 0, stomp: ri(120, 200), dmgBy: {}, warn: 0, dash: 0, rage: 0, pend: null, root: 0, vuln: 0 };
+  const worlds = D.MAPS.map((m, mi) => ({ mi, mons: m.spawns.map((sp, i) => mkMon(sp, i, mi)), drops: new Map(), players: new Map(), dseq: 1 }));
+  function mkMon(sp, i, mi) {
+    const m = D.MON[sp.t], seg = D.MAPS[mi].seg[sp.s], a = sp.a ?? seg.x1 + 10, b = sp.b ?? seg.x2 - 10;
+    return { mi, i, t: sp.t, sp, x: rnd(a, b), seg: sp.s, a, b, vx: 0, f: Math.random() < .5 ? -1 : 1, hp: m.hp, max: m.hp, dead: 0, hurt: 0, aggro: 0, target: null, think: ri(30, 120), hop: 0, vy: 0, w: m.w, kx: 0, frozen: 0, stomp: ri(120, 200), dmgBy: {}, warn: 0, dash: 0, rage: 0, pend: null, root: 0, vuln: 0 };
   }
   const char = uid => D.fix(S.rpg[uid]);
   const nameOf = uid => S.users[uid]?.name || '玩家';
@@ -42,10 +42,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   }, TICK);
   function stepMon(w, m) {
     const d = D.MON[m.t];
-    if (m.dead) { m.dead--; if (m.dead <= 0) { Object.assign(m, mkMon(m.sp, m.i)); ns.to('m' + w.mi).emit('respawn', { i: m.i }); } return; }
+    if (m.dead) { m.dead--; if (m.dead <= 0) { Object.assign(m, mkMon(m.sp, m.i, m.mi)); ns.to('m' + w.mi).emit('respawn', { i: m.i }); } return; }
     // 30Hz 模擬，速度 ×2 對齊瀏覽器的 60Hz
     if (m.hurt > 0) m.hurt -= 2; if (m.aggro > 0) m.aggro -= 2;
-    const seg = D.SEG[m.seg];
+    const seg = D.MAPS[m.mi].seg[m.seg];
     if (m.root > 0) m.root -= 2;
     if (m.frozen > 0) { m.frozen -= 2; m.kx = 0; }
     else if (m.kx) { m.x += m.kx * 1.6; m.kx *= .64; if (Math.abs(m.kx) < .1) m.kx = 0; }
@@ -66,16 +66,24 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   // ---------------- Boss 招式 ----------------
   // 伺服器決定 Boss 何時放什麼招、打哪裡；每位玩家的瀏覽器依預警範圍自行判定是否被打中。
   function bossAI(w, m, d) {
+    // 打不到任何人時快速回血：沒有活著的玩家站在 Boss 這一層附近（例如全躲在高處平台上偷打）
+    const sy = D.MAPS[m.mi].seg[m.seg].y;
+    let reach = false; for (const p of w.players.values()) if (!p.dead && Math.abs(p.x - m.x) < 450 && p.y > sy - 50 && p.y < sy + 20) { reach = true; break; }
+    if (reach || m.hp >= m.max) { m.noReach = 0; if (m.regen) { m.regen = 0; } }
+    else if ((m.noReach = (m.noReach || 0) + 1) > 120) {
+      if (!m.regen) { m.regen = 1; ns.to('m' + w.mi).emit('sys', { t: `${d.name} 碰不到任何人，開始快速回血！快下來跟它正面對決！` }); }
+      m.hp = Math.min(m.max, m.hp + m.max * .03 / 30);
+    }
     const rage = m.hp < m.max * .3;
     if (rage && !m.rage) { m.rage = 1; ns.to('m' + w.mi).emit('sys', { t: `${d.name} 暴怒了！招式變得更快更兇！` }); }
     if (m.warn > 0) { m.vx = 0; if ((m.warn -= 1) <= 0 && m.pend === 'charge') { m.dash = 16; } return; }
     if (m.dash > 0) {
-      m.dash--; const seg = D.SEG[m.seg], lo = Math.max(seg.x1 + m.w / 2, m.a), hi = Math.min(seg.x2 - m.w / 2, m.b);
+      m.dash--; const seg = D.MAPS[m.mi].seg[m.seg], lo = Math.max(seg.x1 + m.w / 2, m.a), hi = Math.min(seg.x2 - m.w / 2, m.b);
       m.x = clamp(m.x + m.f * 8, lo, hi); m.vx = 0; return;
     }
     if (!m.aggro || m.frozen || m.hop < 0 || (m.stomp -= rage ? 3 : 2) > 0) return;
     m.stomp = ri(120, 190);
-    const k = d.sk[ri(0, d.sk.length - 1)], atk = Math.round(d.atk * (rage ? 1.2 : 1)), seg = D.SEG[m.seg];
+    const k = d.sk[ri(0, d.sk.length - 1)], atk = Math.round(d.atk * (rage ? 1.2 : 1)), seg = D.MAPS[m.mi].seg[m.seg];
     const tp = m.target && w.players.get(m.target);
     if (tp && !tp.dead) m.f = tp.x < m.x ? -1 : 1;
     const ev = { i: m.i, k, n: (d.skn && d.skn[k]) || '', x: Math.round(m.x), y: seg.y, f: m.f, atk, rage: rage ? 1 : 0 };
@@ -107,7 +115,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     const d = D.MON[m.t];
     m.dead = d.boss ? 30 * 90 : 30 * 7; m.hp = 0;
     ns.to('m' + w.mi).emit('kill', { i: m.i });
-    const y = D.SEG[m.seg].y, now = Date.now(), news = [];
+    const y = D.MAPS[m.mi].seg[m.seg].y, now = Date.now(), news = [];
     const add = (t, v, dx) => { const id = w.dseq++; const dr = { id, t, v, x: clamp(m.x + dx, 10, D.WW - 10), y, until: now + 25000, fy: y - m.w * .5 }; w.drops.set(id, dr); news.push(dr); };
     add('gold', ri(...d.gold), 0);
     if (Math.random() < (d.boss ? 1 : .12)) add(Math.random() < .6 ? 'pot' : 'eth', 1, 8);
@@ -189,10 +197,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('apreset', (_, ack) => {
       const c = char(uid); if (!c) return ack && ack({ ok: false });
       const used = Object.values(c.st).reduce((a, b) => a + b, 0); if (!used) return ack && ack({ ok: false, msg: '還沒有分配任何點數' });
-      if (c.gold < D.APRESET) return ack && ack({ ok: false, msg: `重置需要 ${D.APRESET} 金幣` });
-      c.gold -= D.APRESET; c.ap += used; c.st = { str: 0, vit: 0, int: 0, dex: 0 }; save(); ack && ack({ ok: true, me: me(uid) });
+      if (c.gold < D.APRESET) return ack && ack({ ok: false, msg: `重置需要 ${D.APRESET} 金幣` }); c.gold -= D.APRESET; c.ap += used; c.st = { str: 0, vit: 0, int: 0, dex: 0 }; save(); ack && ack({ ok: true, me: me(uid) });
     });
-    socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); enter(c.map || 0); ack && ack({ ok: true }); });
+    socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); enter(c.map || 0); ack && ack({ ok: true });
+      if (c.apComp) { delete c.apComp; save(); socket.emit('notice', { t: `能力值系統改版補償：獲得 ${D.APRESET.toLocaleString()} 金幣，可以到「能力」重新配點！` }); } });
     socket.on('pos', (p = {}) => {
       if (!w) return;
       pl.x = clamp(+p.x || 0, 0, D.WW); pl.y = clamp(+p.y || 0, -100, D.WH + 60); pl.f = p.f < 0 ? -1 : 1; pl.act = p.act ? 1 : 0; pl.rope = p.rope ? 1 : 0; pl.dead = p.dead ? 1 : 0;
@@ -209,7 +217,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         const mult = clamp(+h.mult || 1, .1, 3.2), cb = clamp(+h.cb || 0, 0, 40);
         const crit = Math.random() * 100 < st.crit + cb;
         const boss = D.MON[m.t].boss;
-        let dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? 1.7 : 1) * (now < m.vuln ? 1.2 : 1)));
+        let dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? st.critD || 1.7 : 1) * (now < m.vuln ? 1.2 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1)));
         // 靈魂收割：直接處決殘血的一般怪
         if (h.ex && !boss && m.hp - dmg < m.max * .15) dmg = Math.max(dmg, Math.ceil(m.hp));
         if (h.vu) m.vuln = now + 8000;
@@ -236,7 +244,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('aid', ({ k } = {}, ack) => {
       const c = char(uid); if (!w || !c || c.cls !== 'angel' || !['s1', 's3', 's4', 's6'].includes(k) || D.skillLock(c, k)) return;
       const now = Date.now(); if (now - (pl.aidT || 0) < 600) return; pl.aidT = now;
-      for (const o of w.players.values()) if (Math.abs(o.x - pl.x) < 300 && Math.abs(o.y - pl.y) < 160) ns.to('u:' + o.uid).emit('aid', { k, by: uid, name: nameOf(uid) });
+      for (const o of w.players.values()) if (Math.abs(o.x - pl.x) < 300 && Math.abs(o.y - pl.y) < 160) ns.to('u:' + o.uid).emit('aid', { k, by: uid, name: nameOf(uid), hb: D.stats(c).healB || 0 });
     });
     socket.on('pick', ({ id } = {}, ack) => {
       const c = char(uid); if (!w || !c) return;
@@ -280,6 +288,12 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (c.pet) { if (c.gold < D.PETSWAP) return ack && ack({ ok: false, msg: `更換寵物需要 ${D.PETSWAP} 金幣` }); c.gold -= D.PETSWAP; }
       c.pet = p; save(); ack && ack({ ok: true, me: me(uid) });
       if (w) ns.to('m' + w.mi).emit('sys', { t: `${nameOf(uid)} 的寵物「${D.PETS[p].n}」現身了！` });
+    });
+    socket.on('slots', ({ slots } = {}, ack) => {
+      const c = char(uid); if (!c || !Array.isArray(slots) || slots.length !== D.SLOTN) return ack && ack({ ok: false });
+      const sk = D.SK[c.cls], seen = new Set();
+      for (const k of slots) { if (k === '') continue; if (k === 'atk' || !sk[k] || seen.has(k)) return ack && ack({ ok: false, msg: '技能配置有誤' }); seen.add(k); }
+      c.slots = slots.map(String); save(); ack && ack({ ok: true, me: me(uid) });
     });
     socket.on('advance', (_, ack) => {
       const c = char(uid); if (!c) return ack && ack({ ok: false });
