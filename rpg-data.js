@@ -129,7 +129,7 @@
   function mainAtk(cls, s) { const m = MAIN[cls] || ['str']; const k = m.length > 1 ? .75 : 1; return m.reduce((a, x) => a + eff(s[x]) * 1.3 * k, 0); }
   function newChar(cls) { return { slots: [...DEFSLOTS], cls, lv: 1, exp: 0, gold: 20, pot: 5, eth: 3, base: { ...CL[cls].base }, job: 0, wep: 0, arm: 0, map: 0, ap: 0, apv: 2, st: { str: 0, vit: 0, int: 0, dex: 0 } }; }
   // 舊存檔補上能力值（依目前等級補發點數）
-  function fix(c) { if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; return c; }
+  function fix(c) { if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
   // 寵物：65 等解鎖，四選一；之後可花金幣更換
   const PETLV = 65, PETSWAP = 30000;
   const PETS = {
@@ -165,7 +165,17 @@
   }
   function skillLock(c, k) { const s = SK[c.cls][k]; if (!s) return '無此技能'; if (s.lv && c.lv < s.lv) return `Lv ${s.lv}`; if (s.job && c.job < s.job) return ['', '一轉', '二轉', '三轉', '四轉'][s.job]; return ''; }
   const MOUNTLV = 10;
+  // 坐騎：spd 移動倍率、jump 跳躍高度倍率、glide 按住跳躍可以滑翔；price 0 = 不能買（drop 表示由哪隻 Boss 掉落）
+  const MOUNTS = {
+    horse: { n: '棕色小馬', lv: 10, price: 0, spd: 2.2, jump: 1, d: '10 等送的基本坐騎' },
+    wolf: { n: '雪原狼', lv: 20, price: 8000, spd: 2.4, jump: 1.15, d: '跑得快、跳得也比較高' },
+    lion: { n: '黃金獅子', lv: 35, price: 30000, spd: 2.6, jump: 1.25, d: '威風凜凜的萬獸之王' },
+    moto: { n: '重型機車', lv: 50, price: 80000, spd: 2.95, jump: 1, d: '直線速度很快，但跳不高' },
+    dragon: { n: '黑龍', lv: 55, price: 0, drop: 'dragon', rate: .08, spd: 3.1, jump: 1.4, glide: 1, d: '黑龍王掉落（8%）。按住跳躍可以滑翔' },
+    cloud: { n: '筋斗雲', lv: 65, price: 0, drop: 'titan', rate: .06, spd: 3.25, jump: 1.55, glide: 1, d: '天穹泰坦掉落（6%）。跳得最高，可以滑翔' },
+    void: { n: '虛空戰獸', lv: 75, price: 0, drop: 'voidking', rate: .12, spd: 3.45, jump: 1.45, glide: 1, d: '虛空之主掉落（12%）。最快的坐騎' },
+  };
   for (const m of MAPS) { if (!m.seg) m.seg = SEG; if (!m.ropes) m.ropes = ROPES; }
-  const D = { MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);

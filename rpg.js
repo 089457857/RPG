@@ -115,7 +115,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ns.to('m' + w.mi).emit('st', { m, p });
     }
   }, 100);
-  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount ? 1 : 0]; }
+  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0]; }
 
   // ---------------- 擊殺與經驗 ----------------
   function kill(w, m, killer) {
@@ -127,6 +127,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     add('gold', ri(...d.gold), 0);
     if (Math.random() < (d.boss ? 1 : .12)) add(Math.random() < .6 ? 'pot' : 'eth', 1, 8);
     if (d.boss) for (let k = 0; k < 4; k++) add('gold', Math.round(ri(...d.gold) / 6), rnd(-30, 30));
+    for (const [id, mt] of Object.entries(D.MOUNTS)) if (mt.drop === m.t && Math.random() < mt.rate) { add('mnt:' + id, 1, 14); ns.to('m' + w.mi).emit('sys', { t: `🐎 ${d.name} 掉落了坐騎「${mt.n}」！` }); }
     if (d.leg && Math.random() < d.leg) { add('leg', 1, -10); ns.to('m' + w.mi).emit('sys', { t: `✦ ${d.name} 掉落了傳說武器！快去撿！` }); }
     ns.to('m' + w.mi).emit('drop', news);
     // 經驗：所有有出手、仍在這張地圖的玩家都分得到，一起打比較划算
@@ -211,7 +212,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('pos', (p = {}) => {
       if (!w) return;
       pl.x = clamp(+p.x || 0, 0, D.WW); pl.y = clamp(+p.y || 0, -100, D.WH + 60); pl.f = p.f < 0 ? -1 : 1; pl.act = p.act ? 1 : 0; pl.rope = p.rope ? 1 : 0; pl.dead = p.dead ? 1 : 0;
-      pl.hpPct = clamp(Math.round(+p.hp || 0), 0, 100); pl.clone = p.clone ? 1 : 0; pl.mount = p.mount && (char(uid)?.lv || 0) >= D.MOUNTLV ? 1 : 0;
+      pl.hpPct = clamp(Math.round(+p.hp || 0), 0, 100); pl.clone = p.clone ? 1 : 0; pl.mount = p.mount && (char(uid)?.lv || 0) >= D.MOUNTLV ? (char(uid).mnt || 'horse') : 0;
     });
     socket.on('hit', (list) => {
       const c = char(uid); if (!w || !c || !Array.isArray(list) || pl.dead || pl.mount) return;
@@ -260,6 +261,11 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       w.drops.delete(id);
       let leg = null;
       if (d.t === 'gold') c.gold += d.v;
+      else if (d.t.startsWith('mnt:')) {
+        const id = d.t.slice(4), mt = D.MOUNTS[id];
+        if (!mt || c.mounts.includes(id)) { c.gold += 30000; leg = { mntDup: mt ? mt.n : '' }; }
+        else { c.mounts.push(id); leg = { mnt: id }; ns.to('m' + w.mi).emit('sys', { t: `🐎 ${nameOf(uid)} 獲得了坐騎「${mt.n}」！` }); }
+      }
       else if (d.t === 'leg') {
         if (c.wep === D.LEGI) { c.gold += D.LEGGOLD; leg = { dup: 1 }; }
         else { c.wep = D.LEGI; leg = { name: D.WEAPONS[c.cls][D.LEGI][0] }; ns.to('m' + w.mi).emit('sys', { t: `✦ ${nameOf(uid)} 獲得了傳說武器「${leg.name}」！` }); }
@@ -285,8 +291,18 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         const it = D.ARMORS[i | 0]; if (!it || (i | 0) <= c.arm) return no('無法購買');
         if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); if (c.gold < it[4]) return no('金幣不足');
         c.gold -= it[4]; c.arm = i | 0;
+      } else if (k === 'mount') {
+        const mt = D.MOUNTS[i]; if (!w || w.mi !== 0) return no('要在晨露村才能購買');
+        if (!mt || !mt.price) return no('這個坐騎買不到，只能打 Boss 取得'); if (c.mounts.includes(i)) return no('已經擁有了');
+        if (c.lv < mt.lv) return no(`需要 Lv ${mt.lv}`); if (c.gold < mt.price) return no('金幣不足');
+        c.gold -= mt.price; c.mounts.push(i); c.mnt = i;
       } else return no('無法購買');
       save(); ack && ack({ ok: true, me: me(uid), rest: k === 'rest' });
+    });
+    socket.on('setMount', ({ id } = {}, ack) => {
+      const c = char(uid); if (!c || !D.MOUNTS[id] || !c.mounts.includes(id)) return ack && ack({ ok: false, msg: '還沒有這個坐騎' });
+      if (c.lv < D.MOUNTS[id].lv) return ack && ack({ ok: false, msg: `需要 Lv ${D.MOUNTS[id].lv}` });
+      c.mnt = id; save(); ack && ack({ ok: true, me: me(uid) });
     });
     socket.on('pet', ({ p } = {}, ack) => {
       const c = char(uid); if (!c || !D.PETS[p]) return ack && ack({ ok: false });
