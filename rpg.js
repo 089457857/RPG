@@ -24,7 +24,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   const worlds = D.MAPS.map((m, mi) => ({ mi, mons: m.spawns.map((sp, i) => mkMon(sp, i)), drops: new Map(), players: new Map(), dseq: 1 }));
   function mkMon(sp, i) {
     const m = D.MON[sp.t], seg = D.SEG[sp.s], a = sp.a ?? seg.x1 + 10, b = sp.b ?? seg.x2 - 10;
-    return { i, t: sp.t, sp, x: rnd(a, b), seg: sp.s, a, b, vx: 0, f: Math.random() < .5 ? -1 : 1, hp: m.hp, max: m.hp, dead: 0, hurt: 0, aggro: 0, target: null, think: ri(30, 120), hop: 0, vy: 0, w: m.w, kx: 0, frozen: 0, stomp: ri(120, 200), dmgBy: {}, warn: 0, dash: 0, rage: 0, pend: null };
+    return { i, t: sp.t, sp, x: rnd(a, b), seg: sp.s, a, b, vx: 0, f: Math.random() < .5 ? -1 : 1, hp: m.hp, max: m.hp, dead: 0, hurt: 0, aggro: 0, target: null, think: ri(30, 120), hop: 0, vy: 0, w: m.w, kx: 0, frozen: 0, stomp: ri(120, 200), dmgBy: {}, warn: 0, dash: 0, rage: 0, pend: null, root: 0, vuln: 0 };
   }
   const char = uid => D.fix(S.rpg[uid]);
   const nameOf = uid => S.users[uid]?.name || '玩家';
@@ -46,9 +46,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     // 30Hz 模擬，速度 ×2 對齊瀏覽器的 60Hz
     if (m.hurt > 0) m.hurt -= 2; if (m.aggro > 0) m.aggro -= 2;
     const seg = D.SEG[m.seg];
+    if (m.root > 0) m.root -= 2;
     if (m.frozen > 0) { m.frozen -= 2; m.kx = 0; }
     else if (m.kx) { m.x += m.kx * 1.6; m.kx *= .64; if (Math.abs(m.kx) < .1) m.kx = 0; }
-    else if (m.hurt < 6 && !(m.warn > 0) && !(m.dash > 0)) {
+    else if (m.hurt < 6 && !(m.warn > 0) && !(m.dash > 0) && !(m.root > 0)) {
       const tp = m.aggro && m.target ? w.players.get(m.target) : null;
       if (tp && !tp.dead && Math.abs(tp.y - seg.y) < 60) { m.f = tp.x < m.x ? -1 : 1; m.vx = d.spd * 1.5 * m.f; }
       else if ((m.think -= 2) <= 0) { m.think = ri(60, 180); const r = Math.random(); m.vx = r < .3 ? 0 : d.spd * (Math.random() < .5 ? -1 : 1); if (m.vx) m.f = Math.sign(m.vx); }
@@ -99,7 +100,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ns.to('m' + w.mi).emit('st', { m, p });
     }
   }, 100);
-  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '']; }
+  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount ? 1 : 0]; }
 
   // ---------------- 擊殺與經驗 ----------------
   function kill(w, m, killer) {
@@ -195,10 +196,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('pos', (p = {}) => {
       if (!w) return;
       pl.x = clamp(+p.x || 0, 0, D.WW); pl.y = clamp(+p.y || 0, -100, D.WH + 60); pl.f = p.f < 0 ? -1 : 1; pl.act = p.act ? 1 : 0; pl.rope = p.rope ? 1 : 0; pl.dead = p.dead ? 1 : 0;
-      pl.hpPct = clamp(Math.round(+p.hp || 0), 0, 100); pl.clone = p.clone ? 1 : 0;
+      pl.hpPct = clamp(Math.round(+p.hp || 0), 0, 100); pl.clone = p.clone ? 1 : 0; pl.mount = p.mount && (char(uid)?.lv || 0) >= D.MOUNTLV ? 1 : 0;
     });
     socket.on('hit', (list) => {
-      const c = char(uid); if (!w || !c || !Array.isArray(list) || pl.dead) return;
+      const c = char(uid); if (!w || !c || !Array.isArray(list) || pl.dead || pl.mount) return;
       const now = Date.now(); if (now - rate.t > 1000) { rate = { t: now, n: 0 }; }
       const st = D.stats(c), out = []; let dealt = 0;
       for (const h of list.slice(0, 20)) {
@@ -207,9 +208,15 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         if (Math.abs(m.x - pl.x) > 360) continue;
         const mult = clamp(+h.mult || 1, .1, 3.2), cb = clamp(+h.cb || 0, 0, 40);
         const crit = Math.random() * 100 < st.crit + cb;
-        const dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? 1.7 : 1)));
+        const boss = D.MON[m.t].boss;
+        let dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? 1.7 : 1) * (now < m.vuln ? 1.2 : 1)));
+        // 靈魂收割：直接處決殘血的一般怪
+        if (h.ex && !boss && m.hp - dmg < m.max * .15) dmg = Math.max(dmg, Math.ceil(m.hp));
+        if (h.vu) m.vuln = now + 8000;
+        if (h.rt && !boss) m.root = 75;
         m.hp -= dmg; m.hurt = 28; m.aggro = 840; m.target = uid; m.dmgBy[uid] = (m.dmgBy[uid] || 0) + dmg;
-        if (!D.MON[m.t].boss && h.kb) m.kx = clamp(+h.kb, 0, 4) * (m.x < pl.x ? -1 : 1);
+        if (!boss && h.pl) m.kx = clamp((pl.x + (m.x < pl.x ? -20 : 20) - m.x) / 4.4, -40, 40);
+        else if (!boss && h.kb) m.kx = clamp(+h.kb, 0, 4) * (m.x < pl.x ? -1 : 1);
         // 冰凍：一般怪 1 秒、Boss 0.5 秒；被凍過之後有抗凍時間，避免一直被凍住
         // 冰凍：Boss 免疫；凍結 0.75 秒，解凍後 3 秒內不會再被凍住
         if (h.fz && !D.MON[m.t].boss && now > (m.fzImm || 0)) { m.frozen = 45; m.fzImm = now + 750 + 3000; }
@@ -224,7 +231,13 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         if (heal > 0) { pl.ls = (pl.ls || 0) + heal; socket.emit('heal', { hp: heal }); }
       }
     });
-    socket.on('cast', (p = {}) => { if (!w || !char(uid)) return; if (!D.SK[char(uid).cls][p.k]) return; socket.to('m' + w.mi).emit('cast', { id: uid, k: p.k, x: +p.x || 0, y: +p.y || 0, f: p.f < 0 ? -1 : 1 }); });
+    socket.on('cast', (p = {}) => { if (!w || !char(uid)) return; if (!D.SK[char(uid).cls][p.k] && p.k !== 'dj') return; socket.to('m' + w.mi).emit('cast', { id: uid, k: p.k, x: +p.x || 0, y: +p.y || 0, f: p.f < 0 ? -1 : 1 }); });
+    // 天使的輔助技能：轉送給附近的隊友（含自己），由各自的瀏覽器套用效果
+    socket.on('aid', ({ k } = {}, ack) => {
+      const c = char(uid); if (!w || !c || c.cls !== 'angel' || !['s1', 's3', 's4', 's6'].includes(k) || D.skillLock(c, k)) return;
+      const now = Date.now(); if (now - (pl.aidT || 0) < 600) return; pl.aidT = now;
+      for (const o of w.players.values()) if (Math.abs(o.x - pl.x) < 300 && Math.abs(o.y - pl.y) < 160) ns.to('u:' + o.uid).emit('aid', { k, by: uid, name: nameOf(uid) });
+    });
     socket.on('pick', ({ id } = {}, ack) => {
       const c = char(uid); if (!w || !c) return;
       const d = w.drops.get(id); if (!d) return ack && ack({ ok: false });
