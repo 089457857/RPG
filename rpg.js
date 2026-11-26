@@ -146,7 +146,9 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         const dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? 1.7 : 1)));
         m.hp -= dmg; m.hurt = 28; m.aggro = 840; m.target = uid; m.dmgBy[uid] = (m.dmgBy[uid] || 0) + dmg;
         if (!D.MON[m.t].boss && h.kb) m.kx = clamp(+h.kb, 0, 4) * (m.x < pl.x ? -1 : 1);
-        if (h.fz) m.frozen = Math.max(m.frozen, clamp(h.fz | 0, 0, 120));
+        // 冰凍：一般怪 1 秒、Boss 0.5 秒；被凍過之後有抗凍時間，避免一直被凍住
+        // 冰凍：Boss 免疫；凍結 0.75 秒，解凍後 3 秒內不會再被凍住
+        if (h.fz && !D.MON[m.t].boss && now > (m.fzImm || 0)) { m.frozen = 45; m.fzImm = now + 750 + 3000; }
         out.push([m.i, dmg, crit ? 1 : 0, h.s | 0]);
         if (m.hp <= 0) kill(w, m, uid);
       }
@@ -185,7 +187,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     });
     socket.on('advance', (_, ack) => {
       const c = char(uid); if (!c) return ack && ack({ ok: false });
-      const next = c.job + 1; if (next > 2) return ack && ack({ ok: false, msg: '已經完成所有轉職' });
+      const next = c.job + 1; if (next > 4) return ack && ack({ ok: false, msg: '已經完成所有轉職' });
       if (c.lv < D.JOBLV[next]) return ack && ack({ ok: false, msg: `需要 Lv ${D.JOBLV[next]}` });
       if (!w || w.mi !== 0) return ack && ack({ ok: false, msg: '要在晨露村找轉職教官' });
       c.job = next; save(); ack && ack({ ok: true, me: me(uid) });
