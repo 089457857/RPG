@@ -506,9 +506,9 @@ function guardSkill(A,k,local,H,box,near,cos){const f=A.f,x=A.x,y=A.y,g=D.GUARD[
     case 'demon:c4':genSkill({...SK[A.cls][k].g,rad:Math.round(SK[A.cls][k].g.rad*1.3),vfx:'blackflame'},A,local,H9,box,near,cos,k);break;
     case 'angel:s6':V({v:'halo',x,y,r:200,life:40});V({v:'holycross',x,y,r:60,life:36});doSkill(k,A,{g9:1});break;
     case 'angel:c4':genSkill({...SK[A.cls][k].g,len:Math.round(SK[A.cls][k].g.len*1.3),vfx:'judgement'},A,local,H9,box,near,cos,k);break;
-    case 'dragon:s3':{const g=SK.dragon.s3.g;dgCast({...g,len:Math.round(g.len*1.5),hits:5},A,local,H9,box,near,cos,k);V({v:'judgement',x,y:y-12,f,len:Math.round(g.len*1.5),life:22});break}
-    case 'dragon:s4':{const g=SK.dragon.s4.g;dgCast(g,A,local,H9,box,near,cos,k);setTimeout(()=>{if(!A.dead)dgCast({...g,len:Math.round(g.len*1.2)},{...A,f:-A.f,x:A.x+A.f*g.len,dg:A.dg},local,H9,box,near,cos,k)},420);V({v:'judgement',x,y:y-14,f,len:g.len,life:20});break}
-    case 'dragon:s6':V({v:'starfall',x:x+f*80,y,r:120,life:30});dgCast(SK.dragon.s6.g,A,local,H9,box,near,cos,k);setTimeout(()=>{V({v:'warcry',x:A.x+A.f*80,y:A.y,r:200,life:28});if(local)for(const m of live())if(Math.abs(m.x-(A.x+A.f*80))<200&&Math.abs(m.y-A.y)<90)H9(m,1.6*M,{kb:2,sk:'s5'})},800);break;
+    case 'dragon:s3':dgCast(SK.dragon.s3.g,A,local,H9,box,near,cos,k,{gold:1,m:1.5});break;
+    case 'dragon:s4':dgCast(SK.dragon.s4.g,A,local,H9,box,near,cos,k,{gold:1});setTimeout(()=>{if(!A.dead)dgCast(SK.dragon.s4.g,A,local,H9,box,near,cos,k,{gold:1,rev:1})},700);break;
+    case 'dragon:s6':dgCast(SK.dragon.s6.g,A,local,H9,box,near,cos,k,{gold:1,m:1.3});break;
     default:if(a.sup){V({v:'aura',cfg:['radiate',col,'line'],x,y,life:40});if(local)sock.emit('gAid',{k})}break;
   }}
 // 守護靈普攻（傷害另外乘上覺醒攻擊加成，由伺服器計算）
@@ -522,16 +522,16 @@ function guardAtk(A,local,H,box,cos){const f=A.f,x=A.x,y=A.y,col=D.GUARD[A.cls].
     case 'demon':V({v:'nclaw',x:x+f*45,y:y+4,f,life:16});V({v:'nclaw',x:x+f*65,y:y-6,f,life:16});box(100,60,1.7,7,{heal:.01,ga:1});break;
     case 'angel':V({v:'judgement',x,y:y-12,f,len:170,life:14});if(local)for(const m of live()){const d=(m.x-x)*f;if(d>-6&&d<170&&Math.abs(m.y-y)<30)H(m,1.7,{kb:1,ga:1})}break;
     case 'archer':shots.push({sk:0,ga:1,t:'big',x:x+f*10,y:y-14,vx:f*9,life:46,mult:1.7,pierce:99,col,cos});break;
-    case 'dragon':{const m=dgMouth(A),ec=(D.ELEM[A.elem]||D.ELEM.fire).col;V({v:'judgement',x,y:y-12,f,len:210,life:14});fx.push({t:'glink',x:m.x,y:m.y,x2:x+f*210,y2:y-12,col,life:12});fx.push({t:'glink',x:m.x,y:m.y+2,x2:x+f*200,y2:y-10,col:ec,life:10});if(local)for(const mm of live()){const d=(mm.x-x)*f;if(d>-10&&d<210&&Math.abs(mm.y-y)<34)H(mm,1.7,{kb:1,ga:1})}break}
+    case 'dragon':{const m=dgMouth(A),ec=(D.ELEM[A.elem]||D.ELEM.fire).col;A.act=14;fx.push({t:'dg',k:'beam',x:m.x,y:m.y,x2:x+f*220,y2:y-12,w:7,col:'#ffd23f',c2:'#fff6c0',ec,life:12,L:12});if(local)for(const mm of live()){const d=(mm.x-x)*f;if(d>-10&&d<220&&Math.abs(mm.y-y)<34)H(mm,1.7,{kb:1,ga:1})}break}
   }}
 // 終結技（傷害上限放寬到 6 倍，對 Boss 另外 ×1.35，由伺服器計算）
 function awkFin(A,local){const f=A.f,x=A.x,y=A.y,g=D.GUARD[A.cls],F=(m,mu,o={})=>{if(local)hitMon(m,mu,{...o,fin:1})};
   if(local)toast(`終結技「${g.fin}」！`);
   const strongest=r=>{let tg=null,best=-1;for(const m of live()){if(Math.abs(m.x-x)>r||Math.abs(m.y-y)>120)continue;const v=(m.max||1)*(MON[m.t]&&MON[m.t].boss?10:1);if(v>best){best=v;tg=m}}return tg};
-  if(A.cls==='dragon'){const el=A.elem||'fire',ec=(D.ELEM[el]||D.ELEM.fire).col,efE=(D.ELEM[el]||{}).ef;const st=dgState(A);st.y=A.y-60;
-    for(let w=0;w<6;w++)setTimeout(()=>{const m=dgMouth(A);V({v:'judgement',x:A.x-A.f*40,y:A.y-12,f:A.f,len:420,life:16});fx.push({t:'glink',x:m.x,y:m.y,x2:A.x+A.f*420,y2:A.y-14,col:w%2?ec:g.col,life:12});
-      if(w%2===0)for(let j=0;j<4;j++)fx.push({t:'gboom',x:A.x+A.f*(70+j*90),y:A.y-12,rad:40,col:ec,life:18});
-      for(const m of live()){const d=(m.x-A.x)*A.f;if(d>-60&&d<420&&Math.abs(m.y-A.y)<70)F(m,w===5?6:2.6,{kb:w===5?3:.4,stack:w%4,ef:efE})}},300+w*180);return}
+  if(A.cls==='dragon'){const el=A.elem||'fire',ec=(D.ELEM[el]||D.ELEM.fire).col,efE=(D.ELEM[el]||{}).ef;const st=dgState(A);st.y=A.y-50;st.fly=90;
+    for(let w=0;w<6;w++)setTimeout(()=>{A.act=14;const m=dgMouth(A);fx.push({t:'dg',k:'beam',x:m.x,y:m.y,x2:A.x+A.f*430,y2:A.y-12,w:w===5?20:13,col:'#ffd23f',c2:'#fff6c0',ec,life:14,L:14});
+      if(w%2===1)fx.push({t:'dg',k:'impact',x:A.x+A.f*(120+w*40),y:A.y,r:70,col:ec,c2:'#fff6c0',life:30,L:30});if(w===5)fx.push({t:'dg',k:'field',x:A.x+A.f*220,y:A.y,r:200,col:ec,c2:'#ffe680',life:60,L:60});
+      for(const mm of live()){const d=(mm.x-A.x)*A.f;if(d>-60&&d<430&&Math.abs(mm.y-A.y)<70)F(mm,w===5?6:2.6,{kb:w===5?3:.4,stack:w%4,ef:efE})}},300+w*180);return}
   switch(A.cls){
     case 'warrior':{const tg=strongest(260),tx=tg?tg.x:x+f*90,ty=tg?tg.y:y;fx.push({t:'gsword',x:tx,y:ty,life:40,col:g.col});
       setTimeout(()=>{fx.push({t:'boom',x:tx,y:ty-10,life:26});for(let w=0;w<3;w++)setTimeout(()=>{if(tg&&tg.hp>0&&!tg.dead)F(tg,6,{kb:0,stack:w});if(w===0)for(const m of live())if(m!==tg&&Math.abs(m.x-tx)<60&&Math.abs(m.y-ty)<50)F(m,3,{kb:2})},w*120)},620);break}
@@ -646,19 +646,72 @@ function drawShotV(s,x,y,dir){const d=dir?1:-1;
     default:return false}return true}
 // 通用技能引擎：a0、b1～b4、c1～c4 這些技能都用資料描述，這裡依類型執行
 
-// 巨龍使者出招：攻擊範圍以玩家為準（龍就在身後），特效依屬性換顏色與樣式，龍本身會配合動作
-const DGV={s3:{fire:'flamer',thunder:'particle',ice:'glacier',dark:'hellfire'},c2:{thunder:'thunder',dark:'blackflame'},s5:{fire:'starfall',thunder:'thunder',dark:'sigil'},
-  c3:{fire:'firering',thunder:'emp',ice:'tornado',dark:'bloodwave'},c4:{fire:'chain',thunder:'bolt',ice:'chain',dark:'souls'},s1:{fire:'claw',thunder:'claw',ice:'claw',dark:'claw'},s2:{fire:'roar',thunder:'roar',ice:'roar',dark:'roar'},
-  b1:['radiate','#ff4a2a','line'],b2:['dome','#e0703a','plate'],b3:['rise','#9affb0','plus'],b4:['orbit','#ffd23f','dot']};
-function dgCast(g0,A,local,H,box,near,cos,k){const el=A.elem||'fire',E=D.ELEM[el]||D.ELEM.fire,g={...g0},v=DGV[k];
-  if(Array.isArray(v))g.vfx=v;else if(v&&v[el])g.vfx=v[el];else g.vfx=0;if(g.type!=='buff'&&g.type!=='heal')g.col=E.col;
-  if(k==='atk'){g.burst=(A.job||0)>=4?3:(A.job||0)>=2?2:1;g.big=(A.job||0)>=3?1:0}
-  const s=dgState(A),m=dgMouth(A),f=A.f||1;
-  if(g.type!=='buff'&&g.type!=='heal')fx.push({t:'glink',x:m.x,y:m.y,x2:A.x+f*22,y2:A.y-12,col:E.col,life:8});
-  if(k==='s4'){s.x=A.x+f*g.len*.8;s.y=A.y-14}            // 飛龍俯衝：龍衝出去再飛回來
-  if(k==='s6'){s.y=A.y-220}                               // 天崩龍隕：龍從高空落下
-  if(k==='s1'||k==='a0'){s.x=A.x+f*16}
-  genSkill(g,A,local,H,box,near,cos,k)}
+// ================= 巨龍使者：出招（每一招都由龍本身做動作，特效依屬性換顏色） =================
+const dgCol=(A,gold)=>{const c=gold?'#ffd23f':(D.ELEM[A.elem]||D.ELEM.fire).col;return [c,dgMix(c,'#ffffff',.55)]};
+function dgCast(g,A,local,H,box,near,cos,k,opt={}){const f=A.f||1,s=dgState(A),[col,c2]=dgCol(A,opt.gold),M=opt.m||1,o0={kb:g.kb??1};
+  const L=()=>live(),hitLine=(x0,dir,len,yr,mu,o)=>{for(const m of L()){const d=(m.x-x0)*dir;if(d>-8&&d<len&&Math.abs(m.y-A.y)<yr)H(m,mu,o)}},
+    hitCirc=(cx,r,yr,mu,o)=>{for(const m of L())if(Math.abs(m.x-cx)<r+m.w/2&&Math.abs(m.y-A.y)<yr)H(m,mu,o)},
+    nearest=r=>{let tg=null,bd=r;for(const m of L()){const d=Math.abs(m.x-A.x);if(d<bd&&Math.abs(m.y-A.y)<120){bd=d;tg=m}}return tg},
+    P0=(t,o)=>fx.push({t:'dg',k:t,col,c2,el:A.elem||'fire',...o});
+  switch(k){
+    case 'atk':{const n=(A.job||0)>=4?3:(A.job||0)>=2?2:1;for(let i=0;i<n;i++)setTimeout(()=>{const m=dgMouth(A);shots.push({sk:0,t:'dgball',x:m.x,y:m.y,vx:A.f*5.5,vy:(i-(n-1)/2)*.6-.4,fall:.16,gy:A.y-12,life:55,mult:g.mult,pierce:0,col,c2,big:(A.job||0)>=3?1:0,cos})},i*90);break}
+    case 's1':s.x=A.x+f*18;P0('claw',{x:A.x+f*g.w*.55,y:A.y-12,f,life:14,L:14});box(g.w,g.h,g.mult,g.max,{kb:g.kb});break;
+    case 's2':{const m=dgMouth(A);P0('ring',{x:m.x,y:m.y,r:g.r,life:22,L:22});P0('ring',{x:A.x,y:A.y-10,r:g.r,life:26,L:26,d:4});hitCirc(A.x,g.r,50,g.mult,{kb:g.kb});break}
+    case 'a0':s.x=A.x-f*4;for(let w=0;w<g.hits;w++)setTimeout(()=>{P0('tail',{A,r:g.r,f:w%2?-A.f:A.f,life:14,L:14});hitCirc(A.x,g.r,50,g.mult,{kb:g.kb,stack:w})},w*160);break;
+    case 's3':{const len=Math.round(g.len*M),hits=g.hits+(opt.gold?1:0);for(let w=0;w<hits;w++)setTimeout(()=>{A.act=Math.max(A.act||0,12);const m=dgMouth(A);P0('cone',{x:m.x,y:m.y,x2:A.x+A.f*len,y2:A.y-10,w:opt.gold?30:22,life:12,L:12});hitLine(A.x,A.f,len,34,g.mult,{stack:w%4,kb:.4})},w*110);break}
+    case 'c1':{const m=dgMouth(A);shots.push({sk:k,t:'dgball',head:1,x:m.x,y:m.y,vx:A.f*5,vy:.3,fall:.12,gy:A.y-14,life:60,mult:g.mult,pierce:g.pierce,col,c2,big:1,cos});break}
+    case 's4':{const len=Math.round(g.len*M),dir=opt.rev?-A.f:A.f,x0=opt.rev?A.x+A.f*len:A.x;s.y=A.y-95;s.fly=40;
+      setTimeout(()=>{const fx0=s.x,fy0=s.y;s.x=x0+dir*len*.9;s.y=A.y-14;s.fly=30;P0('dive',{x:fx0,y:fy0,x2:s.x,y2:s.y,gx:x0,gy:A.y,dir,len,life:20,L:20});
+        for(let w=0;w<g.hits;w++)setTimeout(()=>hitLine(x0,dir,len,36,g.mult,{stack:w,kb:1.5}),w*110)},240);break}
+    case 'c2':{const tg=nearest(g.r),tx=tg?tg.x:A.x+f*90,m=dgMouth(A),rad=Math.round(g.rad*M);P0('orb',{x:m.x,y:m.y,x2:tx,y2:A.y-6,life:10,L:10});
+      setTimeout(()=>P0('field',{x:tx,y:A.y,r:rad,life:56,L:56}),300);for(let w=0;w<g.hits;w++)setTimeout(()=>hitCirc(tx,rad,60,g.mult,{stack:w,kb:.3}),320+w*160);break}
+    case 's5':{const tg=nearest(g.r),tx=tg?tg.x:A.x+f*100,m=dgMouth(A),rad=Math.round(g.rad*M);P0('ring',{x:m.x,y:m.y,r:40,life:16,L:16});
+      for(let w=0;w<g.hits;w++)setTimeout(()=>{P0('pillar',{x:tx+(w-.5)*rad*.5,y:A.y,r:rad,life:24,L:24});hitCirc(tx,rad,90,g.mult,{stack:w})},240+w*170);break}
+    case 'c3':{const r=Math.round(g.r*M);P0('tornado',{A,r,life:68,L:68});for(let w=0;w<g.hits;w++)setTimeout(()=>hitCirc(A.x,r,60,g.mult,{stack:w%4,kb:.4}),w*150);break}
+    case 's6':{const tg=nearest(g.r),dir=tg?(tg.x>=A.x?1:-1):f,rad=Math.round(g.rad*M);s.y=A.y-340;s.fly=60;
+      setTimeout(()=>{const tx=tg&&!tg.dead?tg.x:A.x+dir*110;s.x=tx-dir*12;s.y=A.y-16;s.fly=40;P0('impact',{x:tx,y:A.y,r:rad,life:34,L:34});if(opt.gold)P0('impact',{x:tx,y:A.y,r:rad*1.6,life:40,L:40,d:8});
+        for(let w=0;w<g.hits;w++)setTimeout(()=>hitCirc(tx,rad,90,g.mult,{stack:w,kb:w===g.hits-1?2.5:.4}),w*150)},560);break}
+    case 'c4':{const ts=near(g.r).sort((a,c)=>Math.abs(a.x-A.x)-Math.abs(c.x-A.x)).slice(0,g.n);ts.forEach((m,i)=>{P0('ghost',{x:s.x,y:s.y,x2:m.x,y2:m.y-m.h/2,life:16,L:16,d:i*2});setTimeout(()=>{if(m.hp>0&&!m.dead){H(m,g.mult,o0);P0('ring',{x:m.x,y:m.y-m.h/2,r:16,life:12,L:12})}},230+i*35)});break}
+    // 增益／補血
+    case 'b1':P0('ring',{x:s.x,y:s.y,r:70,life:30,L:30,gold:1});P0('ring',{x:s.x,y:s.y,r:50,life:24,L:24,d:6,gold:1});if(local){P.bf.pow=1200;toast(BUFFN.pow)}break;
+    case 'b2':P0('scales',{A,life:70,L:70});if(local){P.bf.guard=900;toast(BUFFN.guard)}break;
+    case 'b3':P0('wrap',{A,life:46,L:46,col:'#9affb0',c2:'#e8ffe8'});if(local&&MAPS[MI].pvp)sock.emit('pheal',{k});if(local){const h=Math.round(P.max.hp*g.pct*(1+(P.max.healB||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}break;
+    case 'b4':P0('link',{A,life:80,L:80});if(local){P.bf.haste=1200;toast(BUFFN.haste)}break;
+    default:genSkill(g,A,local,H,box,near,cos,k);
+  }}
+// 特效繪製
+const dgRing=(cx,cy,rx,ry,n,sz,col)=>{for(let k=0;k<n;k++){const a=k/n*Math.PI*2;R(Math.round(cx+Math.cos(a)*rx-sz/2),Math.round(cy+Math.sin(a)*ry-sz/2),sz,sz,col)}};
+function drawDg(e,x,y,ox,oy){const t=e.life,L=e.L||20,pr=1-t/L,col=e.gold?'#ffd23f':e.col,c2=e.gold?'#fff6c0':e.c2;if(e.A){x=Math.round(e.A.x-ox);y=Math.round(e.A.y-oy)}
+  b.save();b.globalAlpha=Math.min(1,t/6);
+  switch(e.k){
+    case 'cone':{const x2=e.x2-ox,y2=e.y2-oy;b.globalAlpha=Math.min(1,t/5)*.95;for(let k=0;k<46;k++){const d=((k*.618034)+pr*.6)%1,w=3+d*e.w,off=Math.sin(k*91.7+frame*.9)*w,sz=2+Math.round(d*3);
+        R(Math.round(x+(x2-x)*d),Math.round(y+(y2-y)*d+off*.55),sz,sz,d<.18?'#ffffff':d<.5?c2:col)}break}
+    case 'claw':{const rv=Math.min(1,(L-t)/4);for(let j=0;j<3;j++){const bx=x+(j-1)*8;for(let q=0;q<=10*rv;q++){const px=bx+e.f*(-7+q*1.4),py=y-14+q*2.2;R(px-1,py-1,3,3,col);R(px,py,1,1,'#ffffff')}}break}
+    case 'ring':{const r=e.r*Math.min(1,pr*1.3+.1);dgRing(x,y,r,r*.5,28,2,col);dgRing(x,y,r*.8,r*.4,20,1,c2);break}
+    case 'tail':{for(let k=0;k<14;k++){const a=pr*Math.PI*1.6-k*.16,px=x+Math.cos(a)*e.r*e.f,py=y-10+Math.sin(a)*e.r*.28,sz=Math.max(1,4-Math.floor(k/4));R(Math.round(px),Math.round(py),sz,sz,k<3?c2:col)}break}
+    case 'dive':{const x2=e.x2-ox,y2=e.y2-oy;for(let k=0;k<24;k++){const d=k/24;if(d>pr*1.4)break;R(Math.round(x+(x2-x)*d),Math.round(y+(y2-y)*d+Math.sin(k)*3),3,3,k%3?col:c2)}
+      const gx=e.gx-ox,gy=e.gy-oy;for(let k=0;k<18;k++){const px=gx+e.dir*e.len*k/18,h=3+((k*7+frame)%6);R(Math.round(px),gy-h,3,h,k%2?col:c2)}break}
+    case 'orb':{const x2=e.x2-ox,y2=e.y2-oy,px=x+(x2-x)*pr,py=y+(y2-y)*pr-Math.sin(pr*Math.PI)*24;R(Math.round(px)-3,Math.round(py)-3,6,6,col);R(Math.round(px)-2,Math.round(py)-2,4,4,c2);for(let k=1;k<5;k++){const q=Math.max(0,pr-k*.06);R(Math.round(x+(x2-x)*q)-1,Math.round(y+(y2-y)*q-Math.sin(q*Math.PI)*24)-1,2,2,col)}break}
+    case 'field':{b.globalAlpha=Math.min(1,t/10)*.9;R(x-e.r,y-2,e.r*2,3,col);for(let k=0;k<Math.round(e.r/2.5);k++){const px=x-e.r+((k*37)%100)/100*e.r*2,h=3+Math.round((Math.sin(frame*.35+k*1.7)+1)*4);R(Math.round(px),y-h,2,h,k%3?col:c2)}break}
+    case 'pillar':{const w=Math.round(e.r*.7*(.4+.6*Math.min(1,(L-t)/4))),top=y-200;b.globalAlpha=Math.min(1,t/8)*.6;R(x-w/2,top,w,200,col);b.globalAlpha=Math.min(1,t/8)*.9;R(x-w/6,top,Math.max(2,w/3),200,c2);dgRing(x,y-2,e.r*.7*(1+pr),e.r*.15,24,2,col);
+      for(let k=0;k<8;k++){const px=x+Math.sin(k*2.3)*w*.7,py=y-((frame*3+k*23)%120);R(Math.round(px),py,2,2,c2)}break}
+    case 'impact':{const r=e.r*Math.min(1.3,pr*2);dgRing(x,y-3,r,r*.22,34,3,col);dgRing(x,y-3,r*.75,r*.16,26,2,c2);
+      for(let j=0;j<6;j++){const dir=j<3?1:-1,ln=e.r*(.3+(j%3)*.25)*Math.min(1,pr*3);for(let q=0;q<ln;q+=2)R(Math.round(x+dir*q),y-1+((q+j)%3)-1,2,1,'#2a1a10')}
+      for(let k=0;k<14;k++){const tt=L-t,px=x+Math.cos(k*1.9)*(tt*(1.5+k%3)),py=y-tt*(2.5+k%4)+tt*tt*.12;if(py<y)R(Math.round(px),Math.round(py),2,2,k%2?col:'#6a4a2a')}break}
+    case 'tornado':{for(let j=0;j<9;j++){const yy=y-6-j*6,rx=e.r*(.22+j*.08);for(let q=0;q<5;q++){const a=frame*.35+j*.7+q*1.2566;R(Math.round(x+Math.cos(a)*rx),Math.round(yy+Math.sin(a)*2),3,2,q%2?col:c2)}}break}
+    case 'ghost':{const x2=e.x2-ox,y2=e.y2-oy,q=Math.min(1,pr*1.25),px=x+(x2-x)*q,py=y+(y2-y)*q-Math.sin(q*Math.PI)*18,c=dgSprite(1,e.el,(frame>>1)%DGF,q>.6?1:0,0,0);
+      b.globalAlpha=.7*Math.min(1,t/4);b.translate(Math.round(px),Math.round(py));if(x2<x)b.scale(-1,1);b.drawImage(c,-c.ox,-c.oy);break}
+    case 'scales':{for(let k=0;k<8;k++){const a=frame*.12+k*.785,px=Math.round(x+Math.cos(a)*16),py=Math.round(y-14+Math.sin(a)*9);R(px-1,py-2,2,4,col);R(px-2,py-1,4,2,col);R(px,py-1,1,1,'#ffffff')}break}
+    case 'wrap':{const q=Math.min(1,pr*2);b.globalAlpha=.55*Math.min(1,t/8);b.fillStyle=col;for(const sd of [-1,1]){b.beginPath();b.moveTo(x+sd*(26-q*14),y-34);b.lineTo(x+sd*4,y-16);b.lineTo(x+sd*(26-q*14),y+2);b.closePath();b.fill()}
+      b.globalAlpha=Math.min(1,t/8);for(let k=0;k<8;k++){const px=x+((k*13)%28)-14,py=y-((frame*1.5+k*9)%34);R(px,py,1,3,c2);R(px-1,py+1,3,1,c2)}break}
+    case 'link':{const s=e.A.dg;if(!s)break;const sx=s.x-ox,sy=s.y-oy;for(let k=0;k<=20;k++){const d=k/20;R(Math.round(x+(sx-x)*d),Math.round(y-14+(sy-y+14)*d+Math.sin(frame*.4+k)*1.5),2,2,(k+frame>>1)%3?col:'#ffffff')}dgRing(x,y-12,14,7,14,2,c2);dgRing(sx,sy,18,9,16,2,c2);break}
+    case 'beam':{const x2=e.x2-ox,y2=e.y2-oy;b.lineCap='round';b.globalAlpha=Math.min(1,t/5)*.6;b.strokeStyle=e.ec||col;b.lineWidth=e.w;b.beginPath();b.moveTo(x,y);b.lineTo(x2,y2);b.stroke();
+      b.globalAlpha=Math.min(1,t/5);b.strokeStyle=col;b.lineWidth=e.w*.55;b.stroke();b.strokeStyle='#ffffff';b.lineWidth=Math.max(1,e.w*.2);b.stroke();for(let k=0;k<8;k++){const d=((k*.618)+pr)%1;R(Math.round(x+(x2-x)*d),Math.round(y+(y2-y)*d+Math.sin(k*5+frame)*e.w*.6),2,2,e.ec||c2)}break}
+  }
+  b.restore()}
+function drawDgBall(s,x,y){const ds=s.vx>0?1:-1,r=s.big?5:3;for(let k=1;k<6;k++){const sz=Math.max(1,r-Math.floor(k/2));R(x-ds*k*3-sz/2,y-sz/2+Math.sin(frame*.7+k)*1.5,sz,sz,k<2?s.c2:s.col)}
+  if(s.head){R(x-6,y-4,11,8,s.col);R(x+ds*5-(ds<0?4:0),y-2,4,5,s.col);R(x+ds*2,y-3,2,2,'#ffffff');R(x-ds*5,y-7,2,4,s.c2);R(x-ds*2,y-8,2,4,s.c2);R(x+ds*6-(ds<0?2:0),y+2,2,1,'#5a0a0a');return}
+  R(x-r,y-r,r*2,r*2,s.col);R(x-r+1,y-r+1,r*2-2,r*2-2,s.c2);R(x-1,y-1,2,2,'#ffffff')}
 function genSkill(g,A,local,H,box,near,cos,sk){const f=A.f,x=A.x,y=A.y,o={kb:g.kb??1,heal:g.heal||0,crit:g.crit||0},vv=g.vfx||vfxOf(A,sk);
   const nearest=(r)=>{let tg=null,bd=r;for(const m of live()){const d=Math.abs(m.x-x);if(d<bd&&Math.abs(m.y-y)<120){bd=d;tg=m}}return tg};
   switch(g.type){
@@ -677,8 +730,8 @@ function genSkill(g,A,local,H,box,near,cos,sk){const f=A.f,x=A.x,y=A.y,o={kb:g.k
     case 'heal':if(local&&MAPS[MI].pvp)sock.emit('pheal',{k:sk});if(local){const h=Math.round(P.max.hp*g.pct*(1+(P.max.healB||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}if(Array.isArray(vv))V({v:'aura',cfg:vv,x,y,life:40});else fx.push({t:'ring',x,y:y-10,life:30,col:'#9affb0'});break;
     case 'mpheal':if(local){const h=Math.round(P.max.mp*g.pct);P.mp=Math.min(P.max.mp,P.mp+h);num(P.x,P.y-34,'+'+h,'mp')}if(Array.isArray(vv))V({v:'aura',cfg:vv,x,y,life:40});else fx.push({t:'ring',x,y:y-10,life:30,col:'#7fb8ff'});break;
   }}
-function updShots(){for(const s of shots){s.x+=s.vx;if(s.vy)s.y+=s.vy;s.life--;if(s.spin!==undefined)s.spin++;if(s.t==='boomer'&&s.life===s.turn){s.vx=-s.vx;s.hit=new Set()}
-  for(const m of live()){if(s.hit&&s.hit.has(m))continue;const hr=s.t==='wave'||s.t==='big'||s.t==='sword'||s.t==='net'?14:s.t==='boomer'?9:3;if(Math.abs(m.x-s.x)<m.w/2+hr&&s.y>m.y-m.h-6&&s.y<m.y+4){if(!s.cos)hitMon(m,s.mult,{kb:s.t==='boomer'?.6:1.2,crit:s.crit||0,sk:s.sk,ga:s.ga});if(s.boom){fx.push({t:'boom',x:m.x,y:m.y-m.h/2,life:20});if(!s.cos)for(const o of live())if(o!==m&&Math.abs(o.x-m.x)<40&&Math.abs(o.y-m.y)<30)hitMon(o,1.2,{kb:1.5,sk:s.sk||1})}(s.hit=s.hit||new Set()).add(m);if(s.pierce>0)s.pierce--;else{s.life=0;fx.push({t:'spark',x:s.x,y:s.y,life:8,col:s.col})}break}}}
+function updShots(){for(const s of shots){s.x+=s.vx;if(s.vy)s.y+=s.vy;if(s.fall){s.vy=(s.vy||0)+s.fall;if(s.y>=s.gy){s.y=s.gy;s.vy=0;s.fall=0}}s.life--;if(s.spin!==undefined)s.spin++;if(s.t==='boomer'&&s.life===s.turn){s.vx=-s.vx;s.hit=new Set()}
+  for(const m of live()){if(s.hit&&s.hit.has(m))continue;const hr=s.t==='dgball'?(s.big?10:6):s.t==='wave'||s.t==='big'||s.t==='sword'||s.t==='net'?14:s.t==='boomer'?9:3;if(Math.abs(m.x-s.x)<m.w/2+hr&&s.y>m.y-m.h-6&&s.y<m.y+4){if(!s.cos)hitMon(m,s.mult,{kb:s.t==='boomer'?.6:1.2,crit:s.crit||0,sk:s.sk,ga:s.ga});if(s.boom){fx.push({t:'boom',x:m.x,y:m.y-m.h/2,life:20});if(!s.cos)for(const o of live())if(o!==m&&Math.abs(o.x-m.x)<40&&Math.abs(o.y-m.y)<30)hitMon(o,1.2,{kb:1.5,sk:s.sk||1})}(s.hit=s.hit||new Set()).add(m);if(s.pierce>0)s.pierce--;else{s.life=0;fx.push({t:'spark',x:s.x,y:s.y,life:8,col:s.col})}break}}}
   shots=shots.filter(s=>s.life>0)}
 
 // ================= 怪物（伺服器同步） =================
@@ -805,7 +858,7 @@ function drawPet(p,k,ox,oy){const x=Math.round(p.x-p.f*25-ox),y=Math.round(p.y-1
   else if(k==='xuanwu'){R(x-5,y-1,10,6,'#2f4a3e');R(x-4,y-2,8,2,'#4a6a5a');R(x-3,y,2,2,'#6a8a6a');R(x+1,y+1,2,2,'#6a8a6a');R(x+f*5-1,y+1,4,3,'#8aa88a');R(x+f*7,y+1,1,1,'#000');R(x-4,y+5,2,1+fl,'#8aa88a');R(x+2,y+5,2,2-fl,'#8aa88a');R(x-f*6-1,y+1,3,2,'#5a8a4a');R(x-f*8-1,y-1+fl,2,2,'#5a8a4a')}
   else if(k==='baihu'){R(x-6,y,12,5,'#f4f4f4');R(x-4,y,1,4,'#333');R(x,y,1,4,'#333');R(x+f*5-2,y-3,6,5,'#f4f4f4');R(x+f*6,y-2,1,1,'#2a7aff');R(x+f*4-1,y-4,2,2,'#f4f4f4');R(x-5,y+5,2,2-fl,'#ddd');R(x+3,y+5,2,1+fl,'#ddd');R(x-f*7-1,y-2+fl,2,4,'#f4f4f4');R(x-f*7-1,y-1+fl,2,1,'#333')}
   else if(k==='zhuque'){R(x-4,y,8,5,'#ff4a2a');R(x-4,y,8,1,'#ffd23f');R(x-3,y-3+(fl?-2:1),6,3,'#ff8a2a');R(x+f*4-1,y-2,4,4,'#ff4a2a');R(x+f*6,y-1,2,1,'#ffd23f');R(x+f*5,y-1,1,1,'#000');for(let i=0;i<3;i++)R(x-f*(6+i*3)-1,y+1+i,3,2,i%2?'#ffd23f':'#ff6a2a')}}
-function drawMount(p,ox,oy,type){type=type||p.mnt||'horse';if(type==='mydragon'){ox0=ox;oy0=oy;drawDragonAt({...p,job:4,cls:'dragon'},p.x,p.y-17,p.f||1,1);return}const x=Math.round(p.x-ox),y=Math.round(p.y-oy),f=p.f,st=Math.floor(frame/4)%2,run=Math.abs(p.vx||0)>.3||p.walk;const leg=(c)=>{R(x-9,y-3,3,3+(st?-1:0),c);R(x-4,y-3,3,3-(st?0:1),c);R(x+2,y-3,3,3+(st?-1:0),c);R(x+7,y-3,3,3-(st?0:1),c)};
+function drawMount(p,ox,oy,type){type=type||p.mnt||'horse';if(type==='mydragon'){ox0=ox;oy0=oy;drawDragonAt({...p,job:4,cls:'dragon'},p.x-(p.f||1)*3,p.y-25,p.f||1,1);return}const x=Math.round(p.x-ox),y=Math.round(p.y-oy),f=p.f,st=Math.floor(frame/4)%2,run=Math.abs(p.vx||0)>.3||p.walk;const leg=(c)=>{R(x-9,y-3,3,3+(st?-1:0),c);R(x-4,y-3,3,3-(st?0:1),c);R(x+2,y-3,3,3+(st?-1:0),c);R(x+7,y-3,3,3-(st?0:1),c)};
   if(type==='qilin'){const gl=frame%24<12;R(x-11,y-10,22,7,'#2ec48a');R(x-11,y-10,22,2,'#bfffe0');for(let k=0;k<4;k++)R(x-9+k*5,y-8,3,2,'#1a8a5a');R(x+f*10-3,y-16,8,8,'#2ec48a');R(x+f*13-1,y-19,3,3,'#ffd23f');R(x+f*9-2,y-20,2,4,'#ffd23f');R(x+f*14,y-14,1,1,'#000');R(x-f*12-2,y-12,4,6,'#ffd23f');leg('#1a8a5a');
     b.globalAlpha=.7;R(x-13,y-2,26,3,gl?'#ffffff':'#bfffe0');R(x-9,y-4,6,2,'#ffffff');R(x+4,y-4,6,2,'#ffffff');b.globalAlpha=1}
   else if(type==='phoenix'){const fl=Math.floor(frame/5)%2;R(x-10,y-11,20,7,'#ff4a2a');R(x-10,y-11,20,2,'#ffd23f');R(x-f*2-8,y-17+(fl?-3:0),14,5,'#ff7a2a');R(x-f*2-8,y-17+(fl?-3:0),14,1,'#ffe680');R(x+f*10-2,y-15,6,6,'#ff4a2a');R(x+f*15-1,y-13,3,2,'#ffd23f');R(x+f*12,y-13,1,1,'#000');R(x+f*10-1,y-18,2,3,'#ffd23f');
@@ -936,90 +989,142 @@ const ASPR={
 '混沌戰甲':{pal:{k:'#1a0a2a',r:'#ff2a6a',p:'#7a2aff',d:'#2a1040'},pad:'r',g:['kkkrkkrkkk','kdkkrrkkdk','krkpkkpkrk','kkrkkkkrkk','kdkkppkkdk','kkrkrrkrkk','rrrrrrrrrr']},
 };
 
-// ================= 巨龍使者：身後的龍 =================
-// 像素圖用程式產生，第一次用到時畫進小畫布快取起來；之後每一格只貼圖
-const DGP={
- fire:{g:'#c8302a',d:'#7a1010',b:'#ffcf7a',w:'#8a2010',m:'#ff7a4a',h:'#f4ecd8',e:'#ffe680',o:'#2a0606',s:'#ffb04a',glow:'#ffd23f',y:'#ffd23f'},
- thunder:{g:'#4a4ab8',d:'#22226a',b:'#c8d8ff',w:'#2a2a7a',m:'#7a7aff',h:'#e8f0ff',e:'#ffffff',o:'#0a0a2a',s:'#ffe64a',glow:'#7fd3ff',y:'#ffe64a'},
- ice:{g:'#bcdcec',d:'#5a8aa8',b:'#ffffff',w:'#7aa8c8',m:'#e8f8ff',h:'#ffffff',e:'#2a6aff',o:'#1a3a5a',s:'#9fdfff',glow:'#ffffff',y:'#9fdfff'},
- dark:{g:'#3a1a4a',d:'#1a0a24',b:'#7a4a8a',w:'#2a0a3a',m:'#6a2a8a',h:'#c8b8d8',e:'#ff2a6a',o:'#08020c',s:'#b46aff',glow:'#e08aff',y:'#b46aff'},
- gold:{g:'#ffc23f',d:'#c87a10',b:'#fff6c0',w:'#ff6a2a',m:'#ffd27a',h:'#ffffff',e:'#ff2a2a',o:'#5a2a04',s:'#ffffff',glow:'#ffffff',y:'#ffffff'}};
-const DGC={},dgMix=(a,b2,t)=>{const A=parseInt(a.slice(1),16),B=parseInt(b2.slice(1),16),f=sh=>Math.round(((A>>sh)&255)*(1-t)+((B>>sh)&255)*t);return '#'+((1<<24)|(f(16)<<16)|(f(8)<<8)|f(0)).toString(16).slice(1)};
-// 在網格上畫：u 是比例；座標以龍身體中心為 (0,0)，面向右
-function dgBuild(stage,pp,opt={}){const u=opt.u||[1.25,1.9,2.6,3.3,4.0][stage],p=pp,W=Math.ceil(38*u),H=Math.ceil(36*u),ox=Math.round(19*u),oy=Math.round(25*u);
-  const G=[...Array(H)].map(()=>Array(W).fill(null));
-  const put=(x,y,col)=>{x=Math.round(x+ox);y=Math.round(y+oy);if(x>=0&&y>=0&&x<W&&y<H)G[y][x]=col};
-  const ell=(cx,cy,rx,ry,col,cond)=>{for(let y=-ry*u-1;y<=ry*u+1;y++)for(let x=-rx*u-1;x<=rx*u+1;x++){if((x*x)/((rx*u)**2)+(y*y)/((ry*u)**2)<=1&&(!cond||cond(x,y)))put(cx*u+x,cy*u+y,col)}};
-  const line=(x1,y1,x2,y2,w1,w2,col)=>{const n=Math.ceil(Math.hypot(x2-x1,y2-y1)*u*2)+1;for(let i=0;i<=n;i++){const t=i/n,x=(x1+(x2-x1)*t)*u,y=(y1+(y2-y1)*t)*u,r=(w1+(w2-w1)*t)*u/2;for(let a=-r;a<=r;a++)for(let b=-r;b<=r;b++)if(a*a+b*b<=r*r+.3)put(x+a,y+b,col)}};
-  const poly=(pts,col)=>{const xs=pts.map(q=>q[0]*u),ys=pts.map(q=>q[1]*u);const minY=Math.floor(Math.min(...ys)),maxY=Math.ceil(Math.max(...ys));for(let y=minY;y<=maxY;y++){const hits=[];for(let i=0;i<pts.length;i++){const [x1,y1]=[xs[i],ys[i]],[x2,y2]=[xs[(i+1)%pts.length],ys[(i+1)%pts.length]];if((y1<=y&&y2>y)||(y2<=y&&y1>y))hits.push(x1+(y-y1)/(y2-y1)*(x2-x1))}hits.sort((a,b)=>a-b);for(let k=0;k+1<hits.length;k+=2)for(let x=Math.ceil(hits[k]);x<=hits[k+1];x++)put(x,y,col)}};
-  const wf=[.35,.6,1,1.15,1.3][stage];
-  // 後翼（暗色）
-  // 新翅膀：肩→肘的手臂骨，從肘部放射出多根指骨，指骨之間是往內凹的翼膜；越進化翼展越大、指骨越多
-  const WS=[[.4,2],[.8,3],[1.05,3],[1.35,4],[1.5,5]][stage],K=opt.king?1:0,span=WS[0]*(K?1.12:1),nf=WS[1]+(K?1:0);
-  const wing=(dx,dy,col,bone,edge,back)=>{const S0=[1.2+dx,-2.4+dy],E=[S0[0]-1.6*span,S0[1]-4.2*span],T=[];
-    for(let i=0;i<nf;i++){const t=nf>1?i/(nf-1):0,ang=(-55-t*120+(opt.flap||0)*(1-t*.5))*Math.PI/180,L=(9.5-t*3.2)*span;T.push([E[0]+Math.cos(ang)*L*(back?.9:1),E[1]+Math.sin(ang)*L*(back?.9:1)])}
-    const L2=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],pts=[S0,E,T[0]];
-    for(let i=0;i+1<T.length;i++){pts.push(L2(E,L2(T[i],T[i+1],.5),.62));pts.push(T[i+1])}
-    pts.push([-2.8+dx,-1.4+dy]);poly(pts,col);
-    // 翼膜陰影：靠近骨頭的地方深一點
-    for(let i=0;i+1<T.length;i++)poly([E,L2(E,T[i],.55),L2(E,L2(T[i],T[i+1],.5),.4),L2(E,T[i+1],.55)],bone==='#000'?col:shade(col,-.18));
-    // 骨頭
-    line(S0[0],S0[1],E[0],E[1],1.1+span*.25,.9+span*.2,bone);for(const t of T)line(E[0],E[1],t[0],t[1],.7+span*.15,.35,bone);
-    // 肘上的翼爪
-    line(E[0],E[1],E[0]+.6,E[1]-1.2,.6,.3,p.h);
-    // 龍王／龍神：翼緣發光
-    if(edge){for(let i=0;i+1<T.length;i++){const m=L2(E,L2(T[i],T[i+1],.5),.62);line(T[i][0],T[i][1],m[0],m[1],.45,.45,edge);line(m[0],m[1],T[i+1][0],T[i+1][1],.45,.45,edge)}}
+// ================= 巨龍使者：身後的龍（第二版） =================
+// 巨龍使者 第二版龍：修長身形、往後水平伸展的蝙蝠翼、可以往前撲咬
+// 座標以身體中心為 (0,0)，面向右；u 是比例
+const DGP2 = {
+  fire: { g: '#c8302a', d: '#7a1010', b: '#ffcf7a', w: '#8a2010', m: '#ff7a4a', h: '#f4ecd8', e: '#ffe680', o: '#2a0606', s: '#ffb04a', glow: '#ffd23f', y: '#ffd23f' },
+  thunder: { g: '#4a4ab8', d: '#22226a', b: '#c8d8ff', w: '#2a2a7a', m: '#7a7aff', h: '#e8f0ff', e: '#ffffff', o: '#0a0a2a', s: '#ffe64a', glow: '#7fd3ff', y: '#ffe64a' },
+  ice: { g: '#bcdcec', d: '#5a8aa8', b: '#ffffff', w: '#7aa8c8', m: '#e8f8ff', h: '#ffffff', e: '#2a6aff', o: '#1a3a5a', s: '#9fdfff', glow: '#ffffff', y: '#9fdfff' },
+  dark: { g: '#3a1a4a', d: '#1a0a24', b: '#7a4a8a', w: '#2a0a3a', m: '#6a2a8a', h: '#c8b8d8', e: '#ff2a6a', o: '#08020c', s: '#b46aff', glow: '#e08aff', y: '#b46aff' },
+  gold: { g: '#ffc23f', d: '#c87a10', b: '#fff6c0', w: '#ff8a3a', m: '#ffd27a', h: '#ffffff', e: '#ff2a2a', o: '#5a2a04', s: '#ffffff', glow: '#ffffff', y: '#ffffff' }
+};
+function dgShade(h, f) { const n = parseInt(h.slice(1), 16), c = v => Math.max(0, Math.min(255, Math.round(v * (1 + f)))); return '#' + ((1 << 24) | (c(n >> 16) << 16) | (c(n >> 8 & 255) << 8) | c(n & 255)).toString(16).slice(1); }
+
+// opt: u 比例、king 龍王、ph 拍翅相位(0~2π)、e 撲咬程度(0~1)、tw 尾巴擺動相位
+function dg2(stage, p, opt = {}) {
+  const u = opt.u || 2, W = Math.ceil(66 * u), H = Math.ceil(52 * u), ox = Math.round(32 * u), oy = Math.round(30 * u);
+  const mk = () => [...Array(H)].map(() => Array(W).fill(null)); const gB = mk(), gBody = mk(), gN = mk(), gF = mk(); let G = gB;
+  const put = (x, y, col) => { x = Math.round(x + ox); y = Math.round(y + oy); if (x >= 0 && y >= 0 && x < W && y < H) G[y][x] = col; };
+  const ell = (cx, cy, rx, ry, col, cond) => { for (let y = -ry * u - 1; y <= ry * u + 1; y++) for (let x = -rx * u - 1; x <= rx * u + 1; x++) { if ((x * x) / ((rx * u) ** 2) + (y * y) / ((ry * u) ** 2) <= 1 && (!cond || cond(x, y))) put(cx * u + x, cy * u + y, col); } };
+  const line = (x1, y1, x2, y2, w1, w2, col) => { const n = Math.ceil(Math.hypot(x2 - x1, y2 - y1) * u * 2) + 1; for (let i = 0; i <= n; i++) { const t = i / n, x = (x1 + (x2 - x1) * t) * u, y = (y1 + (y2 - y1) * t) * u, r = (w1 + (w2 - w1) * t) * u / 2; for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) if (a * a + b * b <= r * r + .3) put(x + a, y + b, col); } };
+  const poly = (pts, col) => { const xs = pts.map(q => q[0] * u), ys = pts.map(q => q[1] * u); const minY = Math.floor(Math.min(...ys)), maxY = Math.ceil(Math.max(...ys)); for (let y = minY; y <= maxY; y++) { const hits = []; for (let i = 0; i < pts.length; i++) { const [x1, y1] = [xs[i], ys[i]], [x2, y2] = [xs[(i + 1) % pts.length], ys[(i + 1) % pts.length]]; if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) hits.push(x1 + (y - y1) / (y2 - y1) * (x2 - x1)); } hits.sort((a, b) => a - b); for (let k = 0; k + 1 < hits.length; k += 2) for (let x = Math.ceil(hits[k]); x <= hits[k + 1]; x++) put(x, y, col); } };
+  // 曲線（二次貝茲），粗細從 w1 漸變到 w2
+  const curve = (a, c, b, w1, w2, col, n = 12) => { let pv = a; for (let i = 1; i <= n; i++) { const t = i / n, q = [(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]]; line(pv[0], pv[1], q[0], q[1], w1 + (w2 - w1) * (i - 1) / n, w1 + (w2 - w1) * i / n, col); pv = q; } };
+  const L2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const bk = opt.bk || 1, king = opt.king ? 1 : 0, ph = opt.ph || 0, e = opt.e || 0, tw = opt.tw ?? ph;
+  // 每一階段：[翼展, 翼指數, 身長]
+  const ST = [[0, 0, .8], [.8, 3, .9], [1.05, 3, 1], [1.3, 3, 1.08], [1.3, 3, 1.08]][stage];
+  const span = ST[0], nf = ST[1], bl = ST[2], tl = bk > 1 ? -Math.min(34, (bk - 1) * 70) : 0, BR = v => { const r = tl * Math.PI / 180; return [v[0] * Math.cos(r) - v[1] * Math.sin(r), v[0] * Math.sin(r) + v[1] * Math.cos(r)]; };
+
+  // ---- 翅膀（第三版）：長長的前緣手臂往後延伸，少數幾根彎曲的長翼指，翼膜大片、凹弧深；
+  //      拍動像波浪：肩膀先動、手肘慢一點、翼指最後才甩到 ----
+  const RT = (v, d) => { const r = d * Math.PI / 180, c = Math.cos(r), s2 = Math.sin(r); return [v[0] * c - v[1] * s2, v[0] * s2 + v[1] * c]; };
+  const wing = (dx, dy, col, bone, edge, back, q) => {
+    const ks = 1 - .22 * Math.abs(Math.sin(q)), r1 = 22 * Math.cos(q) - 20, r2 = r1 + 10 * Math.cos(q - .55), r3 = r2 + 16 * Math.cos(q - 1.1);
+    const sq = v => [v[0], v[1] * ks], add = (a, v) => [a[0] + v[0], a[1] + v[1]], k = back ? .9 : 1;
+    const S0 = BR([1 * bl, -2 * bl * bk]), S = [S0[0] + dx, S0[1] + dy];
+    const E = add(S, sq(RT([.8 * span * k, -4.2 * span * k], r1)));          // 手肘：往上
+    const Wr = add(E, sq(RT([-6.5 * span * k, -2.2 * span * k], r2)));       // 手腕：往後延伸，形成長長的前緣
+    const T = [], Cb = [];
+    for (let i = 0; i < nf; i++) { const t = nf > 1 ? i / (nf - 1) : 0, ang = 186 - t * 72, Lf = (11.5 - t * 4.5) * span * k;
+      const v = RT([Math.cos(ang * Math.PI / 180) * Lf, Math.sin(ang * Math.PI / 180) * Lf], r3), tip = add(Wr, sq(v));
+      const mid = add(Wr, sq(RT(v.map(z => z * .5), -9)));                // 翼指往後彎
+      T.push(tip); Cb.push(mid); }
+    const R0 = BR([-3.8 * bl, -.3]), root = [R0[0] + dx, R0[1] + dy];
+    // 翼膜外緣：翼指尖之間用深弧連起來
+    const arc = (a, c, b2, n = 6) => { const o = []; for (let i = 1; i < n; i++) { const t = i / n; o.push([(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * c[0] + t * t * b2[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b2[1]]); } return o; };
+    const rim = [T[0]];
+    for (let i = 0; i + 1 < T.length; i++) { rim.push(...arc(T[i], L2(L2(T[i], T[i + 1], .5), Wr, .55), T[i + 1])); rim.push(T[i + 1]); }
+    rim.push(...arc(T[T.length - 1], L2(L2(T[T.length - 1], root, .5), Wr, .35), root));
+    poly([S, E, Wr, ...rim, root], col);
+    // 層次：靠骨頭深、外緣淺
+    for (let i = 0; i < T.length; i++) poly([Wr, L2(Wr, T[i], .45), L2(Wr, i + 1 < T.length ? T[i + 1] : root, .4)], dgShade(col, -.2));
+    poly([S, E, Wr, L2(Wr, root, .45), L2(S, root, .4)], dgShade(col, -.12));
+    for (let i = 0; i + 1 < rim.length; i++) line(rim[i][0], rim[i][1], rim[i + 1][0], rim[i + 1][1], .55, .55, edge || dgShade(col, .28));
+    // 骨頭：上臂、前臂（前緣粗）、彎曲的翼指
+    line(S[0], S[1], E[0], E[1], 1.1 + span * .4, .95 + span * .3, bone);
+    line(E[0], E[1], Wr[0], Wr[1], .95 + span * .3, .7 + span * .2, bone);
+    for (let i = 0; i < T.length; i++) curve(Wr, Cb[i], T[i], .65 + span * .15, .3, bone, 10);
+    line(Wr[0], Wr[1], Wr[0] + .3, Wr[1] - 1.4, .7, .3, p.h);              // 腕上的爪
   };
-  const shade=(h,f)=>{const n=parseInt(h.slice(1),16),c=v=>Math.max(0,Math.min(255,Math.round(v*(1+f))));return '#'+((1<<24)|(c(n>>16)<<16)|(c(n>>8&255)<<8)|c(n&255)).toString(16).slice(1)};
-  if(stage>=1)wing(-1.8,-.4,p.w,p.d,null,1);
-  // 尾巴
-  line(-4,0,-8,-1,2.2,1.4,p.g);line(-8,-1,-11,-4,1.4,.8,p.g);if(stage>=2)poly([[-11.5,-5.5],[-13,-3.5],[-10.5,-3.2]],p.d);
-  // 腳
-  line(-2.4,1.5,-2.6,3.8,1.4,1.2,p.d);line(2.2,1.5,2.4,3.8,1.4,1.2,p.d);
-  if(opt.claw!==0)for(const lx of [-2.6,2.4])for(const k of [-.7,0,.7]){line(lx+k,3.9,lx+k+.5,4.8,.5,.35,p.h)}
-  // 身體＋肚子
-  ell(0,0,4.6,2.7,p.g);ell(.4,.9,3.4,1.5,p.b,(x,y)=>y>0);
-  // 背刺
-  if(stage>=3)for(let i=-3;i<=2;i++)poly([[i-.6,-2.4],[i,-3.8-(stage>=4?.6:0)],[i+.6,-2.4]],p.s);
-  // 脖子、頭、嘴
-  line(3,-1,5.2,-3.4,2.2,1.8,p.g);ell(6.2,-4.6,2.7,2.1,p.g);line(7.2,-3.9,9.6,-3.6,1.5,1.2,p.g);put(9.4*u,-3.2*u,p.d);
-  // 鬃毛
-  if(stage>=3)for(let k=0;k<4+stage;k++)put((4.4-k*.35)*u,(-5.4+k*.5)*u,p.s),put((4.0-k*.35)*u,(-5.2+k*.5)*u,p.s);
-  if(opt.king){for(const [a,b2] of [[4.6,-7.6],[5.6,-8.4],[6.6,-7.8]])line(a,-5.9,b2>-8?a-.3:a,b2,.8,.5,p.y||'#ffd23f');line(4.4,-5.9,7.2,-5.9,.9,.9,p.y||'#ffd23f')}
-  // 角
-  if(opt.hook){for(const bx of [4.6,6.2]){line(bx,-5.8,bx-.9,-7.6,.9,.6,p.h);line(bx-.9,-7.6,bx-.1,-8.6,.6,.4,p.h)}}
-  else if(!opt.king&&!opt.noHorn){if(stage>=2)line(5.6,-5.6,4.3,-7.6-(stage>=3?1:0),.9,.5,p.h);if(stage>=3)line(6.6,-5.8,6.2,-8.2,.8,.5,p.h)}
+  if (stage >= 1) wing(-2.2, -.6, p.w, p.d, null, 1, ph - .5);
+  G = gBody;
 
-  // 前翼（亮色）
-  if(stage>=1)wing(0,0,p.m,p.w,opt.king?p.glow:stage>=4?'#ffffff':null,0);
-  if(opt.king){for(let i=-3.5;i<=3.5;i+=1.2)put(i*u,(-.6+Math.sin(i)*.5)*u,p.glow),put(i*u+1,(-.6+Math.sin(i)*.5)*u,p.glow);for(const t of [-8,-9.5])put(t*u,(-1-(t+8)*.6)*u,p.glow)}
+  // ---- 尾巴：長長往後，末端微微擺動 ----
+  const tb = Math.sin(tw) * 1.2;
+  curve([-3.6 * bl, .2], [-8 * bl, 1.4], [-11.5 * bl, -1.6 + tb], 2.4 * bk, .7, p.g, 14);
+  if (stage >= 2) poly([[-11.5 * bl - 1.6, -1.6 + tb - 1.2], [-11.5 * bl + .6, -1.6 + tb - 1.4], [-11.5 * bl - .2, -1.6 + tb + .6]], p.d);
+  // ---- 後腳（飛行時收在身體下） ----
+  line(-2.4 * bl, 1.2 + (bk - 1) * 1.5, -3.2 * bl, 3.2 + (bk - 1) * 2, 1.4 * bk, 1.1 * bk, p.d); for (const k of [-.6, 0, .6]) line(-3.2 * bl + k * bk, 3.3 + (bk - 1) * 2, -3.2 * bl + k * bk - .5, 4.1 + (bk - 1) * 2, .5 * bk, .35 * bk, p.h);
+  // ---- 身體：修長的橢圓＋肚子 ----
+  ell(0, -.3 * (bk - 1), 4.7 * bl + .2 * (bk - 1), 2.5 * bk, p.g);
+  if (bk > 1) { const z = bk - 1; ell(1.6 * bl, -.4, 2.7 * bk, 2.7 * bk, p.g);                              // 厚實的胸膛
+    ell(-2.3 * bl, .9, 1.9 * bk, 1.8 * bk, dgShade(p.g, -.08));                                              // 粗壯的大腿
+    ell(1 * bl, 1 + z * 1.2, 3.5 * bl * (1 + z * .35), 1.9 * bk, p.b, (x, y) => y > -1.2 * u * bk * .5);  // 圓滾滾的大肚子
+    for (let k = 0; k < 4; k++) line(-1.8 * bl + k * 1.4, 1 + z * 1.2 - 1.2 * bk + k * .1, -1.5 * bl + k * 1.5 + .2, 1 + z * 1.2 + 1.4 * bk, .25, .25, dgShade(p.b, -.1)); }
+  else ell(.5, .9, 3.7 * bl, 1.4, p.b, (x, y) => y > 0);
+  if (stage >= 3 && bk <= 1) for (let i = -3; i <= 2; i++) poly([[i * bl - .5, -2.2 * bk], [i * bl, -3.4 * bk - (king ? .5 : 0)], [i * bl + .5, -2.2 * bk]], p.s);
+  // ---- 前腳 ----
+  if (bk > 1) { const z = bk - 1; line(3.6 * bl, -.4, 5.4 * bl, 1.2 + z, 1.2 * bk, 1 * bk, p.g); for (const k of [-.5, 0, .5]) line(5.4 * bl + k, 1.4 + z, 5.8 * bl + k, 2.2 + z, .45, .3, p.h); } else
+  line(2.4 * bl, 1.2 + (bk - 1) * 1.5, 2.9 * bl, 3.2 + (bk - 1) * 2, 1.3 * bk, 1 * bk, bk > 1 ? dgShade(p.g, -.12) : p.d); if (bk <= 1) for (const k of [-.6, 0, .6]) line(2.9 * bl + k * bk, 3.3 + (bk - 1) * 2, 2.9 * bl + k * bk + .5, 4.1 + (bk - 1) * 2, .5 * bk, .35 * bk, p.h);
+  if (king) for (let i = -3.5; i <= 3.5; i += 1.2) put(i * bl * u, (-.5 + Math.sin(i) * .5) * u, p.glow);
+  // 身體整個往上仰（四轉、覺醒：像站著懸停那樣挺胸、露出大肚子）
+  if (tl) { const r = -tl * Math.PI / 180, c = Math.cos(r), sn = Math.sin(r); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const X = x - ox, Y = y - oy, sx = Math.round(X * c - Y * sn + ox), sy = Math.round(X * sn + Y * c + oy); gB[y][x] = gB[y][x]; if (sx >= 0 && sy >= 0 && sx < W && sy < H && gBody[sy][sx]) gN[y][x] = gBody[sy][sx]; } for (let y = 0; y < H; y++) gBody[y] = gN[y].slice(), gN[y].fill(null); }
+  G = gN;
+  // ---- 脖子＋頭：撲咬時往前下方伸出、嘴巴張開 ----
+  const nk = 1 - (bk - 1) * .45, N0 = BR([3.6 * bl, -1.2 - (bk - 1) * 1.2]), Hd = [N0[0] + 3.8 * nk * bl + (bk - 1) * 1.2 + e * 6, N0[1] - 4 * nk + e * 3.3], C = [N0[0] + 1.8 * nk * bl + e * 2, N0[1] - 3.6 * nk + e * 1];
+  curve(N0, C, Hd, 2.6 * bk, 1.9 * (1 + (bk - 1) * .6), p.g, 12);
+  if (false) for (let k = 0; k < 6; k++) { const t = k / 6, q = [(1 - t) ** 2 * N0[0] + 2 * (1 - t) * t * C[0] + t * t * Hd[0], (1 - t) ** 2 * N0[1] + 2 * (1 - t) * t * C[1] + t * t * Hd[1]]; line(q[0] - .3, q[1] - 1, q[0] - 1.3, q[1] - 2.1, .7, .3, p.s); }
+  const hx = Hd[0], hy = Hd[1], jaw = e * 1.6;
+  ell(hx, hy, 2.4 * (1 + (bk - 1) * .3), 1.6 * (1 + (bk - 1) * .4), p.g);
+  line(hx + 1, hy - .2, hx + 4, hy + .1, 1.6, 1.1, p.g);                 // 上顎
+  line(hx + .8, hy + .8, hx + 3.6, hy + .9 + jaw, 1, .8, p.d);            // 下顎（撲咬時張開）
+  if (jaw > .4) line(hx + 1.5, hy + .5, hx + 3.6, hy + .5 + jaw * .5, .6, .5, '#5a0a0a');
+  put((hx + 3.8) * u, (hy - .3) * u, p.d);                                // 鼻孔
+  // 角：往後掠
+  if (king) { for (const [a, b] of [[-.6, -2.6], [.5, -3.1], [1.5, -2.6]]) line(hx + a, hy - 1.4, hx + a - .2, hy + b, .8, .5, p.y); line(hx - 1, hy - 1.4, hx + 2, hy - 1.4, .9, .9, p.y); }
+  if (stage >= 2) line(hx - .6, hy - 1.1, hx - 3.4, hy - 2.4 - (stage >= 3 ? .6 : 0), .7, .3, p.h);
+  if (stage >= 3) line(hx + .3, hy - 1.3, hx - 2, hy - 3.4, .6, .3, p.h);
+  if (stage === 1) line(hx - .4, hy - 1.2, hx - 1.8, hy - 2.2, .7, .4, p.h);
   // 眼睛
-  put(6.6*u,-4.9*u,p.e);if(u>2)put(6.6*u+1,-4.9*u,p.e);
+  put((hx + .6) * u, (hy - .4) * u, p.e); if (u > 2) put((hx + .6) * u + 1, (hy - .4) * u, p.e);
+  // 前翼
+  G = gF;
+  if (stage >= 1) wing(0, 0, p.m, p.w, king ? p.glow : stage >= 4 ? '#ffffff' : null, 0, ph);
+  // 合成：後翼 → 身體 → 脖子和頭 → 前翼
+  for (const L of bk > 1 ? [gF, gBody, gN] : [gBody, gN, gF]) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (L[y][x]) gB[y][x] = L[y][x];
+  G = gB;
   // 外框
-  const O=G.map(r=>[...r]);for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(!G[y][x]){for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){const yy=y+b,xx=x+a;if(yy>=0&&xx>=0&&yy<H&&xx<W&&G[yy][xx]){O[y][x]=p.o;break}}}
-  return {G:O,W,H,ox,oy}}
+  const O = G.map(r => [...r]); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!G[y][x]) { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const yy = y + b, xx = x + a; if (yy >= 0 && xx >= 0 && yy < H && xx < W && G[yy][xx]) { O[y][x] = p.o; break; } } }
+  return { G: O, W, H, ox, oy, mx: hx + 4, my: hy + .4 };
+}
 
 
-// stage：0 幼龍～3 古龍（4 = 金色龍神）；king：四轉龍王；mixG：往金色混合的比例（覺醒變身中）；crack：金色裂紋
-function dgSprite(stage,el,king,flap,mixG,crack){const k=[stage,el,king,flap,mixG,crack].join('|');let c=DGC[k];if(c)return c;
-  let pal=DGP[stage>=4?'gold':el]||DGP.fire;if(mixG){const o={};for(const q in pal)o[q]=dgMix(pal[q],DGP.gold[q]||pal[q],mixG);pal=o}
-  const d=dgBuild(stage,pal,{king,flap,u:DGU[stage]});c=document.createElement('canvas');c.width=d.W;c.height=d.H;const x=c.getContext('2d');
+const DGC={},dgMix=(a,b2,t)=>{const A=parseInt(a.slice(1),16),B=parseInt(b2.slice(1),16),f=sh=>Math.round(((A>>sh)&255)*(1-t)+((B>>sh)&255)*t);return '#'+((1<<24)|(f(16)<<16)|(f(8)<<8)|f(0)).toString(16).slice(1)};
+// 各階段在遊戲裡的大小與壯碩度：0 幼龍、1 少年龍、2 成年龍、3 古龍、4 龍王（變壯）、5 金色龍神（最壯）
+const DGS=[{st:0,u:.95,bk:1},{st:1,u:1.15,bk:1},{st:2,u:1.35,bk:1},{st:3,u:1.55,bk:1},{st:3,u:1.75,bk:1.35,king:1},{st:4,u:2.05,bk:1.65}];
+const dgLv=p=>Math.min(4,p.job||0),DGF=8;
+// fr：拍翅第幾格（0～7）；e：撲咬程度（0、0.5、1）；mixG／crack：覺醒變身中；ride：當坐騎時用水平的姿勢
+function dgSprite(lv,el,fr,e,mixG,crack,ride){const k=[lv,el,fr,e,mixG,crack,ride?1:0].join('|');let c=DGC[k];if(c)return c;
+  const S=DGS[lv];let pal=DGP2[lv===5?'gold':el]||DGP2.fire;if(mixG){const o={};for(const q in pal)o[q]=dgMix(pal[q],DGP2.gold[q]||pal[q],mixG);pal=o}
+  const d=dg2(S.st,pal,{u:S.u,bk:ride?1:S.bk,king:S.king,ph:fr/DGF*Math.PI*2,e});c=document.createElement('canvas');c.width=d.W;c.height=d.H;const x=c.getContext('2d');
   for(let yy=0;yy<d.H;yy++)for(let xx=0;xx<d.W;xx++){let col=d.G[yy][xx];if(!col)continue;if(crack&&col!==pal.o&&((xx*7+yy*3)%11===0||(xx+yy*2)%13===0))col='#ffe680';x.fillStyle=col;x.fillRect(xx,yy,1,1)}
-  c.ox=d.ox;c.oy=d.oy;c.u=DGU[stage];DGC[k]=c;return c}
-const DGU=[.8,1.15,1.5,1.85,2.6],dgStage=p=>Math.min(3,p.job||0);
-// 龍目前的位置（跟在玩家身後，慢慢追上）
-function dgState(p){const st=dgStage(p),f=p.f||1,tx=p.x-f*(8+st*5),ty=p.y-(24+st*4);let s=p.dg;if(!s||Math.abs(s.x-tx)>200||Math.abs(s.y-ty)>200)s=p.dg={x:tx,y:ty,f};
-  if(s.fr!==frame){s.fr=frame;s.x+=(tx-s.x)*.12;s.y+=(ty+Math.sin(frame/18+st)*1.5-s.y)*.12;if(Math.abs(tx-s.x)<4)s.f=f}return s}
-// 龍嘴的位置：技能從這裡發出
-function dgMouth(p){const s=dgState(p),u=DGU[dgStage(p)];return {x:s.x+(p.f||1)*9.5*u,y:s.y-3.6*u,f:p.f||1}}
-function drawDragonAt(p,x,y,f,ride){const el=p.elem||'fire',st=dgStage(p),king=(p.job||0)>=4?1:0,fl=[0,10,18,10][Math.floor(frame/7)%4]*(p.mount&&!ride?0:1);
-  const aw=!ride&&typeof awkFxC==='function'?awkFxC(p):null;let stage=st,mixG=0,crack=0,alpha=1,big=1;
-  if(aw){if(aw.stage>=3){stage=4;alpha=.82*(aw.fade?Math.max(.2,aw.k):1)}else if(aw.stage===2){mixG=.55;crack=1;big=1.15}else crack=1}
-  const c=dgSprite(stage,el,stage>=4?0:king,fl,mixG,crack),sx=Math.round(x-ox0),sy=Math.round(y-oy0);
-  if(aw&&aw.stage>=3){const ec=(D.ELEM[el]||D.ELEM.fire).col;b.globalAlpha=.75*alpha;for(let k=0;k<16;k++){const a=frame/25+k*.39,rr=40+(k%3)*9;R(Math.round(sx+Math.cos(a)*rr)-1,Math.round(sy-4+Math.sin(a)*rr*.55)-1,k%4?2:3,k%4?2:3,k%2?ec:'#ffe680')}for(let k=0;k<6;k++){const t=(frame*1.3+k*17)%40;R(Math.round(sx+Math.sin(k*2.1)*30),Math.round(sy+10-t),2,2,ec)}b.globalAlpha=1}
-  b.save();b.globalAlpha=alpha;b.translate(sx,sy);if(f<0)b.scale(-1,1);if(big!==1)b.scale(big,big);b.drawImage(c,-c.ox,-c.oy);b.restore();b.globalAlpha=1}
+  c.ox=d.ox;c.oy=d.oy;c.mx=d.mx*S.u;c.my=d.my*S.u;DGC[k]=c;return c}
+// 龍目前的狀態：位置（跟在玩家身後慢慢追上）、拍翅相位
+function dgState(p){const lv=dgLv(p),f=p.f||1,tx=p.x-f*(10+lv*4),ty=p.y-(22+lv*4);let s=p.dg;if(!s||Math.abs(s.x-tx)>320||Math.abs(s.y-ty)>320)s=p.dg={x:tx,y:ty,f,ph:0};
+  if(s.fr!==frame){s.fr=frame;const sp=s.fly>0?.07:.10;s.x+=(tx-s.x)*sp;s.y+=(ty+Math.sin(frame/22+lv)*1.5-s.y)*sp;if(s.fly>0)s.fly--;if(Math.abs(tx-s.x)<6)s.f=f;
+    const mv=Math.abs(p.vx||0)>.3||(p.walk&&p!==P);s.ph=(s.ph+(mv||s.fly>0?.2:.12)/(1+lv*.08))%(Math.PI*2)}return s}
+const dgLunge=p=>{const a=p.act||0;return a>10?1:a>4?.5:0};
+// 龍嘴的位置（技能從這裡發出）
+function dgMouth(p){const s=dgState(p),lv=dgLv(p),c=dgSprite(lv,p.elem||'fire',2,1,0,0),f=p.f||1;return {x:s.x+f*(8+c.mx),y:s.y+c.my,f}}
+function drawDragonAt(p,x,y,f,ride){const el=p.elem||'fire',aw=!ride&&typeof awkFxC==='function'?awkFxC(p):null,s=p.dg;let lv=ride?4:dgLv(p),mixG=0,crack=0,alpha=p===P||ride?1:.85;
+  if(aw){if(aw.stage>=3){lv=5;alpha*=.85*(aw.fade?Math.max(.25,aw.k):1)}else if(aw.stage===2){mixG=.55;crack=1}else crack=1}
+  const e=ride?0:dgLunge(p),fr=e>0?2:Math.floor(((s&&s.ph)||frame*.12)/(Math.PI*2)*DGF)%DGF,c=dgSprite(lv,el,fr,e,mixG,crack,ride),sx=Math.round(x-ox0),sy=Math.round(y-oy0);
+  if(aw&&aw.stage>=3){const ec=(D.ELEM[el]||D.ELEM.fire).col;b.globalAlpha=.75*alpha;for(let k=0;k<18;k++){const a=frame/25+k*.35,rr=46+(k%3)*10;R(Math.round(sx+Math.cos(a)*rr)-1,Math.round(sy-4+Math.sin(a)*rr*.55)-1,k%4?2:3,k%4?2:3,k%2?ec:'#ffe680')}for(let k=0;k<6;k++){const t=(frame*1.3+k*17)%40;R(Math.round(sx+Math.sin(k*2.1)*30),Math.round(sy+10-t),2,2,ec)}b.globalAlpha=1}
+  b.save();b.globalAlpha=alpha;b.translate(sx,sy);if(f<0)b.scale(-1,1);b.drawImage(c,-c.ox,-c.oy);b.restore();b.globalAlpha=1}
 let ox0=0,oy0=0;
-function drawDragon(p,ox,oy){if(p.cls!=='dragon'||p.dead||p.mount)return;const s=dgState(p),lunge=p.act>0?(p.f||1)*Math.min(6,p.act):0;ox0=ox;oy0=oy;drawDragonAt(p,s.x+lunge,s.y,p.f||1)}
+function drawDragon(p,ox,oy){if(p.cls!=='dragon'||p.dead||p.mount)return;const s=dgState(p),e=dgLunge(p);ox0=ox;oy0=oy;drawDragonAt(p,s.x+(p.f||1)*e*8,s.y,p.f||1)}
 function drawWSpr(sp,p,x,y,f,atk,T){const dg=WGRIP[p.cls]||[3,15],gx=sp.gx??dg[0],gy=sp.gy??dg[1],g=sp.g,flip=f<0,push=atk?f*2:0;
   const one=(hx,hy)=>{for(let r=0;r<g.length;r++){const row=g[r];for(let q=0;q<row.length;q++){const ch=row[q];if(ch==='.')continue;R(hx+(flip?gx-q:q-gx),hy+r-gy,1,1,T(sp.pal[ch]))}}};
   if(p.cls==='brawler'){one(x+(f>0?5:-6)+push*2,y-10);one(x+(f>0?-6:5),y-10);return}
@@ -1185,7 +1290,7 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
   drawHaz(ox,oy);
   drawOthers(ox,oy);
   if(P)drawHero(P,ox,oy);
-  for(const s of shots){const x=Math.round(s.x-ox),y=Math.round(s.y-oy),dir=s.vx>0;
+  for(const s of shots){const x=Math.round(s.x-ox),y=Math.round(s.y-oy),dir=s.vx>0;if(s.t==='dgball'){drawDgBall(s,x,y);continue}
     if(s.v&&drawShotV(s,x,y,dir))continue;
     if(s.t==='gproj'){R(x-3,y-2,6,4,s.col);R(x-(dir?9:-3),y-1,6,2,s.col+'80');R(x-1,y-1,2,2,'#ffffff')}
     else if(s.t==='feather'){R(x-3,y-1,6,2,'#fff6c8');R(x-(dir?4:-2),y,3,1,'#ffe680')}
@@ -1199,6 +1304,7 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
     else{const k=Math.floor(s.spin/3)%2;R(x-3,y-(k?0:3),k?6:1,k?1:6,'#e6ecf5');R(x-(k?0:3),y-3+(k?0:3),k?1:6,k?6:1,'#e6ecf5');R(x-1,y-1,2,2,'#99a')}}
   for(const e of fx){const t=e.life;if(e.d&&e.d>0){e.d--;continue}const x=Math.round((e.x??0)-ox),y=Math.round((e.y??0)-oy);
     if(e.t==='v'){drawV(e,x,y,ox,oy);continue}
+    if(e.t==='dg'){drawDg(e,x,y,ox,oy);continue}
     if(e.t==='slash'){const r=e.big?20:14;b.strokeStyle=e.big?'#ffd23fd0':'#ffffffd0';b.lineWidth=e.big?3:2;b.beginPath();b.arc(x-e.f*4,y,r,e.f>0?-1.2:Math.PI-0.6,e.f>0?0.6:Math.PI+1.2);b.stroke()}
     else if(e.t==='stab'){R(x-(e.f>0?0:10),y,10,1,'#fff');R(x-(e.f>0?0:10),y+3,8,1,'#ddd')}
     else if(e.t==='dash'){const x1=Math.round(Math.min(e.x1,e.x2)-ox),x2=Math.round(Math.max(e.x1,e.x2)-ox);b.globalAlpha=t/14;R(x1,y-4,x2-x1,2,e.col);R(x1,y+2,x2-x1,1,'#fff');b.globalAlpha=1}
