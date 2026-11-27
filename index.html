@@ -824,6 +824,99 @@ function drawHero(p,ox,oy){if(!p.dead)drawGuard(p,ox,oy);if(p.pet&&!p.dead)drawP
   if(p.clone>0){b.globalAlpha=.4;drawBody({...p,x:p.x-p.f*12},ox,oy,'#1a1030');b.globalAlpha=1}
   if(p.inv>0&&Math.floor(p.inv/4)%2&&!p.rope)return;drawBody(p,ox,oy);
   const st=p===P?(p.ccT>0?({fz:1,pz:2,st:4}[p.ccK]||1):0)|(p.rootT>0?8:0)|(p.dotT>0?(p.dotK==='bn'?32:64):0):(p.st||0);if(st)drawSt(Math.round(p.x-ox),Math.round(p.y-oy),14,26,st)}
+// ===== 傳說／神話武器、防具的獨立像素造型（每個字元一格，'.' 透明）=====
+// 武器握把位置 gx,gy（格子座標）會對準角色的手；朝左時整張左右翻轉
+const SCY=(top,sh,acc,n,pom)=>{const r=[...top];while(r.length<n-1){const i=r.length;r.push('.'.repeat(7)+(i%4===1?acc:sh)+'.')}r.push(pom);return r};
+const WSPR={
+// ---- 劍士 ----
+'赤霄神劍':{pal:{r:'#ff3b3b',o:'#ff9a2a',y:'#ffd23f',w:'#fff6c0',g:'#c8921c',b:'#5a2a1a'},g:['...y...','..yoy..','..ror..','.yror..','..rwr..','.orwro.','..rwr..','.yrwr..','..rwro.','..rwr..','.orwr..','..rwr..','..rwr..','ggggggg','.gbbbg.','...b...','...b...','..ygy..']},
+'湛盧':{pal:{d:'#1a2a4a',b:'#3a6aba',w:'#e8f4ff',c:'#7fd3ff',s:'#c9ced9',h:'#2a1a3a'},g:['...w...','..wcw..','..bwb..','..bwb..','..bwd..','..bwb..','..bwb..','..bwd..','..bwb..','..bwb..','..bwd..','..bwb..','.ccccc.','ccsssc.','...h...','...h...','...h...','..csc..']},
+'干將':{pal:{y:'#ffd23f',l:'#fff6c0',o:'#c8921c',r:'#d8433a',h:'#5a3a1a'},g:['...l...','..lyl..','.lyyyl.','.lyoyl.','.lyyyl.','.lyoyl.','.lyyyl.','.lyoyl.','.lyyyl.','.lyoyl.','.lyyyl.','.lyyyl.','ooooooo','o.rrr.o','...h...','...h...','..oho..','...r...']},
+'莫邪':{pal:{t:'#3affc8',p:'#b46aff',w:'#ffffff',k:'#1a1030',h:'#3a2a5a'},g:['....w..','...tw..','...tp..','..tp...','..tp...','..pt...','..tp...','..pt...','..tp...','..pt...','..tp...','..tp...','.kpppk.','k..h..k','...h...','...h...','...h...','..ptp..']},
+'屠神之刃':{pal:{p:'#ff4fd8',y:'#ffe680',w:'#ffffff',k:'#3a1a3a',h:'#5a2a1a'},g:['..ww...','.wppw..','wpppp..','wppppy.','wpyppy.','wppppy.','wpppyy.','wppppy.','wpyppy.','wppppy.','wpppyy.','.pppp..','kkkkkkk','.kyyyk.','...h...','...h...','..khk..','...y...']},
+'誅仙劍':{pal:{w:'#ffffff',s:'#d8e4f0',r:'#ff2a6a',k:'#2a1a2a',y:'#ffd23f',h:'#3a1a1a'},g:['...w...','...w...','..wsw..','..wsw..','..wsw..','..wrw..','..wsw..','..wsw..','..wrw..','..wsw..','..wsw..','..wsw..','.ykkky.','yk.r.ky','...h.r.','...h..r','...h.r.','..yhy..']},
+'戮仙劍':{pal:{p:'#7a2aff',y:'#ffe680',d:'#3a1080',w:'#f0e0ff',h:'#2a1a3a'},g:['...w...','..ypy..','.ypdp..','..pdpy.','.ypdp..','..pdpy.','.ypdp..','..pdpy.','.ypdp..','..pdpy.','.ypdp..','..pdp..','yyyyyyy','y.ddd.y','...h...','...h...','..yhy..','...p...']},
+'絕仙劍':{pal:{c:'#00ffd5',o:'#ff6a2a',y:'#ffe680',w:'#ffffff',k:'#1a2a3a',h:'#2a3a4a'},g:['..w....','..cw...','.ccw...','.cow...','.ccwy..','.cowy..','..cwy..','..owy..','..cw...','.ccwy..','.cow...','.ccw...','kkokkk.','k.yyy.k','...h...','..oho..','...h...','..cyc..']},
+// ---- 法師（法杖） ----
+'神農百草杖':{pal:{r:'#ff3b3b',o:'#ff9a2a',y:'#ffd23f',g:'#4fd36b',b:'#7a4a22'},g:['..ooo..','.oyyyo.','oyrryyo','oyrrryo','.oyyyo.','..ooo..','.g.b.g.','..gbg..','...b...','..gb...','...b...','...bg..','...b...','..gb...','...b...','...b...','..obo..','...b...','...b...','...b...','...b...','...o...']},
+'伏羲八卦杖':{pal:{d:'#1a2a4a',b:'#3a6aba',w:'#ffffff',c:'#7fd3ff',s:'#c9ced9'},g:['..sss..','.swdws.','sdwcwds','swcccws','sdwcwds','.swdws.','..sss..','...s...','..csc..','...s...','...s...','...b...','...s...','...b...','...s...','...b...','..csc..','...s...','...b...','...s...','...b...','...c...']},
+'女媧補天石':{pal:{y:'#ffd23f',l:'#fff6c0',r:'#ff4a4a',g:'#4fd36b',b:'#4a8aff',p:'#b46aff',h:'#7a4a22'},g:['...l...','..rgb..','.ryglp.','.gybpy.','..lyl..','...y...','..y.y..','...h...','...y...','...h...','...h...','..yhy..','...h...','...h...','...h...','...h...','..yhy..','...h...','...h...','...h...','...h...','...y...']},
+'崑崙仙杖':{pal:{t:'#3affc8',p:'#b46aff',w:'#ffffff',k:'#1a1030'},g:['...w...','..twt..','..tpt..','.tpwpt.','..tpt..','...t...','..k.k..','...k...','...p...','...k...','...k...','...p...','...k...','...k...','...p...','...k...','...k...','..tkt..','...k...','...k...','...k...','...t...']},
+'玄冥寒杖':{pal:{p:'#ff4fd8',y:'#ffe680',w:'#ffffff',k:'#2a1a3a'},g:['y.....y','.y...y.','..ypy..','.ypwpy.','..ypy..','...p...','...k...','..yky..','...k...','...k...','...p...','...k...','...k...','...p...','...k...','...k...','..yky..','...k...','...k...','...k...','...k...','...y...']},
+'鴻蒙紫氣杖':{pal:{w:'#ffffff',r:'#ff2a6a',k:'#2a1a2a',p:'#b46aff'},g:['.r...r.','..rwr..','.rwwwr.','rwwkwwr','.rwwwr.','..rwr..','.r.k.r.','...k...','..pkp..','...k...','...w...','...k...','..pkp..','...k...','...w...','...k...','..rkr..','...k...','...k...','...k...','..pkp..','...r...']},
+'混沌源杖':{pal:{p:'#7a2aff',y:'#ffe680',d:'#3a1080',w:'#ffffff'},g:['.y.y.y.','..ypy..','.ypdpy.','ypdwdpy','.ypdpy.','..ypy..','.y.d.y.','...d...','..ydy..','...d...','...d...','..ydy..','...d...','...d...','..ydy..','...d...','...d...','..ydy..','...d...','...d...','...d...','...y...']},
+'太極陰陽杖':{pal:{k:'#1a1a22',w:'#ffffff',c:'#00ffd5',o:'#ff6a2a'},g:['..kkw..','.kkwww.','kkwkwww','kkkwwww','kkkkwkw','.kkkww.','..kww..','..c.o..','...c...','...o...','...c...','...o...','...c...','...o...','...c...','...o...','..coc..','...c...','...o...','...c...','...o...','...c...']},
+// ---- 天使（權杖） ----
+'加百列號角杖':{pal:{y:'#ffd23f',r:'#ff4a2a',w:'#fff6c0'},g:['.....yy','...yyy.','..yry..','.yrry..','yrrry..','.yyy...','..wy...','...y...','...w...','...y...','...y...','...w...','...y...','...y...','..ryr..','...y...','...y...','...y...','...w...','...r...']},
+'拉斐爾治癒杖':{pal:{w:'#ffffff',c:'#7fd3ff',b:'#3a6aba'},g:['w.....w','ww.c.ww','.wwcww.','..ccc..','...c...','..bcb..','.b.c.b.','..bcb..','...c...','..bcb..','.b.c.b.','..bcb..','...c...','...c...','..wcw..','...c...','...c...','...c...','...c...','...w...']},
+'烏列爾之劍杖':{pal:{l:'#fff6c0',y:'#ffd23f',o:'#c8921c',h:'#ffffff'},g:['...l...','..lyl..','..lyl..','..lyl..','..lyl..','.ooooo.','o..y..o','...y...','...h...','...y...','...h...','...y...','...h...','...y...','..oyo..','...h...','...y...','...h...','...y...','...o...']},
+'梅塔特隆聖杖':{pal:{t:'#3affc8',p:'#b46aff',w:'#ffffff',k:'#1a1030'},g:['..ttt..','.tpppt.','.tpwpt.','.tpppt.','..ttt..','.p.k.p.','...k...','...t...','...k...','...k...','...p...','...k...','...k...','...t...','..pkp..','...k...','...k...','...k...','...k...','...t...']},
+'聖杯權杖':{pal:{y:'#ffe680',p:'#ff4fd8'},g:['.y...y.','.yyyyy.','.ypppy.','..yyy..','...y...','..yyy..','...p...','...y...','...p...','...y...','...y...','...p...','...y...','...y...','..pyp..','...y...','...y...','...y...','...y...','...p...']},
+'天父之光':{pal:{w:'#ffffff',r:'#ff2a6a',k:'#d8c8a0'},g:['r..w..r','.r.w.r.','..www..','wwwrwww','..www..','.r.w.r.','r..w..r','...w...','...k...','...w...','...k...','...w...','...k...','...w...','..rwr..','...k...','...w...','...k...','...w...','...r...']},
+'創世之羽杖':{pal:{w:'#ffffff',p:'#b46aff',y:'#ffe680',d:'#7a2aff'},g:['....ww.','...wpw.','..wppw.','..wpyw.','.wppw..','.wpyw..','.wppw..','..ww...','...y...','...d...','...y...','...d...','...y...','...d...','..ydy..','...d...','...y...','...d...','...y...','...p...']},
+'永恆聖約杖':{pal:{c:'#00ffd5',o:'#ff6a2a',y:'#ffe680',k:'#2a3a4a'},g:['..ccc..','.c...c.','c..o..c','c.oyo.c','c..o..c','.c...c.','..ccc..','...o...','...c...','...k...','...c...','...k...','...c...','...k...','..oco..','...k...','...c...','...k...','...c...','...o...']},
+// ---- 惡魔（鐮刀，握把在第 7 欄） ----
+'撒旦之鐮':{pal:{r:'#ff3b3b',o:'#ff9a2a',k:'#2a0a0a',y:'#ffd23f'},gx:7,g:SCY(['..rrrrrk.','.roooork.','ro.....k.','r......k.','.......k.'],'k','y',22,'......yry')},
+'別西卜之鐮':{pal:{w:'#e8f4ff',b:'#3a6aba',k:'#1a2a4a',c:'#7fd3ff'},gx:7,g:SCY(['.wwwwwwk.','w.bbbbbkc','w......k.','.w.....k.','.......k.'],'k','c',22,'......ckc')},
+'阿撒茲勒之鐮':{pal:{y:'#ffd23f',l:'#fff6c0',k:'#5a3a1a'},gx:7,g:SCY(['yyy....k.','.llyy..k.','..lllyyk.','.....llk.','.......k.'],'k','y',22,'......yly')},
+'莉莉絲之鐮':{pal:{p:'#b46aff',t:'#3affc8',k:'#1a1030',w:'#ffffff'},gx:7,g:SCY(['....pppkw','..pp..tk.','.p.....k.','t......k.','.......k.'],'k','t',22,'......tpt')},
+'貝利亞之鐮':{pal:{p:'#ff4fd8',y:'#ffe680',k:'#3a1a3a'},gx:7,g:SCY(['.ppppppk.','pyyyyyyk.','p......k.','.p.....k.','..p....k.'],'k','y',22,'......pyp')},
+'混沌魔神鐮':{pal:{r:'#ff2a6a',w:'#ffffff',k:'#1a0a1a'},gx:7,g:SCY(['rrrrrrrkr','w......kw','r......k.','.r.....k.','.......k.'],'k','r',22,'......rwr')},
+'終焉之鐮':{pal:{p:'#7a2aff',y:'#ffe680',d:'#2a1050'},gx:7,g:SCY(['ypppppydy','.yp....d.','..y....d.','.......d.','.......d.'],'d','y',22,'......ypy')},
+'原初黑暗鐮':{pal:{c:'#00ffd5',o:'#ff6a2a',k:'#0a0a14',w:'#ffffff'},gx:7,g:SCY(['.ccccccko','c.ooo..k.','c......kc','.c.....k.','..c....k.'],'k','o',22,'......coc')},
+// ---- 射手（弓：左邊是弓弦，右邊是弓身；握把在中間） ----
+'震天弓':{pal:{w:'#ffffff',r:'#ff3b3b',o:'#ff9a2a',y:'#ffd23f',b:'#5a2a1a'},gx:3,gy:8,g:['w.oy.','w..or','w...r','w...o','w...r','w..ro','w.yy.','w.bb.','w.bb.','w.yy.','w..ro','w...r','w...o','w...r','w..or','w.oy.']},
+'乾坤弓':{pal:{w:'#ffffff',b:'#3a6aba',c:'#7fd3ff',s:'#c9ced9'},gx:3,gy:8,g:['w.cc.','w..bc','w...b','w...b','w...c','w..bb','w.bc.','w.ss.','w.ss.','w.bc.','w..bb','w...c','w...b','w...b','w..bc','w.cc.']},
+'落日弓':{pal:{w:'#ffffff',y:'#ffd23f',l:'#fff6c0',o:'#ff9a2a',r:'#ff4a2a'},gx:3,gy:7,g:['w.yy.','w..ly','w...y','w...l','w...y','w..oy','w.olo','w.oro','w.olo','w..oy','w...y','w...l','w...y','w..ly','w.yy.']},
+'追星弓':{pal:{w:'#ffffff',t:'#3affc8',p:'#b46aff',k:'#1a1030'},gx:3,gy:8,g:['p..t.','w..tp','w...t','w...p','w...t','w..tp','w.pt.','w.kk.','w.kk.','w.pt.','w..tp','w...t','w...p','w...t','w..tp','p..t.']},
+'月神之弓':{pal:{w:'#ffffff',p:'#ff4fd8',y:'#ffe680',k:'#3a1a3a'},gx:3,gy:8,g:['w.pp.','w.ypp','w..yp','w...p','w...p','w..yp','w.yp.','w.kk.','w.kk.','w.yp.','w..yp','w...p','w...p','w..yp','w.ypp','w.pp.']},
+'金烏射日弓':{pal:{w:'#ffffff',r:'#ff2a6a',y:'#ffd23f'},gx:3,gy:8,g:['r.yy.','w.ryy','w..ry','w...r','w...y','w..rr','w.ryy','w.yry','w.yry','w.ryy','w..rr','w...y','w...r','w..ry','w.ryy','r.yy.']},
+'穿楊天弓':{pal:{w:'#ffffff',p:'#7a2aff',y:'#ffe680',d:'#3a1080'},gx:3,gy:8,g:['y..y.','w.yp.','w..pd','w...p','w...d','w...p','w..pd','w.pp.','w.yy.','w.yy.','w.pp.','w..pd','w...p','w...d','w...p','w..pd','w.yp.','y..y.']},
+'鴻鵠神弓':{pal:{w:'#ffffff',c:'#00ffd5',o:'#ff6a2a',y:'#ffe680'},gx:3,gy:8,g:['w.co.','w..cc','w..oc','w...c','w..oc','w.cc.','w.co.','w.yy.','w.yy.','w.co.','w.cc.','w..oc','w...c','w..oc','w..cc','w.co.']},
+// ---- 刺客（匕首，往前方刺出） ----
+'魚腸劍':{pal:{h:'#3a2a1a',y:'#ffd23f',r:'#ff3b3b',o:'#ff9a2a'},gx:1,gy:1,g:['..yo.o.o.','hhyrrrrrr','..yo.o.o.']},
+'純鈞':{pal:{h:'#2a1a3a',c:'#7fd3ff',w:'#ffffff',b:'#3a6aba'},gx:1,gy:1,g:['..c......','hhcwwwwww','..cbbbbb.']},
+'勝邪':{pal:{h:'#5a3a1a',o:'#c8921c',y:'#ffd23f',l:'#fff6c0'},gx:1,gy:1,g:['..o.l.l..','hhoyyyyyl','..o.l.l..']},
+'巨闕':{pal:{h:'#1a1030',p:'#b46aff',t:'#3affc8',k:'#2a1a4a'},gx:1,gy:1,g:['..ptttt..','hhptttttt','..pkkkk..']},
+'影武者之刃':{pal:{h:'#3a1a3a',y:'#ffe680',p:'#ff4fd8',w:'#ffffff'},gx:1,gy:1,g:['..y...pp.','hhypppppw','..y.pp...']},
+'刑天之刃':{pal:{h:'#2a0a14',r:'#ff2a6a',w:'#ffffff'},gx:1,gy:1,g:['.r.rwr...','hrrwwwwwr','.r.rwr...']},
+'九幽冥刃':{pal:{h:'#1a0a2a',y:'#ffe680',d:'#3a1080',p:'#7a2aff'},gx:1,gy:1,g:['..y.d.d.y','hhydpdpdp','..y.d.d.y']},
+'天罰影刺':{pal:{h:'#1a2a3a',o:'#ff6a2a',c:'#00ffd5',w:'#ffffff'},gx:1,gy:1,g:['..o..c...','hhocccccw','..o...c..']},
+// ---- 格鬥家（拳套，兩隻手都會畫） ----
+'金剛伏魔拳':{pal:{y:'#ffd23f',o:'#ff9a2a',r:'#ff3b3b',w:'#fff6c0'},gx:2,gy:2,g:['.yoy.','yrrry','orwro','yrrry','.yoy.']},
+'如來神掌':{pal:{w:'#ffffff',c:'#7fd3ff',b:'#3a6aba',s:'#c9ced9'},gx:2,gy:2,g:['.www.','wcccw','wcbcw','wcccw','.sss.']},
+'降龍拳套':{pal:{y:'#ffd23f',l:'#fff6c0',o:'#c8921c'},gx:2,gy:2,g:['y.y.y','yllly','lyoyl','yllly','.ooo.']},
+'伏虎拳套':{pal:{t:'#3affc8',k:'#1a1030',p:'#b46aff',w:'#ffffff'},gx:2,gy:2,g:['.tkt.','tpppt','kpwpk','tpppt','.kkk.']},
+'羅漢拳套':{pal:{p:'#ff4fd8',y:'#ffe680',w:'#ffffff'},gx:2,gy:2,g:['.ppp.','pyypp','pywyp','ppyyp','.ppp.']},
+'大日如來拳':{pal:{r:'#ff2a6a',w:'#ffffff'},gx:2,gy:2,g:['r.w.r','.www.','wwrww','.www.','r.w.r']},
+'須彌山拳':{pal:{y:'#ffe680',p:'#7a2aff',d:'#3a1080'},gx:2,gy:2,g:['..y..','.ypy.','ypdpy','dpppd','.ddd.']},
+'混元一氣拳':{pal:{c:'#00ffd5',o:'#ff6a2a',w:'#ffffff'},gx:2,gy:2,g:['.c.o.','cooco','ocwco','cooco','.o.c.']},
+// ---- 機神（砲，握把在下方） ----
+'雷神之錘砲':{pal:{y:'#ffd23f',r:'#ff3b3b',o:'#ff9a2a',b:'#3a2a1a'},gx:3,gy:3,g:['.....yyyy....','rrrrrrrrrrrro','rooooooooorry','..bb.........','..bb.........']},
+'天穹軌道砲':{pal:{c:'#7fd3ff',b:'#3a6aba',w:'#ffffff',s:'#5a6a78'},gx:3,gy:3,g:['..ccccccccc..','bbbbbbbbbbbbw','..ccccccccc..','..ss.........','..ss.........']},
+'零式光束砲':{pal:{l:'#fff6c0',y:'#ffd23f',o:'#c8921c'},gx:3,gy:3,g:['....lllll....','yyyyyyyyyyyyl','oooooooooyyyl','..oo.........','..oo.........']},
+'超新星發射器':{pal:{t:'#3affc8',p:'#b46aff',k:'#1a1030',w:'#ffffff'},gx:3,gy:3,g:['..tt...tt....','ppppppppppppt','kkkkkkkkkkppw','..kk.........','..kk.........']},
+'黑洞引擎砲':{pal:{p:'#ff4fd8',y:'#ffe680',k:'#1a0a1a',w:'#ffffff'},gx:3,gy:3,g:['...pppp......','yppkkkkppppp.','yppkkkkpppppw','..yy.........','..yy.........']},
+'創世紀元砲':{pal:{r:'#ff2a6a',w:'#ffffff',k:'#1a0a1a'},gx:3,gy:3,g:['.r.r.r.r.....','wwwwwwwwwwwwr','krrrrrrrrrwwr','..kk.........','..kk.........']},
+'神之杖':{pal:{y:'#ffe680',d:'#3a1080',p:'#7a2aff',w:'#ffffff'},gx:3,gy:3,g:['......y......','dddddddddddyw','pppppppppppyw','..dd.........','..dd.........']},
+'永恆核心砲':{pal:{o:'#ff6a2a',c:'#00ffd5',k:'#1a2a3a',w:'#ffffff'},gx:3,gy:3,g:['..o.o.o......','ccccccccccccw','kkkokokokccco','..kk.........','..kk.........']},
+};
+// 職業預設握把
+const WGRIP={warrior:[3,15],mage:[3,16],angel:[3,15],demon:[7,15],archer:[3,8],rogue:[1,1],brawler:[2,2],mech:[3,3]};
+// 防具（10×7 的上衣圖樣，畫在身體位置；肩甲顏色另外指定）
+const ASPR={
+'青龍鱗甲':{pal:{g:'#2ec48a',l:'#bfffe0',d:'#1a8a5a',y:'#ffd23f'},pad:'g',g:['dgdgdgdgdg','gldlglgldg','dgyyyyyygd','gdgdgdgdgd','dglgldlgld','gdgdgdgdgd','yyyyyyyyyy']},
+'白虎戰鎧':{pal:{w:'#f4f4f4',k:'#3a3a4a',s:'#c9ced9',y:'#ffd23f'},pad:'s',g:['wwkwwwwkww','wkwwyywwkw','kwwwyywwwk','wwkwwwwkww','wkwwwwwwkw','wwkwwwwkww','ssssssssss']},
+'朱雀羽衣':{pal:{r:'#ff4a2a',y:'#ffd23f',o:'#ff9a2a',d:'#a8201a'},pad:'y',g:['ryrrrrrryr','rryrrrryrr','orryrryrro','oorryyrroo','dorrrrrrod','ddoryyrodd','yyyyyyyyyy']},
+'玄武龜甲':{pal:{k:'#2a4a5a',c:'#7fd3ff',b:'#1a2a3a',g:'#4a7a6a'},pad:'g',g:['bkkkbbkkkb','kgcgkkgcgk','kgggkkgggk','bkkkbbkkkb','kgcgkkgcgk','kgggkkgggk','bbbbbbbbbb']},
+'鴻蒙仙衣':{pal:{w:'#ffffff',y:'#ffd23f',l:'#fff6c0',c:'#bfe8ff'},pad:'y',g:['wwwyllywww','wwylwwlyww','wylwccwlyw','wwwwccwwww','wclwwwwlcw','wwlwyywlww','yyyyyyyyyy']},
+'混沌戰甲':{pal:{k:'#1a0a2a',r:'#ff2a6a',p:'#7a2aff',d:'#2a1040'},pad:'r',g:['kkkrkkrkkk','kdkkrrkkdk','krkpkkpkrk','kkrkkkkrkk','kdkkppkkdk','kkrkrrkrkk','rrrrrrrrrr']},
+};
+function drawWSpr(sp,p,x,y,f,atk,T){const dg=WGRIP[p.cls]||[3,15],gx=sp.gx??dg[0],gy=sp.gy??dg[1],g=sp.g,flip=f<0,push=atk?f*2:0;
+  const one=(hx,hy)=>{for(let r=0;r<g.length;r++){const row=g[r];for(let q=0;q<row.length;q++){const ch=row[q];if(ch==='.')continue;R(hx+(flip?gx-q:q-gx),hy+r-gy,1,1,T(sp.pal[ch]))}}};
+  if(p.cls==='brawler'){one(x+(f>0?5:-6)+push*2,y-10);one(x+(f>0?-6:5),y-10);return}
+  if(p.cls==='rogue'||p.cls==='mech'){one(x+(f>0?5:-6)+push,y-11);return}
+  one(x+(f>0?5:-6)+push,y-9-(atk?1:0))}
 function drawBody(p,ox,oy,tint){const c=CL[p.cls],x=Math.round(p.x-ox),y=Math.round(p.y-oy),f=p.f,job=p.job||0,T=col=>tint||col;
   R(x-6,y-1,12,2,'#0004');
   const step=p.ground&&!p.act?Math.floor(p.walk/6)%2:0,climb=!!p.rope;
@@ -831,7 +924,8 @@ function drawBody(p,ox,oy,tint){const c=CL[p.cls],x=Math.round(p.x-ox),y=Math.ro
   if(job>=1&&!climb){R(x+(f>0?-8:4),y-13,4,10+(job>=3?3:0),T(['',c.col2,'#ffd23f','#7a2aff','#ffffff'][job]));R(x+(f>0?-8:4),y-13,4,1,T(job>=3?'#ffd23f':'#ffffff50'))}
   R(x-4,y-5,3,5-(step?1:0),T('#3a2a1a'));R(x+1,y-5,3,5-(step?0:1),T('#3a2a1a'));
   const ad=ARMORS[p.lookA??p.arm??0],al=ad&&ad[7];
-  R(x-5,y-12,10,7,T(al?al.c1:c.col));R(x-5,y-12,10,1,T('#ffffff40'));R(x-5,y-6,10,1,T(al?al.c2:c.col2));if(al&&!tint){R(x-5,y-10,10,1,al.c2);if(ad[5]>=2)gearFx(x,y-9,al,true)}R(x-1,y-11,2,5,T('#ffffff22'));if(job>=2){R(x-5,y-8,10,1,T('#ffd23f'))}
+  const asp=ad&&ASPR[ad[0]];if(asp){const ag=asp.g;for(let r=0;r<7;r++)for(let q=0;q<10;q++){const ch=ag[r][f<0?9-q:q];R(x-5+q,y-12+r,1,1,T(asp.pal[ch]))}R(x-7,y-12,2,3,T(asp.pal[asp.pad]));R(x+5,y-12,2,3,T(asp.pal[asp.pad]));if(!tint&&ad[5]>=2)gearFx(x,y-9,al,true)}
+  else{R(x-5,y-12,10,7,T(al?al.c1:c.col));R(x-5,y-12,10,1,T('#ffffff40'));R(x-5,y-6,10,1,T(al?al.c2:c.col2));if(al&&!tint){R(x-5,y-10,10,1,al.c2);if(ad[5]>=2)gearFx(x,y-9,al,true)}R(x-1,y-11,2,5,T('#ffffff22'))}if(job>=2&&!asp){R(x-5,y-8,10,1,T('#ffd23f'))}
   const atk=p.act>0,swing=atk?Math.floor((16-p.act)/5):0;
   if(climb){R(x-6,y-18,2,6,T('#f4c79c'));R(x+4,y-18,2,6,T('#f4c79c'))}else{R(x+(f>0?4:-6),y-11+(atk?-2:0),2,4,T('#f4c79c'));R(x+(f>0?-6:4),y-11,2,4,T('#f4c79c'))}
   R(x-6,y-22,12,10,T('#f4c79c'));R(x-6,y-22,12,1,T('#ffe0c0'));
@@ -846,6 +940,7 @@ function drawBody(p,ox,oy,tint){const c=CL[p.cls],x=Math.round(p.x-ox),y=Math.ro
   else if(p.cls==='angel'){R(x-7,y-24,14,4,T('#f4d36a'));R(x-7,y-21,2,5,T('#f4d36a'));R(x+5,y-21,2,5,T('#f4d36a'));R(x-5,y-29,10,2,T(frame%40<20?'#ffe680':'#fff6c0'));if(!tint&&!climb){R(x+(f>0?-13:7),y-17,6,9,'#ffffff');R(x+(f>0?-12:8),y-18,4,2,'#e6ecff')}}
   else{R(x-7,y-24,14,4,T(hc));R(x+(f>0?-9:5),y-24,4,2,T(job>=2?'#ff6a3d':'#ffd23f'));R(x-7,y-21,2,3,T('#6b4423'));R(x+5,y-21,2,3,T('#6b4423'))}
   if(climb)return;const wi=p.lookW??p.wep??0,wd=(WEAPONS[p.cls]||[])[wi],wl=wd&&wd[6],wx=x+(f>0?6:-8),wc=T(wl?(frame%30<15?wl.c1:wl.c2):WCOL[wi]||'#ffffff');
+  {const sp=wd&&WSPR[wd[0]];if(sp){if(wl&&!tint)gearFx(wx,y-16,wl,wd[4]>=2);drawWSpr(sp,p,x,y,f,atk,T);return}}
   if(wl&&!tint){b.globalAlpha=wd[4]>=2?.45:.3;R(wx-3,y-27,8,20,wl.c1);b.globalAlpha=1;gearFx(wx,y-18,wl,wd[4]>=2)}
   if(p.cls==='warrior'){if(atk){const a=[[-12,-6],[0,-8],[8,-2]][Math.min(2,swing)];R(wx+a[0]*f*.5,y-20+(swing*3),14,3,wc)}else{R(wx,y-22,2,12,wc);R(wx-1,y-11,4,2,T('#a3762b'))}}
   else if(p.cls==='mage'){R(wx,y-24+(atk?-2:0),2,16,T('#8a5a2b'));R(wx-1,y-27+(atk?-2:0),4,4,atk?'#ffffff':wc==='#e6ebf3'?'#7fd3ff':wc)}
