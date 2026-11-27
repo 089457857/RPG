@@ -381,8 +381,8 @@ function usePortal(pt){if(pt.rec&&P.lv<pt.rec)toast(`${pt.label}建議 Lv ${pt.r
 function buffMul(){const f=P&&P.bf||{};return (f.rage>0?1.3:1)*(f.bless>0?1.2:1)*(f.pow>0?1.25:1)}
 function hitMon(m,mult,o={}){if(m.dead||m.hp<=0)return;m.hurt=14;mult=Math.min(o.fin?6:3.2,mult*buffMul());
   const ef=(typeof o.sk==='string'&&SK[P.cls][o.sk]&&SK[P.cls][o.sk].ef)||0;   // 這招帶的控制／持續傷害效果
-  if(m.isP){pvpQ.push({u:m.uid,mult:Math.round(mult*100)/100,cb:o.crit||0,sk:o.sk?1:0,heal:o.heal||0,s:o.stack||0,ef,fin:o.fin?1:0,k:typeof o.sk==='string'?o.sk:0,ga:o.ga?1:0});return}
-  hitQ.push({m:m.i,mult:Math.round(mult*100)/100,cb:o.crit||0,ef,kb:Math.min(4,(o.kb??1.5)*(1+(P.max.kbB||0))),sk:o.sk?1:0,s:o.stack||0,vu:o.vu?1:0,pl:o.pull?1:0,ex:o.ex?1:0,fin:o.fin?1:0,k:typeof o.sk==='string'?o.sk:0,ga:o.ga?1:0});
+  if(m.isP){pvpQ.push({u:m.uid,mult:Math.round(mult*100)/100,cb:o.crit||0,sk:o.sk?1:0,heal:o.heal||0,s:o.stack||0,ef,fin:o.fin?1:0,k:typeof o.sk==='string'?o.sk:0,ga:o.ga?1:0,g9:o.g9?1:0});return}
+  hitQ.push({m:m.i,mult:Math.round(mult*100)/100,cb:o.crit||0,ef,kb:Math.min(4,(o.kb??1.5)*(1+(P.max.kbB||0))),sk:o.sk?1:0,s:o.stack||0,vu:o.vu?1:0,pl:o.pull?1:0,ex:o.ex?1:0,fin:o.fin?1:0,k:typeof o.sk==='string'?o.sk:0,ga:o.ga?1:0,g9:o.g9?1:0});
   if(o.heal&&P&&!P.dead){const h=Math.round(P.max.hp*o.heal);P.hp=Math.min(P.max.hp,P.hp+h);if(Math.random()<.4)num(P.x+6,P.y-30,'+'+h,'heal')}
   if(P.clone>0&&!o.cl)setTimeout(()=>{if(m.hp>0&&!m.dead)hitMon(m,mult*.6,{...o,cl:1,stack:(o.stack||0)+1,kb:0})},90)}
 function inBox(m,x1,x2,y1,y2){return !m.dead&&m.hp>0&&m.x+m.w/2>=x1&&m.x-m.w/2<=x2&&m.y>=y1&&m.y-m.h<=y2}
@@ -394,14 +394,14 @@ function live(){return mons.filter(m=>!m.dead&&m.hp>0).concat(pvpTargets())}
 function sklOk(k){return D.skillLock(P,k)}
 function slotK(key){const i=+key.slice(1)-1;return (P&&P.slots&&P.slots[i])||''}
 const BUFFN={pow:'攻擊 +25%（20 秒）',guard:'受到傷害 -30%（15 秒）',haste:'移動速度 +25%、技能冷卻縮短（20 秒）'};
-function doSkill(k,A){const local=A===P;if(k==='dj'){if(!local)fx.push({t:'dj',x:A.x,y:A.y,f:A.f,life:14});return}const s=SK[A.cls][k];if(!s)return;
-  if(local){if(P.dead||P.rope||P.cd[k]>0)return;if(P.ccT>0){if(frame-(P.ccTip||-99)>40){P.ccTip=frame;toast(`${D.EF[P.ccK].n}中，無法攻擊`)}return}if(P.mount){if(frame-(P.mtT||-99)>60){P.mtT=frame;toast('騎乘中無法攻擊，按 F 下坐騎')}return}const lock=sklOk(k);if(lock){if(k!=='atk')toast(`${s.n}：${s.job?`需要${['','一','二','三','四'][s.job]}轉`:'需要 Lv '+s.lv}`);return}
+function doSkill(k,A,inner){const local=A===P;if(k==='dj'){if(!local)fx.push({t:'dj',x:A.x,y:A.y,f:A.f,life:14});return}const s=SK[A.cls][k];if(!s)return;
+  if(local&&!inner){if(P.dead||P.rope||P.cd[k]>0)return;if(P.ccT>0){if(frame-(P.ccTip||-99)>40){P.ccTip=frame;toast(`${D.EF[P.ccK].n}中，無法攻擊`)}return}if(P.mount){if(frame-(P.mtT||-99)>60){P.mtT=frame;toast('騎乘中無法攻擊，按 F 下坐騎')}return}const lock=sklOk(k);if(lock){if(k!=='atk')toast(`${s.n}：${s.job?`需要${['','一','二','三','四'][s.job]}轉`:'需要 Lv '+s.lv}`);return}
     if(s.mp&&P.mp<s.mp){toast('MP 不足');return}if(s.mp)P.mp-=s.mp;P.cd[k]=Math.round(s.cd*(P.pet==='baihu'?.8:1)*(P.bf.haste>0?.75:1)*(k==='atk'?1:1-(P.max.cdr||0)));sock.emit('cast',{k,x:Math.round(P.x),y:Math.round(P.y),f:P.f})}
-  A.act=16;A.actK=k;const f=A.f,x=A.x,y=A.y,isSk=k!=='atk'?k:0,H=local?(m,mu,o={})=>hitMon(m,mu,{...o,sk:isSk}):()=>{},cos=!local;
+  A.act=16;A.actK=k;const f=A.f,x=A.x,y=A.y,isSk=k!=='atk'?k:0,H=local?(m,mu,o={})=>hitMon(m,mu,{...o,sk:isSk,g9:inner&&inner.g9?1:o.g9}):()=>{},cos=!local;
   const box=(w,h,mult,max,o)=>{let n=0;const x1=f>0?x:x-w,x2=f>0?x+w:x;for(const m of live()){if(n>=max)break;if(inBox(m,x1,x2,y-h,y+2)){H(m,mult,o);n++}}return n};
   const near=(r,yr)=>live().filter(m=>Math.abs(m.x-x)<r&&Math.abs(m.y-y)<(yr||120));
-  if(k==='atk'&&D.GUARD[A.cls].ready&&awkFxC(A)){guardAtk(A,local,H,box,cos);if(local)ui();return}
-  if(awSk(A,k)){guardSkill(A,k,local,H,box,near,cos);if(local)ui();return}
+  if(!inner&&k==='atk'&&D.GUARD[A.cls].ready&&awkFxC(A)){guardAtk(A,local,H,box,cos);if(local)ui();return}
+  if(!inner&&awSk(A,k)){guardSkill(A,k,local,H,box,near,cos);if(local)ui();return}
   switch(A.cls+':'+k){
     case 'warrior:atk':fx.push({t:'slash',x:x+f*14,y:y-12,f,life:12,big:0});box(34,26,1.3,3);break;
     case 'warrior:s1':fx.push({t:'slash',x:x+f*20,y:y-14,f,life:16,big:1});box(48,32,2.2,6,{kb:3});break;
@@ -473,7 +473,7 @@ function skyArrows(A,local,H,n,len,mult,col,cap=3){fx.push({t:'upshot',x:A.x,y:A
     setTimeout(()=>{fx.push({t:'spark',x:tx,y:ty-4,life:10,col});if(local)for(const m of live())if(Math.abs(m.x-tx)<36+m.w/2&&Math.abs(m.y-ty)<50&&(hitN.get(m)||0)<cap){hitN.set(m,(hitN.get(m)||0)+1);H(m,mult,{kb:.4,stack:i%4})}},260)},450+i*55)}
 // ---- 90 級守護靈技能：覺醒中，四轉的 3 招變成守護靈版本 ----
 const awSk=(A,k)=>{const t=D.AWSK[A.cls];return t&&t[k]&&A.lv>=D.AWSKLV&&D.GUARD[A.cls].ready&&awkFxC(A)?t[k]:null};
-function guardSkill(A,k,local,H,box,near,cos){const f=A.f,x=A.x,y=A.y,g=D.GUARD[A.cls],col=g.col,M=D.AWSK_MULT,a=D.AWSK[A.cls][k];
+function guardSkill(A,k,local,H,box,near,cos){const f=A.f,x=A.x,y=A.y,g=D.GUARD[A.cls],col=g.col,M=D.AWSK_MULT,a=D.AWSK[A.cls][k],H9=(m,mu,o={})=>H(m,mu,{...o,g9:1});
   if(local)toast(`${a.n}！`);
   switch(A.cls+':'+k){
     case 'warrior:s6':{const ts=near(260,80);for(let w=0;w<5;w++)setTimeout(()=>{for(let j=0;j<3;j++){const tx=ts.length?ts[(w*3+j)%ts.length].x+rnd(-14,14):A.x+A.f*(60+j*60);fx.push({t:'gsword',x:tx,y:A.y,life:40,col})}
@@ -487,7 +487,17 @@ function guardSkill(A,k,local,H,box,near,cos){const f=A.f,x=A.x,y=A.y,g=D.GUARD[
     case 'rogue:b4':{const ts=near(240).sort((a2,c)=>Math.abs(a2.x-x)-Math.abs(c.x-x)).slice(0,12);ts.forEach((m,i)=>setTimeout(()=>{fx.push({t:'dash',x1:A.x,x2:m.x,y:m.y-10,life:10,col});fx.push({t:'stab',x:m.x,y:m.y-12,f:1,life:8});H(m,2.2*M,{crit:15,kb:.3})},i*45));break}
     case 'archer:s6':skyArrows(A,local,H,16,520,2.5*M/4*3,'#bfe8ff',4);break;
     case 'archer:b4':for(const vy of [-.55,0,.55])shots.push({sk:k,t:'big',x:x+f*10,y:y-12,vx:f*7,vy,life:55,mult:2.7*M/3,pierce:99,col:'#ff4a2a',cos});break;
-    case 'warrior:c4':case 'archer:c4':case 'rogue:c4':fx.push({t:'ring',x,y:y-10,life:30,col});if(local)sock.emit('gAid',{k});break;
+    // ---- 第二批：原招 ×1.3，再疊上守護靈風格的特效 ----
+    case 'brawler:s6':V({v:'warcry',x,y,r:220,life:30});for(let j=0;j<3;j++)setTimeout(()=>V({v:'palm',x:A.x+A.f*(60+j*50),y:A.y,r:40,life:24}),200+j*150);doSkill(k,A,{g9:1});break;
+    case 'brawler:b4':genSkill({...SK[A.cls][k].g,rad:SK[A.cls][k].g.rad*1.3,vfx:'palm',col:col},A,local,H9,box,near,cos,k);break;
+    case 'mech:s6':{let tg=null,bd=250;for(const m of live()){const d=Math.abs(m.x-x);if(d<bd&&Math.abs(m.y-y)<120){bd=d;tg=m}}const tx=tg?tg.x:x+f*90;for(let j=0;j<4;j++)setTimeout(()=>V({v:'emp',x:tx,y:A.y,r:90+j*20,life:20}),300+j*180);doSkill(k,A,{g9:1});break}
+    case 'mech:c4':genSkill({...SK[A.cls][k].g,len:Math.round(SK[A.cls][k].g.len*1.3),vfx:'particle'},A,local,H9,box,near,cos,k);break;
+    case 'demon:s6':V({v:'sigil',x,y,r:240,life:30});V({v:'bloodwave',x,y,r:260,life:28});doSkill(k,A,{g9:1});break;
+    case 'demon:b4':genSkill({...SK[A.cls][k].g,dist:Math.round(SK[A.cls][k].g.dist*1.3),vfx:'wings'},A,local,H9,box,near,cos,k);break;
+    case 'demon:c4':genSkill({...SK[A.cls][k].g,rad:Math.round(SK[A.cls][k].g.rad*1.3),vfx:'blackflame'},A,local,H9,box,near,cos,k);break;
+    case 'angel:s6':V({v:'halo',x,y,r:200,life:40});V({v:'holycross',x,y,r:60,life:36});doSkill(k,A,{g9:1});break;
+    case 'angel:c4':genSkill({...SK[A.cls][k].g,len:Math.round(SK[A.cls][k].g.len*1.3),vfx:'judgement'},A,local,H9,box,near,cos,k);break;
+    default:if(a.sup){V({v:'aura',cfg:['radiate',col,'line'],x,y,life:40});if(local)sock.emit('gAid',{k})}break;
   }}
 // 守護靈普攻（傷害另外乘上覺醒攻擊加成，由伺服器計算）
 function guardAtk(A,local,H,box,cos){const f=A.f,x=A.x,y=A.y,col=D.GUARD[A.cls].col;
@@ -495,6 +505,10 @@ function guardAtk(A,local,H,box,cos){const f=A.f,x=A.x,y=A.y,col=D.GUARD[A.cls].
     case 'warrior':fx.push({t:'gslash',x:x+f*60,y:y-26,w:120,col,life:14});fx.push({t:'gslash',x:x+f*60,y:y-10,w:110,col:'#ffffff',life:10});box(120,64,1.7,8,{kb:2.5,ga:1});break;
     case 'mage':{const cx=x+f*90;fx.push({t:'gboom',x:cx,y:y-18,rad:55,col:['#ff6a2a','#7fd3ff','#7aff7a','#ffe680'][frame%4],life:20});for(const m of live())if(Math.abs(m.x-cx)<55+m.w/2&&Math.abs(m.y-y)<70)H(m,1.6,{kb:1,ga:1});break}
     case 'rogue':for(let w=0;w<4;w++)setTimeout(()=>{fx.push({t:'gslash',x:A.x+A.f*45,y:A.y-8-w*7,w:90,col:w%2?col:'#ffffff',life:10});if(local){let n=0;const x1=A.f>0?A.x:A.x-90,x2=A.f>0?A.x+90:A.x;for(const m of live())if(n<6&&inBox(m,x1,x2,A.y-44,A.y+2)){H(m,.6,{kb:.3,stack:w,ga:1});n++}}},w*70);break;
+    case 'brawler':V({v:'palm',x:x+f*55,y,r:40,col,life:18});box(100,56,1.7,6,{kb:3,ga:1});break;
+    case 'mech':for(const vy of [-.12,.12])shots.push({sk:0,ga:1,t:'big',x:x+f*10,y:y-22,vx:f*8,vy,life:40,mult:.85,pierce:2,col:'#5af0ff',cos});V({v:'flamer',x,y:y-22,f,len:30,life:10});break;
+    case 'demon':V({v:'nclaw',x:x+f*45,y:y+4,f,life:16});V({v:'nclaw',x:x+f*65,y:y-6,f,life:16});box(100,60,1.7,7,{heal:.01,ga:1});break;
+    case 'angel':V({v:'judgement',x,y:y-12,f,len:170,life:14});if(local)for(const m of live()){const d=(m.x-x)*f;if(d>-6&&d<170&&Math.abs(m.y-y)<30)H(m,1.7,{kb:1,ga:1})}break;
     case 'archer':shots.push({sk:0,ga:1,t:'big',x:x+f*10,y:y-14,vx:f*9,life:46,mult:1.7,pierce:99,col,cos});break;
   }}
 // 終結技（傷害上限放寬到 6 倍，對 Boss 另外 ×1.35，由伺服器計算）
@@ -506,28 +520,131 @@ function awkFin(A,local){const f=A.f,x=A.x,y=A.y,g=D.GUARD[A.cls],F=(m,mu,o={})=
       setTimeout(()=>{fx.push({t:'boom',x:tx,y:ty-10,life:26});for(let w=0;w<3;w++)setTimeout(()=>{if(tg&&tg.hp>0&&!tg.dead)F(tg,6,{kb:0,stack:w});if(w===0)for(const m of live())if(m!==tg&&Math.abs(m.x-tx)<60&&Math.abs(m.y-ty)<50)F(m,3,{kb:2})},w*120)},620);break}
     case 'mage':for(let i=0;i<8;i++){const tx=clamp(x+f*(-60+i*45)+rnd(-20,20),10,WW-10);setTimeout(()=>{fx.push({t:'meteor',x:tx,y:GY,life:30});setTimeout(()=>{fx.push({t:'gboom',x:tx,y:A.y-14,rad:60,col:['#ff6a2a','#7fd3ff','#7aff7a','#ffe680'][i%4],life:22});for(const m of live())if(Math.abs(m.x-tx)<60&&Math.abs(m.y-A.y)<90)F(m,3.2,{kb:1.5,stack:i%4})},300)},i*170)}break;
     case 'rogue':{const tg=strongest(260);if(!tg){fx.push({t:'poof',x,y:y-12,life:20});break}for(let w=0;w<10;w++)setTimeout(()=>{if(tg.hp<=0||tg.dead)return;const sx=tg.x+(w%2?-1:1)*(tg.w/2+10);fx.push({t:'dash',x1:sx-(w%2?-1:1)*30,x2:sx,y:tg.y-10-(w%3)*6,life:10,col:g.col});fx.push({t:'stab',x:tg.x,y:tg.y-tg.h/2,f:w%2?1:-1,life:8});if(local&&w===9){P.x=clamp(sx,6,WW-6);P.inv=Math.max(P.inv,30)}F(tg,2.4,{crit:30,kb:0,stack:w%4})},w*95);break}
+    case 'brawler':{const tg=strongest(260);if(!tg){V({v:'warcry',x,y,r:120,life:24});break}for(let w=0;w<16;w++)setTimeout(()=>{if(tg.hp<=0||tg.dead)return;V({v:'palm',x:tg.x+rnd(-18,18),y:tg.y+rnd(-14,4),r:20,col:g.col,life:14});F(tg,1.3,{kb:0,stack:w%4})},w*75);break}
+    case 'mech':{const hitN=new Map(),tg=strongest(320);for(let i=0;i<16;i++)setTimeout(()=>{const tx=clamp(tg&&!tg.dead?tg.x+rnd(-50,50):A.x+A.f*(60+i*20)+rnd(-10,10),6,WW-6),ty=A.y;fx.push({t:'missile',x:A.x,y:A.y-30,x2:tx,y2:ty-8,life:16});setTimeout(()=>{fx.push({t:'kaboom',x:tx,y:ty,life:24});if(local)for(const m of live())if(Math.abs(m.x-tx)<34+m.w/2&&Math.abs(m.y-ty)<60&&(hitN.get(m)||0)<4){hitN.set(m,(hitN.get(m)||0)+1);F(m,3,{kb:1,stack:i%4})}},260)},i*90);break}
+    case 'demon':{V({v:'sigil',x,y,r:200,life:30});for(let w=0;w<5;w++)setTimeout(()=>{V({v:'bloodwave',x:A.x,y:A.y,r:200,life:22});V({v:'nclaw',x:A.x+(w%2?-60:60),y:A.y,f:w%2?-1:1,life:16});if(local)for(const m of live())if(Math.abs(m.x-A.x)<200&&Math.abs(m.y-A.y)<90)F(m,3,{heal:.02,kb:.5,stack:w%4})},200+w*170);break}
+    case 'angel':{V({v:'halo',x,y,r:220,life:60});if(local)sock.emit('gAid',{k:'fin'});for(let w=0;w<4;w++)setTimeout(()=>{V({v:'holycross',x:A.x,y:A.y,r:70,life:24});if(local)for(const m of live())if(Math.abs(m.x-A.x)<200&&Math.abs(m.y-A.y)<90)F(m,2.5,{kb:1,stack:w})},250+w*200);break}
     case 'archer':{const tg=strongest(300),tx=tg?tg.x:clamp(x+f*160,6,WW-6),ty=y;fx.push({t:'upshot',x,y:y-14,life:22,col:g.col});
       setTimeout(()=>fx.push({t:'comet',x:tx,y:ty,life:30,col:g.col}),450);
       setTimeout(()=>{fx.push({t:'boom',x:tx,y:ty-12,life:26});fx.push({t:'shock',x:tx,y:ty,life:30,col:g.col});if(!local)return;const ts=live().filter(m=>Math.abs(m.x-tx)<260&&Math.abs(m.y-ty)<90);for(let w=0;w<5;w++)setTimeout(()=>{for(const m of ts)if(m.hp>0&&!m.dead)F(m,3,{kb:1,stack:w%4})},w*90)},750);break}
   }}
+// ================= 職業專屬技能特效 =================
+// 通用技能引擎的 72 招原本只差在顏色；這裡依每一招指定專屬外觀（只改畫面，不影響判定與傷害）
+const VFX={
+  'warrior.a0':'shield','rogue.a0':'venom','brawler.b3':'claw','demon.c1':'nclaw',
+  'warrior.c1':'spinblades','warrior.b4':'warcry','mage.c1':'firering','rogue.c3':'poison','brawler.c2':'roar','brawler.c3':'tornado','mech.c1':'emp','demon.c3':'bloodwave','angel.c2':'halo',
+  'warrior.c2':'smash','mage.b3':'thunder','mage.b4':'starfall','rogue.b3':'assassin','brawler.b4':'palm','demon.a0':'sigil','demon.c4':'blackflame','angel.a0':'holybeam','angel.c3':'holycross',
+  'warrior.b3':'dashslash','brawler.a0':'headbutt','mech.b3':'jet','demon.b4':'wings','mage.b2':'portal',
+  'warrior.c3':'iaido','mage.c2':'glacier','rogue.c2':'bloodblades','brawler.c1':'kicks','mech.a0':'flamer','mech.c4':'particle','demon.b3':'hellfire','angel.c4':'judgement',
+  'mage.a0':'icicle','rogue.c1':'knife','archer.a0':'arrow','archer.c1':'arrow','archer.c2':'firearrow','archer.b3':'icearrow','archer.b4':'phoenix','mech.c2':'bullet',
+  'mage.c4':'elements','rogue.b4':'tendril','archer.c3':'bolt','demon.c2':'souls','angel.c1':'chain',
+  // 增益／補血：[圖案, 顏色, 形狀]
+  'warrior.b1':['radiate','#ff4a2a','line'],'warrior.b2':['dome','#c9ced9','plate'],'mage.b1':['orbit','#c77dff','rune'],'rogue.b1':['wind','#7aff9a','line'],'rogue.b2':['rise','#9a9aa8','puff'],'rogue.c4':['rise','#3a1a5a','puff'],
+  'archer.b1':['eye','#ffe680','eye'],'archer.b2':['wind','#bfe8ff','line'],'brawler.b1':['dome','#ffd23f','plate'],'brawler.b2':['rise','#ff7a2a','flame'],'mech.b1':['orbit','#5af0ff','gear'],'mech.b4':['radiate','#5af0ff','line'],
+  'demon.b1':['fall','#ff2a4a','drop'],'demon.b2':['dome','#5a0a2a','plate'],'angel.b1':['dome','#fff6c8','plate'],'angel.b3':['rise','#ffe680','note'],
+  'warrior.c4':['pillar','#ffd23f','plus'],'archer.c4':['rise','#5ad65a','leaf'],'brawler.c4':['orbit','#7fd3ff','dot'],'mech.b2':['rise','#5ad65a','plus'],'angel.b2':['radiate','#fff6c8','line'],'angel.b4':['fall','#ffffff','feather'],'mage.c3':['rise','#7fb8ff','crystal']
+};
+function vfxOf(A,k){return VFX[A.cls+'.'+k]||null}
+function V(o){fx.push({t:'v',L:o.life,...o})}
+// 小圖示
+function vShape(sh,x,y,c){x=Math.round(x);y=Math.round(y);
+  switch(sh){case 'rune':R(x-2,y-2,5,1,c);R(x,y-2,1,5,c);R(x-2,y+2,5,1,c);break;case 'note':R(x,y-5,1,6,c);R(x-2,y,3,2,c);R(x+1,y-5,3,1,c);break;
+    case 'leaf':R(x-2,y-1,4,2,c);R(x-1,y-2,2,4,c);R(x+1,y+1,1,1,'#2a6a2a');break;case 'plus':R(x-2,y,5,1,c);R(x,y-2,1,5,c);break;
+    case 'feather':R(x-1,y-3,2,6,c);R(x-2,y-1,1,3,c);R(x+1,y-2,1,3,'#e8e8e8');break;case 'gear':R(x-2,y-2,5,5,c);R(x-1,y-1,3,3,'#0a2a3a');R(x,y-3,1,7,c);R(x-3,y,7,1,c);break;
+    case 'crystal':R(x-1,y-3,3,6,c);R(x,y-4,1,8,'#e8faff');break;case 'drop':R(x-1,y-2,2,3,c);R(x-1,y+1,3,2,c);break;case 'puff':R(x-3,y-2,6,4,c);R(x-2,y-3,4,6,c);break;
+    case 'flame':R(x-1,y-3,3,5,c);R(x,y-5,1,2,'#ffe680');break;case 'eye':R(x-4,y-1,9,3,c);R(x-1,y-1,3,3,'#1a1a1a');break;default:R(x-1,y-1,2,2,c)}}
+function drawV(e,x,y,ox,oy){const t=e.life,L=e.L||20,p=1-t/L,f=e.f||1,c=e.col||'#ffffff',A=a=>b.globalAlpha=Math.max(0,Math.min(1,a));
+  switch(e.v){
+  // ---- 近戰 ----
+  case 'shield':{const sx=x-f*8+f*p*18;A(1-p*.5);R(sx-6,y-14,12,16,'#c9ced9');R(sx-5,y-13,10,2,'#ffffff');R(sx-2,y-8,4,4,'#ffd23f');A(1-p);for(let k=0;k<3;k++)R(sx+(f>0?8:-16),y-12+k*6,8,1,'#ffffff');break}
+  case 'venom':{A(1-p);for(let i=0;i<9;i++)R(x-f*e.w/2+f*i*e.w/9,y-16+i*2.5,4,2,i%3?'#7aff7a':'#ffffff');for(let k=0;k<3;k++)R(x-6+k*7,y-4+p*16+k*2,2,3,'#3ad65a');break}
+  case 'claw':case 'nclaw':{A(1-p);const cc=e.v==='claw'?'#ff9a3d':'#a01a2a';for(let s=0;s<3;s++)for(let i=0;i<7;i++)R(x-10+s*7+f*i*2,y-18+i*3,3,2,i<2?'#ffffff':cc);if(e.v==='nclaw')for(let k=0;k<3;k++)R(x-6+k*7,y+2+p*10,2,3,'#7a0a1a');break}
+  // ---- 周圍範圍（以施放者為中心） ----
+  case 'spinblades':{A(1-p*.6);for(let k=0;k<6;k++){const a=p*7+k*1.047,px=x+Math.cos(a)*e.r*.8,py=y+Math.sin(a)*e.r*.22;R(px-1,py-9,3,12,'#e6ebf3');R(px-3,py+2,7,2,'#ffd23f')}break}
+  case 'warcry':{for(let j=0;j<3;j++){const rr=(p*1.3-j*.25)*e.r;if(rr<=0)continue;A(1-p);for(let a=0;a<6.28;a+=.3)R(x+Math.cos(a)*rr,y-10+Math.sin(a)*rr*.35,3,2,j%2?'#ffb34d':'#ff4a2a')}A(1-p);for(let k=0;k<5;k++)R(x-12+k*6,y-20-p*20-(k%2)*6,2,3,'#ffd23f');break}
+  case 'firering':{A(1-p*.7);for(let k=0;k<12;k++){const a=k*.5236+p,px=x+Math.cos(a)*e.r*.85,py=y-4+Math.sin(a)*e.r*.25,h=6+((k*7+frame)%5);R(px-2,py-h,4,h,'#ff6a2a');R(px-1,py-h-3,2,3,'#ffe680')}break}
+  case 'poison':{for(let k=0;k<8;k++){const a=k*.785,px=x+Math.cos(a)*e.r*.7,py=y-8+Math.sin(a)*8-p*10;A(.45*(1-p));R(px-6,py-4,12,8,'#5ad65a');R(px-4,py-6,8,12,'#3a9a3a');A(1-p);R(px+((k*3)%5),py-8-p*12,2,2,'#bfffbf')}break}
+  case 'roar':{for(let j=0;j<3;j++){const rr=(p*1.2-j*.22)*e.r;if(rr<=4)continue;A(1-p);for(const sd of [-1,1]){R(x+sd*rr-1,y-22,3,18,'#ffe680');R(x+sd*(rr-5)-1,y-18,2,10,'#ffffff')}}break}
+  case 'tornado':{A(1-p*.6);for(let i=0;i<16;i++){const yy=y-i*3,wd=4+i*1.3,xx=x+Math.sin(frame/3+i*.7)*wd;R(xx-3,yy,6,2,i%2?c:'#ffffff')}break}
+  case 'emp':{const rr=e.r*Math.min(1,p*1.4);A(1-p);let px=x+rr,py=y-10;for(let k=1;k<=16;k++){const a=k*.3927,nx=x+Math.cos(a)*rr*(k%2?1:.85),ny=y-10+Math.sin(a)*rr*.35;for(let s=0;s<4;s++)R(px+(nx-px)*s/4,py+(ny-py)*s/4,2,2,k%3?'#5af0ff':'#ffffff');px=nx;py=ny}break}
+  case 'bloodwave':{const rr=e.r*p;A(1-p);for(const sd of [-1,1]){R(x+sd*rr-5,y-8,10,8,'#ff2a4a');R(x+sd*rr-3,y-14,6,6,'#c8102a');for(let k=0;k<3;k++)R(x+sd*(rr-6-k*4),y-16-k*4+p*8,2,2,'#ff6a7a')}break}
+  case 'halo':{A(1-p*.5);const a0=frame/8;for(let k=0;k<20;k++){const a=a0+k*.314;R(x+Math.cos(a)*e.r*.8,y-12+Math.sin(a)*e.r*.18,3,2,k%4?'#ffe680':'#ffffff')}for(let k=0;k<4;k++){const a=-a0+k*1.57;R(x+Math.cos(a)*e.r*.5,y-20+Math.sin(a)*4,2,2,'#ffffff')}break}
+  // ---- 目標爆炸 ----
+  case 'smash':{A(1-p);for(const sd of [-1,1])for(let i=0;i<6;i++)R(x+sd*i*e.r/6,y-1+(i%2),4,2,'#3a2a1a');for(let k=0;k<6;k++){const vx=(k-2.5)*2.2,q=p*14;R(x+vx*q,y-8-q*3+q*q*.35,4,4,k%2?'#8a6a4a':'#c8a070')}A((1-p)*.8);R(x-e.r*.5,y-10,e.r,10,'#ffb34d');break}
+  case 'thunder':{A(1-p);for(let j=0;j<3;j++){if(p<j*.15)continue;let px=x+(j-1)*e.r*.4,py=y-120;while(py<y){const nx=px+(((py*7+j*13)|0)%9)-4,ny=py+10;for(let s=0;s<3;s++)R(px+(nx-px)*s/3,py+(ny-py)*s/3,3,4,s%2?'#ffffff':'#ffe680');px=nx;py=ny}}A((1-p)*.5);R(x-e.r,y-6,e.r*2,6,'#ffe680');break}
+  case 'starfall':{if(p<.4){const q=p/.4,sx=x-60+60*q,sy=y-140+140*q;R(sx-4,sy-4,9,9,'#c77dff');R(sx-1,sy-6,3,13,'#ffffff');R(sx-6,sy-1,13,3,'#ffffff');A(.4);R(sx-20,sy-20,14,14,'#c77dff')}else{const q=(p-.4)/.6;A(1-q);for(let k=0;k<8;k++){const a=k*.785,r=q*e.r;R(x+Math.cos(a)*r-2,y-10+Math.sin(a)*r*.6-2,5,5,k%2?'#c77dff':'#ffffff')}}break}
+  case 'assassin':{A(1-p);for(let i=0;i<12;i++){R(x-18+i*3,y-30+i*3,3,3,'#ff3b6a');R(x+18-i*3,y-30+i*3,3,3,'#ff3b6a')}R(x-1,y-16,3,3,'#ffffff');A((1-p)*.35);R(x-30*f-6,y-26,12,26,'#1a0a1a');R(x-50*f-6,y-26,12,26,'#1a0a1a');break}
+  case 'palm':{const s=1+p*.6;A(1-p);R(x-10*s,y-20*s,20*s,18*s,'#ff9a3d');for(let k=0;k<4;k++)R(x-9*s+k*5*s,y-30*s,4*s,11*s,'#ff9a3d');R(x-14*s,y-14*s,5*s,7*s,'#ff9a3d');for(let k=0;k<8;k++){const a=k*.785;R(x+Math.cos(a)*(14+p*30),y-10+Math.sin(a)*(10+p*20),3,3,'#ffffff')}break}
+  case 'sigil':{if(p<.5){A(p*2);for(let k=0;k<14;k++){const a=k*.449+frame/12;vShape('rune',x+Math.cos(a)*e.r*.8,y-4+Math.sin(a)*e.r*.25,'#ff2a4a')}}else{const q=(p-.5)*2;A(1-q);R(x-e.r*q,y-20*q-6,e.r*2*q,20*q+6,'#c8102a');R(x-4,y-14,8,8,'#ffffff')}break}
+  case 'blackflame':{A(1-p*.6);for(let k=0;k<9;k++){const px=x-e.r*.5+k*e.r/8,h=14+((k*11+frame)%12)*2;R(px-3,y-h,6,h,k%2?'#2a0a2a':'#5a0a3a');R(px-1,y-h-4,3,4,'#b46aff')}break}
+  case 'holybeam':{A(1-p);R(x-8,y-140,16,140,'#fff6c8');R(x-3,y-140,6,140,'#ffffff');for(let k=0;k<6;k++)R(x-12+((k*9+frame)%24),y-((k*23+frame*4)%120),2,2,'#ffe680');break}
+  case 'holycross':{const s=e.r*(.4+p*.6);A(1-p);R(x-3,y-s-10,6,s*2,'#fff6c8');R(x-s,y-13,s*2,6,'#fff6c8');R(x-1,y-s-10,2,s*2,'#ffffff');for(let k=0;k<4;k++)vShape('feather',x-20+k*13,y-30+p*28+(k%2)*6,'#ffffff');break}
+  // ---- 衝刺 ----
+  case 'dashslash':case 'headbutt':case 'jet':case 'wings':case 'portal':{const x1=Math.round(e.x1-ox),x2=Math.round(e.x2-ox),lo=Math.min(x1,x2),hi=Math.max(x1,x2),d=x2>x1?1:-1;A(1-p);
+    if(e.v==='dashslash'){for(let k=1;k<=3;k++){A((1-p)*.3*k/3);R(x1+(x2-x1)*k/4-5,y-16,10,24,'#ffd27a')}A(1-p);for(let k=0;k<4;k++){const sx=lo+(hi-lo)*(k+.5)/4;R(sx-6,y-14+k%2*6,12,2,'#ffffff')}}
+    else if(e.v==='headbutt'){for(let k=0;k<5;k++)R(lo+((k*37)%(hi-lo+1)),y-12+k*4,14,1,'#ffffff');for(let k=0;k<6;k++){const a=k*1.047;R(x2+Math.cos(a)*(4+p*12),y-6+Math.sin(a)*(4+p*10),3,3,'#ffb34d')}}
+    else if(e.v==='jet'){for(let k=0;k<8;k++){const sx=x1+(x2-x1)*k/8;A((1-p)*.7);R(sx-4,y-8-((k*3)%6),8,8,k%2?'#ff7a2a':'#ffe680');A((1-p)*.4);R(sx-6,y-16-p*10,10,8,'#8a8a9a')}}
+    else if(e.v==='wings'){for(let k=0;k<3;k++){const sx=x1+(x2-x1)*(k+1)/4;A((1-p)*(.3+k*.2));R(sx-14,y-22,10,6,'#3a0a1a');R(sx-18,y-18,8,10,'#3a0a1a');R(sx+4,y-22,10,6,'#3a0a1a');R(sx+10,y-18,8,10,'#3a0a1a')}}
+    else{for(const px of [x1,x2]){A(1-p);for(let a=0;a<6.28;a+=.4)R(px+Math.cos(a+frame/6)*10,y-6+Math.sin(a+frame/6)*14,2,2,a<3?'#c77dff':'#7fd3ff')}}
+    break}
+  // ---- 直線 ----
+  case 'iaido':{const x1=f>0?x:x-e.len;A(1-p);R(x1,y-1,e.len,2,'#ffffff');A((1-p)*.5);R(x1,y-4,e.len,8,'#e6ebf3');A(1-p);for(let k=0;k<6;k++)R(x1+((k*53+frame*7)%e.len),y-6+(k%3)*5,3,1,'#ffd23f');break}
+  case 'glacier':{A(1-p*.5);const n=Math.max(4,Math.round(e.len/22));for(let k=0;k<n;k++){const sx=x+f*(10+k*e.len/n),h=Math.min(1,p*3-k*.15)*22;if(h<=0)continue;R(sx-4,y+12-h,8,h,'#bfe8ff');R(sx-1,y+12-h-4,3,4,'#ffffff');R(sx-3,y+10-h,2,h-2,'#e8faff')}break}
+  case 'bloodblades':{A(1-p);for(let k=0;k<3;k++){const sx=x+f*(p*e.len*.9-k*14);if((sx-x)*f<0)continue;for(let i=0;i<6;i++)R(sx+f*Math.sin(i*.5)*5,y-12+i*4,3,3,i%2?'#ff3b6a':'#c8102a')}break}
+  case 'kicks':{A(1-p);for(let k=0;k<3;k++){const sx=x+f*e.len*(k+1)/4,s2=1+((p*3+k)%1)*.6;R(sx-5*s2,y-8,10*s2,6,'#ffb34d');for(let j=0;j<6;j++){const a=j*1.047;R(sx+Math.cos(a)*8*s2,y-5+Math.sin(a)*6*s2,2,2,'#ffffff')}}break}
+  case 'flamer':{A(1-p*.5);for(let k=0;k<14;k++){const d=((k*13+frame*5)%e.len),spread=d/e.len*10;R(x+f*d-3,y-3+Math.sin(k*1.7+frame/3)*spread,6,5,k%3?'#ff7a2a':'#ffe680')}break}
+  case 'particle':{const x1=f>0?x:x-e.len;A(1-p);R(x1,y-7,e.len,14,'#5af0ff');R(x1,y-3,e.len,6,'#ffffff');for(let k=0;k<5;k++){const rx=x1+((k*e.len/5+frame*6)%e.len);R(rx-2,y-11,4,22,'#bff6ff')}break}
+  case 'hellfire':{A(1-p*.5);const n=Math.round(e.len/12);for(let k=0;k<n;k++){const sx=x+f*k*12,h=8+((k*7+frame)%8)+Math.min(1,p*2)*6;R(sx-4,y+10-h,8,h,k%2?'#c8102a':'#2a0a0a');R(sx-2,y+6-h,4,4,'#ff6a2a')}break}
+  case 'judgement':{const x1=f>0?x:x-e.len;A(1-p);R(x1,y-5,e.len,10,'#ffe680');R(x1,y-2,e.len,4,'#ffffff');for(let k=0;k<4;k++){const px=x+f*e.len*(k+.5)/4;R(px-3,y-60+p*0,6,56,'#fff6c8');R(px-1,y-60,2,56,'#ffffff')}break}
+  // ---- 多目標連結（施放者 → 目標） ----
+  case 'elements':case 'tendril':case 'bolt':case 'souls':case 'chain':{const x2=Math.round(e.x2-ox),y2=Math.round(e.y2-oy);A(1-p*.6);
+    if(e.v==='elements'){for(let k=0;k<4;k++){const q=Math.min(1,p*1.6-k*.12);if(q<=0)continue;R(x+(x2-x)*q-3,y+(y2-y)*q-3-Math.sin(q*3.14)*14,6,6,['#ff6a2a','#7fd3ff','#7aff7a','#ffe680'][k])}}
+    else if(e.v==='tendril'){for(let k=0;k<=16;k++){const q=k/16;R(x+(x2-x)*q,y+(y2-y)*q+Math.sin(q*12+frame/3)*4,3,3,k%3?'#3a1a5a':'#c9a6ff')}}
+    else if(e.v==='bolt'){let px=x,py=y;for(let k=1;k<=8;k++){const nx=x+(x2-x)*k/8+(k<8?((k*7)%7)-3:0),ny=y+(y2-y)*k/8+(k<8?((k*5)%9)-4:0);for(let s=0;s<3;s++)R(px+(nx-px)*s/3,py+(ny-py)*s/3,2,2,s?'#ffe680':'#ffffff');px=nx;py=ny}}
+    else if(e.v==='souls'){for(let k=0;k<3;k++){const q=Math.max(0,Math.min(1,p*1.4-k*.15));R(x2+(x-x2)*q-2,y2+(y-y2)*q-2-Math.sin(q*3.14)*10,5,5,'#b46aff');R(x2+(x-x2)*q-1,y2+(y-y2)*q-1-Math.sin(q*3.14)*10,2,2,'#ffffff')}}
+    else{for(let k=0;k<=10;k++){const q=k/10;R(x+(x2-x)*q-2,y+(y2-y)*q-1,4,3,'#ffe680');R(x+(x2-x)*q-1,y+(y2-y)*q,2,1,'#8a6a2a')}}
+    break}
+  // ---- 增益、補血（套在施放者身上） ----
+  case 'aura':{const [pat,ac,sh]=e.cfg;A(1-p*.7);
+    if(pat==='radiate'){for(let k=0;k<10;k++){const a=k*.628,r=8+p*24;R(x+Math.cos(a)*r,y-14+Math.sin(a)*r*.8,3,3,ac)}}
+    else if(pat==='orbit'){for(let k=0;k<5;k++){const a=frame/10+k*1.257;vShape(sh,x+Math.cos(a)*16,y-14+Math.sin(a)*6,ac)}}
+    else if(pat==='rise'){for(let k=0;k<7;k++)vShape(sh,x-14+k*5,y-4-((p*30+k*9)%30),ac)}
+    else if(pat==='fall'){for(let k=0;k<7;k++)vShape(sh,x-15+k*5,y-34+((p*30+k*7)%30),ac)}
+    else if(pat==='dome'){for(let a=3.3;a<6.2;a+=.18)R(x+Math.cos(a)*16,y+Math.sin(a)*24,3,3,ac);A((1-p)*.25);R(x-14,y-22,28,22,ac)}
+    else if(pat==='wind'){for(let k=0;k<5;k++){const sx=x-20+((p*60+k*13)%40);R(sx,y-24+k*5,10,1,ac);R(sx+2,y-23+k*5,6,1,'#ffffff')}}
+    else if(pat==='eye'){vShape('eye',x,y-34-p*4,ac);R(x-1,y-30,2,6,ac)}
+    else if(pat==='pillar'){R(x-6,y-60,12,60,ac);A((1-p)*.5);R(x-10,y-60,20,60,'#ffffff');A(1-p);for(let k=0;k<4;k++)vShape(sh,x-12+k*8,y-10-((p*40+k*11)%40),'#ffffff')}
+    break}
+  }b.globalAlpha=1}
+// 飛行物的專屬外觀
+function drawShotV(s,x,y,dir){const d=dir?1:-1;
+  switch(s.v){
+    case 'icicle':R(x-5*d,y-1,8,3,'#bfe8ff');R(x+3*d,y,3,1,'#ffffff');R(x-9*d,y,4,1,'#e8faff');break;
+    case 'knife':{const r=Math.floor(frame/3)%4;if(r%2){R(x-4,y-1,8,2,'#e6ecf5');R(x-1,y-2,2,4,'#5a3a8a')}else{R(x-1,y-4,2,8,'#e6ecf5');R(x-2,y-1,4,2,'#5a3a8a')}break}
+    case 'arrow':R(x-(dir?10:0),y-1,10,1,'#c8a070');R(x+(dir?0:-3),y-2,3,3,'#e6ebf3');R(x-(dir?12:-10),y-2,2,4,'#ffffff');break;
+    case 'firearrow':R(x-(dir?10:0),y-1,10,1,'#c8a070');R(x+(dir?0:-3),y-2,3,3,'#ffe680');for(let k=1;k<4;k++)R(x-d*(10+k*4),y-2+Math.sin(frame/2+k)*2,4,3,k%2?'#ff7a2a':'#ffe680');break;
+    case 'icearrow':R(x-(dir?18:0),y-2,18,3,'#bfe8ff');R(x+(dir?0:-5),y-4,5,7,'#ffffff');for(let k=1;k<5;k++)R(x-d*(18+k*5),y-3+(k%2)*4,2,2,'#e8faff');break;
+    case 'phoenix':{const fl=Math.floor(frame/4)%2;R(x-6,y-3,12,6,'#ff4a2a');R(x+d*6,y-4,5,5,'#ffd23f');R(x-4,y-(fl?10:6),8,4,'#ff7a2a');R(x-4,y+(fl?6:2),8,4,'#ff7a2a');for(let k=1;k<4;k++)R(x-d*(6+k*5),y-1,5,2,k%2?'#ffd23f':'#ff4a2a');break}
+    case 'bullet':R(x-2,y-1,5,2,'#ffe680');R(x-d*4,y,3,1,'#ffffff');break;
+    default:return false}return true}
 // 通用技能引擎：a0、b1～b4、c1～c4 這些技能都用資料描述，這裡依類型執行
-function genSkill(g,A,local,H,box,near,cos,sk){const f=A.f,x=A.x,y=A.y,o={kb:g.kb??1,heal:g.heal||0,crit:g.crit||0};
+function genSkill(g,A,local,H,box,near,cos,sk){const f=A.f,x=A.x,y=A.y,o={kb:g.kb??1,heal:g.heal||0,crit:g.crit||0},vv=g.vfx||vfxOf(A,sk);
   const nearest=(r)=>{let tg=null,bd=r;for(const m of live()){const d=Math.abs(m.x-x);if(d<bd&&Math.abs(m.y-y)<120){bd=d;tg=m}}return tg};
   switch(g.type){
-    case 'melee':fx.push({t:'gslash',x:x+f*g.w/2,y:y-12,w:g.w,col:g.col,life:12});box(g.w,g.h,g.mult,g.max,o);break;
-    case 'around':fx.push({t:'ring',x,y:y-10,life:30,col:g.col,r0:g.r});for(let w=0;w<g.hits;w++)setTimeout(()=>{fx.push({t:'gring',x:A.x,y:A.y-8,r:g.r,col:g.col,life:12});for(const m of live())if(Math.abs(m.x-A.x)<g.r&&Math.abs(m.y-A.y)<50)H(m,g.mult,{...o,stack:w%4,kb:.4})},w*150);break;
+    case 'melee':if(vv)V({v:vv,x:x+f*g.w/2,y:y-4,w:g.w,f,col:g.col,life:16});else fx.push({t:'gslash',x:x+f*g.w/2,y:y-12,w:g.w,col:g.col,life:12});box(g.w,g.h,g.mult,g.max,o);break;
+    case 'around':if(!vv)fx.push({t:'ring',x,y:y-10,life:30,col:g.col,r0:g.r});for(let w=0;w<g.hits;w++)setTimeout(()=>{if(vv)V({v:vv,x:A.x,y:A.y,r:g.r,f:A.f,col:g.col,life:22});else fx.push({t:'gring',x:A.x,y:A.y-8,r:g.r,col:g.col,life:12});for(const m of live())if(Math.abs(m.x-A.x)<g.r&&Math.abs(m.y-A.y)<50)H(m,g.mult,{...o,stack:w%4,kb:.4})},w*150);break;
     case 'target':if(g.dyn){const tg=nearest(g.r),tx=tg?tg.x:x+f*90,ty=tg?tg.y:y;fx.push({t:'dyn',x0:x,y0:y-14,x:tx,y:ty,life:70});
         for(let w=0;w<g.hits;w++)setTimeout(()=>{const ex=tx+(w-1)*22;fx.push({t:'kaboom',x:ex,y:ty,life:28});for(const m of live())if(Math.abs(m.x-ex)<g.rad+m.w/2&&Math.abs(m.y-ty)<g.rad+20)H(m,g.mult,{...o,stack:w%4,kb:1.5})},620+w*170);break}
       {const tg=nearest(g.r),dir=tg?(tg.x>=x?1:-1):f,tx=tg?tg.x:x+f*70,ty=tg?tg.y:y;if(g.leap){const nx=clamp(tx-dir*(tg?tg.w/2+10:0),6,WW-6);if(local){P.x=nx;P.inv=Math.max(P.inv,24)}else A.x=nx;fx.push({t:'dash',x1:x,x2:nx,y:y-10,life:12,col:g.col})}
-      for(let w=0;w<g.hits;w++)setTimeout(()=>{fx.push({t:'gboom',x:tx,y:ty-10,rad:g.rad,col:g.col,life:20});for(const m of live())if(Math.abs(m.x-tx)<g.rad+m.w/2&&Math.abs(m.y-ty)<g.rad+20)H(m,g.mult,{...o,stack:w%4})},(g.leap?160:60)+w*150);break}
-    case 'line':for(let w=0;w<g.hits;w++)setTimeout(()=>{fx.push({t:'gline',x:A.x,y:A.y-12,f:A.f,len:g.len,col:g.col,life:14});for(const m of live()){const d=(m.x-A.x)*A.f;if(d>-6&&d<g.len&&Math.abs(m.y-A.y)<30)H(m,g.mult,{...o,stack:w%4})}},w*110);break;
-    case 'dash':case 'blink':{const x1=clamp(x+f*g.dist,6,WW-6),lo=Math.min(x,x1)-10,hi=Math.max(x,x1)+10;if(local){P.x=x1;P.inv=Math.max(P.inv,24)}else A.x=x1;fx.push({t:'dash',x1:x,x2:x1,y:y-10,life:14,col:g.col||'#c9a6ff'});
+      for(let w=0;w<g.hits;w++)setTimeout(()=>{if(vv)V({v:vv,x:tx,y:ty,r:g.rad,f:dir,col:g.col,life:vv==='starfall'||vv==='sigil'?30:24});else fx.push({t:'gboom',x:tx,y:ty-10,rad:g.rad,col:g.col,life:20});for(const m of live())if(Math.abs(m.x-tx)<g.rad+m.w/2&&Math.abs(m.y-ty)<g.rad+20)H(m,g.mult,{...o,stack:w%4})},(g.leap?160:60)+w*150);break}
+    case 'line':for(let w=0;w<g.hits;w++)setTimeout(()=>{if(vv)V({v:vv,x:A.x,y:A.y-12,f:A.f,len:g.len,col:g.col,life:vv==='glacier'?26:18});else fx.push({t:'gline',x:A.x,y:A.y-12,f:A.f,len:g.len,col:g.col,life:14});for(const m of live()){const d=(m.x-A.x)*A.f;if(d>-6&&d<g.len&&Math.abs(m.y-A.y)<30)H(m,g.mult,{...o,stack:w%4})}},w*110);break;
+    case 'dash':case 'blink':{const x1=clamp(x+f*g.dist,6,WW-6),lo=Math.min(x,x1)-10,hi=Math.max(x,x1)+10;if(local){P.x=x1;P.inv=Math.max(P.inv,24)}else A.x=x1;if(vv)V({v:vv,x:x,x1:x,x2:x1,y:y-4,col:g.col,life:20});else fx.push({t:'dash',x1:x,x2:x1,y:y-10,life:14,col:g.col||'#c9a6ff'});
       if(g.type==='dash'){const ts=live().filter(m=>inBox(m,lo,hi,y-30,y+2));for(let w=0;w<g.hits;w++)setTimeout(()=>{for(const m of ts)if(m.hp>0&&!m.dead)H(m,g.mult,{...o,stack:w%4,kb:1.5})},w*110)}break}
-    case 'multi':{const ts=near(g.r).sort((a,c)=>Math.abs(a.x-x)-Math.abs(c.x-x)).slice(0,g.n);ts.forEach((m,i)=>setTimeout(()=>{fx.push({t:'glink',x:A.x,y:A.y-14,x2:m.x,y2:m.y-m.h/2,col:g.col,life:14});H(m,g.mult,o)},i*50));break}
-    case 'proj':{if(g.back&&local){P.vx=-f*3;P.vy=-3;P.ground=false}const n=g.spread?3:g.burst||1;for(let i=0;i<n;i++)setTimeout(()=>shots.push({sk,t:g.big?'big':'gproj',x:A.x+A.f*8,y:A.y-12,vx:A.f*g.spd,vy:g.spread?(i-1)*.7:0,life:55,mult:g.mult,pierce:g.pierce,col:g.col,boom:g.boom,cos}),g.burst?i*90:0);break}
-    case 'buff':if(local){P.bf[g.buff]=g.buff==='guard'?900:1200;toast(BUFFN[g.buff])}fx.push({t:'ring',x,y:y-10,life:30,col:'#ffd23f'});break;
-    case 'heal':if(local&&MAPS[MI].pvp)sock.emit('pheal',{k:sk});if(local){const h=Math.round(P.max.hp*g.pct*(1+(P.max.healB||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}fx.push({t:'ring',x,y:y-10,life:30,col:'#9affb0'});break;
-    case 'mpheal':if(local){const h=Math.round(P.max.mp*g.pct);P.mp=Math.min(P.max.mp,P.mp+h);num(P.x,P.y-34,'+'+h,'mp')}fx.push({t:'ring',x,y:y-10,life:30,col:'#7fb8ff'});break;
+    case 'multi':{const ts=near(g.r).sort((a,c)=>Math.abs(a.x-x)-Math.abs(c.x-x)).slice(0,g.n);ts.forEach((m,i)=>setTimeout(()=>{if(vv)V({v:vv,x:A.x,y:A.y-14,x2:m.x,y2:m.y-m.h/2,col:g.col,life:18});else fx.push({t:'glink',x:A.x,y:A.y-14,x2:m.x,y2:m.y-m.h/2,col:g.col,life:14});H(m,g.mult,o)},i*50));break}
+    case 'proj':{if(g.back&&local){P.vx=-f*3;P.vy=-3;P.ground=false}const n=g.spread?3:g.burst||1;for(let i=0;i<n;i++)setTimeout(()=>shots.push({sk,v:typeof vv==='string'?vv:0,t:g.big?'big':'gproj',x:A.x+A.f*8,y:A.y-12,vx:A.f*g.spd,vy:g.spread?(i-1)*.7:0,life:55,mult:g.mult,pierce:g.pierce,col:g.col,boom:g.boom,cos}),g.burst?i*90:0);break}
+    case 'buff':if(local){P.bf[g.buff]=g.buff==='guard'?900:1200;toast(BUFFN[g.buff])}if(Array.isArray(vv))V({v:'aura',cfg:vv,x,y,life:40});else fx.push({t:'ring',x,y:y-10,life:30,col:'#ffd23f'});break;
+    case 'heal':if(local&&MAPS[MI].pvp)sock.emit('pheal',{k:sk});if(local){const h=Math.round(P.max.hp*g.pct*(1+(P.max.healB||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}if(Array.isArray(vv))V({v:'aura',cfg:vv,x,y,life:40});else fx.push({t:'ring',x,y:y-10,life:30,col:'#9affb0'});break;
+    case 'mpheal':if(local){const h=Math.round(P.max.mp*g.pct);P.mp=Math.min(P.max.mp,P.mp+h);num(P.x,P.y-34,'+'+h,'mp')}if(Array.isArray(vv))V({v:'aura',cfg:vv,x,y,life:40});else fx.push({t:'ring',x,y:y-10,life:30,col:'#7fb8ff'});break;
   }}
 function updShots(){for(const s of shots){s.x+=s.vx;if(s.vy)s.y+=s.vy;s.life--;if(s.spin!==undefined)s.spin++;if(s.t==='boomer'&&s.life===s.turn){s.vx=-s.vx;s.hit=new Set()}
   for(const m of live()){if(s.hit&&s.hit.has(m))continue;const hr=s.t==='wave'||s.t==='big'||s.t==='sword'||s.t==='net'?14:s.t==='boomer'?9:3;if(Math.abs(m.x-s.x)<m.w/2+hr&&s.y>m.y-m.h-6&&s.y<m.y+4){if(!s.cos)hitMon(m,s.mult,{kb:s.t==='boomer'?.6:1.2,crit:s.crit||0,sk:s.sk,ga:s.ga});if(s.boom){fx.push({t:'boom',x:m.x,y:m.y-m.h/2,life:20});if(!s.cos)for(const o of live())if(o!==m&&Math.abs(o.x-m.x)<40&&Math.abs(o.y-m.y)<30)hitMon(o,1.2,{kb:1.5,sk:s.sk||1})}(s.hit=s.hit||new Set()).add(m);if(s.pierce>0)s.pierce--;else{s.life=0;fx.push({t:'spark',x:s.x,y:s.y,life:8,col:s.col})}break}}}
@@ -656,12 +773,16 @@ function drawGuard(p,ox,oy){const g=D.GUARD[p.cls];if(!g||!g.ready)return;const 
   const P2=(dx,dy,w,h,c)=>R(x+dx,y+dy+s2,w,h,c);
   // 骨架：脊椎、肋骨、頭骨、手臂骨
   P2(-1,-58,3,44,bone);for(let k=0;k<4;k++){P2(-14,-50+k*7,12,2,bone);P2(3,-50+k*7,12,2,bone)}P2(-7,-68,14,10,bone);P2(-4,-64,3,3,'#1a1a2a');P2(2,-64,3,3,'#1a1a2a');P2(-20,-54,3,22,bone);P2(18,-54,3,22,bone);
-  if(st>=2){const c2={warrior:['#c8921c','#ffd23f'],mage:['#2a6ab8','#7fd3ff'],rogue:['#3a1a5a','#b46aff'],archer:['#3a6a9a','#bfe8ff']}[p.cls];
-    P2(-16,-56,32,26,c2[0]);P2(-16,-56,32,3,c2[1]);P2(-22,-58,10,8,c2[1]);P2(12,-58,10,8,c2[1]);P2(-9,-70,18,12,c2[0]);P2(-9,-70,18,2,c2[1]);P2(-5,-65,4,2,'#ffffff');P2(2,-65,4,2,'#ffffff')}
+  if(st>=2){const c2={warrior:['#c8921c','#ffd23f'],mage:['#2a6ab8','#7fd3ff'],rogue:['#3a1a5a','#b46aff'],archer:['#3a6a9a','#bfe8ff'],brawler:['#b8601a','#ffb34d'],mech:['#4a5a6a','#9ab0c8'],demon:['#3a0a14','#ff2a4a'],angel:['#e8e0c0','#ffffff']}[p.cls];
+    P2(-16,-56,32,26,c2[0]);if(p.cls==='angel')P2(-14,-50,28,2,'#ffd23f');P2(-16,-56,32,3,c2[1]);P2(-22,-58,10,8,c2[1]);P2(12,-58,10,8,c2[1]);P2(-9,-70,18,12,c2[0]);P2(-9,-70,18,2,c2[1]);P2(-5,-65,4,2,'#ffffff');P2(2,-65,4,2,'#ffffff')}
   if(st>=3){const gl=frame%30<15;
     if(p.cls==='warrior'){P2(-4,-80,8,10,'#ffd23f');P2(-2,-86,4,6,'#ff4a2a');P2(f*24-3,-78,6,54,'#f4f8ff');P2(f*24-1,-78,2,54,'#ffffff');P2(f*24-9,-26,18,4,'#ffd23f');P2(f*24-2,-22,4,10,'#8a5a2b')}
     else if(p.cls==='mage'){const C4=['#ff6a2a','#7fd3ff','#7aff7a','#ffe680'];for(let k=0;k<4;k++){const a=frame/18+k*1.571;P2(Math.round(Math.cos(a)*30)-3,Math.round(-46+Math.sin(a)*14)-3,7,7,C4[k])}for(let k=0;k<5;k++)P2(-8+k*4,-76-(k%2)*4,3,6,C4[k%4])}
     else if(p.cls==='rogue'){for(const [dx,dy] of [[-28,-50],[22,-50],[-26,-36],[20,-36]]){P2(dx,dy,8,3,'#3a1a5a');P2(dx+(dx<0?-8:8),dy-6,3,12,'#e6ecf5')}P2(-5,-65,4,2,gl?'#ff3b6a':'#b46aff');P2(2,-65,4,2,gl?'#ff3b6a':'#b46aff')}
+    else if(p.cls==='brawler'){for(const [dx,dy] of [[-30,-54],[24,-54],[-30,-38],[24,-38]]){P2(dx,dy,8,4,'#b8601a');P2(dx+(dx<0?-6:8),dy-3,7,8,'#ffb34d')}for(let k=0;k<10;k++){const a=3.3+k*.32;P2(Math.round(Math.cos(a)*16)-1,Math.round(-66+Math.sin(a)*16)-1,3,3,k%2?'#ff7a2a':'#ffd23f')}}
+    else if(p.cls==='mech'){P2(-26,-64,12,7,'#4a5a6a');P2(14,-64,12,7,'#4a5a6a');P2(f>0?14:-36,-62,22,3,'#9ab0c8');P2(f>0?-36:14,-62,22,3,'#9ab0c8');P2(-9,-66,18,3,gl?'#5af0ff':'#2ac0e0');P2(-12,-28,6,8,'#ff7a2a');P2(6,-28,6,8,'#ff7a2a');P2(-11,-20,4,4+(frame%6<3?2:0),'#ffe680');P2(7,-20,4,4+(frame%6<3?0:2),'#ffe680')}
+    else if(p.cls==='demon'){P2(-12,-78,4,10,'#2a0a0a');P2(-14,-82,3,5,'#2a0a0a');P2(8,-78,4,10,'#2a0a0a');P2(11,-82,3,5,'#2a0a0a');P2(-38,-60,18,10,'#2a0a14');P2(-42,-52,14,16,'#2a0a14');P2(20,-60,18,10,'#2a0a14');P2(28,-52,14,16,'#2a0a14');P2(-5,-65,4,2,gl?'#ff2a4a':'#ffb34d');P2(2,-65,4,2,gl?'#ff2a4a':'#ffb34d')}
+    else if(p.cls==='angel'){for(let k=0;k<3;k++){const wy=-62+k*10;P2(-36+k*2,wy,16-k*2,6,'#ffffff');P2(20,wy,16-k*2,6,'#ffffff');P2(-36+k*2,wy+5,14-k*2,1,'#e8e0c0');P2(20,wy+5,14-k*2,1,'#e8e0c0')}for(let k=0;k<10;k++){const a=k*.628+frame/20;P2(Math.round(Math.cos(a)*10)-1,Math.round(-80+Math.sin(a)*3),3,2,'#ffd23f')}P2(f*24-1,-80,3,64,'#ffe680');P2(f*24-3,-84,7,6,'#ffffff')}
     else if(p.cls==='archer'){P2(f*22-2,-74,4,58,'#ffe680');P2(f*22-(f>0?6:-2),-74,4,6,'#ffe680');P2(f*22-(f>0?6:-2),-22,4,6,'#ffe680');P2(f*20-1,-72,1,54,'#ffffff');for(let k=0;k<3;k++)P2(-20+k*16,-80+(k%2)*4,2,2,'#ffffff')}}
   b.globalAlpha=1}
 function drawHero(p,ox,oy){if(!p.dead)drawGuard(p,ox,oy);if(p.pet&&!p.dead)drawPet(p,p.pet,ox,oy);if(p.mount&&!p.dead){drawMount(p,ox,oy);drawBody({...p,y:p.y-8,ground:false,walk:0},ox,oy);return}
@@ -823,6 +944,7 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
   drawOthers(ox,oy);
   if(P)drawHero(P,ox,oy);
   for(const s of shots){const x=Math.round(s.x-ox),y=Math.round(s.y-oy),dir=s.vx>0;
+    if(s.v&&drawShotV(s,x,y,dir))continue;
     if(s.t==='gproj'){R(x-3,y-2,6,4,s.col);R(x-(dir?9:-3),y-1,6,2,s.col+'80');R(x-1,y-1,2,2,'#ffffff')}
     else if(s.t==='feather'){R(x-3,y-1,6,2,'#fff6c8');R(x-(dir?4:-2),y,3,1,'#ffe680')}
     else if(s.t==='sword'){R(x-(dir?18:0),y-1,18,3,'#e6ebf3');R(x+(dir?0:-3),y-3,3,7,'#ffd23f');R(x-(dir?22:-18),y-1,4,3,'#8a5a2b')}
@@ -834,6 +956,7 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
     else if(s.t==='boomer'){const a=s.spin/3;b.globalAlpha=.35;R(x-8,y-8,16,16,'#c9a6ff');b.globalAlpha=1;for(let k=0;k<4;k++){const ang=a+k*Math.PI/2;R(x+Math.cos(ang)*6-2,y+Math.sin(ang)*6-2,4,4,k%2?'#e6ecf5':'#c9a6ff')}R(x-2,y-2,4,4,'#2a1a3a')}
     else{const k=Math.floor(s.spin/3)%2;R(x-3,y-(k?0:3),k?6:1,k?1:6,'#e6ecf5');R(x-(k?0:3),y-3+(k?0:3),k?1:6,k?6:1,'#e6ecf5');R(x-1,y-1,2,2,'#99a')}}
   for(const e of fx){const t=e.life;if(e.d&&e.d>0){e.d--;continue}const x=Math.round((e.x??0)-ox),y=Math.round((e.y??0)-oy);
+    if(e.t==='v'){drawV(e,x,y,ox,oy);continue}
     if(e.t==='slash'){const r=e.big?20:14;b.strokeStyle=e.big?'#ffd23fd0':'#ffffffd0';b.lineWidth=e.big?3:2;b.beginPath();b.arc(x-e.f*4,y,r,e.f>0?-1.2:Math.PI-0.6,e.f>0?0.6:Math.PI+1.2);b.stroke()}
     else if(e.t==='stab'){R(x-(e.f>0?0:10),y,10,1,'#fff');R(x-(e.f>0?0:10),y+3,8,1,'#ddd')}
     else if(e.t==='dash'){const x1=Math.round(Math.min(e.x1,e.x2)-ox),x2=Math.round(Math.max(e.x1,e.x2)-ox);b.globalAlpha=t/14;R(x1,y-4,x2-x1,2,e.col);R(x1,y+2,x2-x1,1,'#fff');b.globalAlpha=1}
@@ -1168,9 +1291,9 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
   sock.on('notice',d=>{toast(d.t);chatLog(`<span class="sys">${esc(d.t)}</span>`)});
   sock.on('party',d=>{party=d});
   sock.on('ag',d=>{if(P)P.ag=d.v});
-  sock.on('gAid',d=>{if(!P||P.dead)return;const a=D.AWSK[d.cls]&&D.AWSK[d.cls][d.k];if(!a)return;const who=d.by===myId?'':`${d.name} 的`;
-    if(d.cls==='warrior'||d.cls==='archer'){const pct=d.cls==='warrior'?.5:.45;if(!MAPS[MI].pvp){const h=Math.round(P.max.hp*pct*(1+(d.hb||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}P.bf.shield=480}
-    else if(d.cls==='rogue'){P.bf.pow=1200;P.bf.haste=1200;P.inv=Math.max(P.inv,120)}
+  sock.on('gAid',d=>{if(!P||P.dead)return;const a=d.k==='fin'?{n:D.GUARD[d.cls].fin}:D.AWSK[d.cls]&&D.AWSK[d.cls][d.k];const sp=d.sup||{};if(!a)return;const who=d.by===myId?'':`${d.name} 的`;
+    if(sp.heal&&!MAPS[MI].pvp){const h=Math.round(P.max.hp*sp.heal*(1+(d.hb||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}
+    if(sp.shield)P.bf.shield=480;if(sp.pow)P.bf.pow=1200;if(sp.haste)P.bf.haste=1200;if(sp.inv)P.inv=Math.max(P.inv,120);
     fx.push({t:'ring',x:P.x,y:P.y-10,life:30,col:D.GUARD[d.cls].col});if(d.by!==myId)toast(`${who}「${a.n}」！`);ui()});
   sock.on('awkSt',d=>{if(!P)return;if(!d.on){P.awT0=null;setTimeout(ui,0);P.awCdEnd=performance.now()+(d.cd||0);toast(`守護靈消散了，冷卻 ${Math.round((d.cd||0)/1000)} 秒（冷卻中覺醒值不會累積）`)}});
   sock.on('awkFin',d=>{const o=others.get(d.u);if(o)awkFin(o,false)});

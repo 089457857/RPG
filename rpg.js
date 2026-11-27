@@ -322,7 +322,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   function pvpDamage(ac, tc, tpl, h, now, apl) {
     const st = D.stats(ac), ts = D.stats(tc), aa = apl && awkOf(apl, now, true), ta = awkOf(tpl, now, true);
     const fin = apl && h.fin && now < (apl.finUntil || 0), mult = clamp(+h.mult || 1, .1, fin ? 6 : 3.2), crit = Math.random() * 100 < st.crit + clamp(+h.cb || 0, 0, 40);
-    const G = D.GUARD[ac.cls], dm = fin ? G.fdm || 1 : h.ga && aa ? G.gdm || 1 : typeof h.k === 'string' && D.SK[ac.cls][h.k] && !D.skillLock(ac, h.k) ? D.SK[ac.cls][h.k].dm || 1 : 1;
+    const G = D.GUARD[ac.cls], dm = fin ? G.fdm || 1 : h.ga && aa ? G.gdm || 1 : typeof h.k === 'string' && D.SK[ac.cls][h.k] && !D.skillLock(ac, h.k) ? (D.SK[ac.cls][h.k].dm || 1) * (h.g9 && aa && ac.lv >= D.AWSKLV && D.AWSK[ac.cls] && D.AWSK[ac.cls][h.k] ? D.AWSK_MULT : 1) : 1;
     let raw = st.atk * mult * rnd(.9, 1.1) * (crit ? st.critD || 1.7 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1) * (aa ? aa.atk : 1) * dm;
     let dmg = raw * .32 - ts.def * .5;
     const diff = ac.lv - tc.lv; dmg *= diff > 0 ? Math.max(.35, 1 - diff * .03) : Math.min(1.6, 1 - diff * .02);   // 等級差距修正
@@ -459,7 +459,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const c = char(uid); if (!w || !c || !Array.isArray(list) || pl.dead || pl.mount) return;
       const now = Date.now(); if (now - rate.t > 1000) { rate = { t: now, n: 0 }; }
       const st = D.stats(c), out = [], efs = D.efOf(c.cls), aw = awkOf(pl, now), G = D.GUARD[c.cls]; let dealt = 0;
-      const skScale = h => (h.fin ? G.fdm || 1 : h.ga && aw ? G.gdm || 1 : typeof h.k === 'string' && D.SK[c.cls][h.k] && !D.skillLock(c, h.k) ? D.SK[c.cls][h.k].dm || 1 : 1);
+      const skScale = h => (h.fin ? G.fdm || 1 : h.ga && aw ? G.gdm || 1 : typeof h.k === 'string' && D.SK[c.cls][h.k] && !D.skillLock(c, h.k) ? (D.SK[c.cls][h.k].dm || 1) * (h.g9 && aw && c.lv >= D.AWSKLV && D.AWSK[c.cls] && D.AWSK[c.cls][h.k] ? D.AWSK_MULT : 1) : 1);
       for (const h of list.slice(0, 20)) {
         if (++rate.n > 60) break;
         const m = w.mons[h.m | 0]; if (!m || m.dead || m.hp <= 0) continue;
@@ -612,7 +612,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (D.MAPS[w.mi].trial) return no('試煉中不能覺醒');
       if (now < (pl.awCd || 0)) return no(`守護靈冷卻中（還要 ${Math.ceil((pl.awCd - now) / 1000)} 秒）`);
       if ((c.ag || 0) < D.AWK.max) return no(`覺醒值還不夠（${Math.floor(c.ag || 0)}/${D.AWK.max}），繼續打怪或承受傷害就會累積`);
-      c.ag = 0; pl.awT = now; pl.finUsed = 0; pl.finUntil = 0; save();
+      c.ag = 0; pl.awT = now; pl.finUsed = 0; pl.finUntil = 0; pl.finAid = 0; save();
       ack && ack({ ok: true, on: 1 }); socket.emit('ag', { v: 0 });
       ns.to(w.room).emit('sys', { t: `🔥 ${nameOf(uid)} 喚醒了守護靈「${g.n}」！` });
     });
@@ -714,18 +714,20 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ack && ack({ ok: true });
     });
     socket.on('duelQuit', () => { if (pl.duel) { const du = duels.get(pl.duel); if (du) duelEnd(pl.duel, du.a === uid ? du.b : du.a, '對手投降'); } });
-    // 90 級守護靈輔助技能（四轉第三招 c4）：自己和同地圖的隊友一起套用
+    // 守護靈輔助技能（90 級四轉招式裡帶 sup 的，以及天使終結技「聖域」）：自己和同地圖的隊友一起套用
     socket.on('gAid', ({ k } = {}) => {
-      const c = char(uid), now = Date.now(); if (!w || !c || k !== 'c4') return;
-      const a = D.AWSK[c.cls] && D.AWSK[c.cls][k]; if (!a || c.lv < D.AWSKLV || awkEl(pl, now) < 0 || D.skillLock(c, k)) return;
-      if (now - (pl.gAidT || 0) < 5000) return; pl.gAidT = now;
-      const hb = D.stats(c).healB || 0, heal = { warrior: .5, archer: .45 }[c.cls] || 0;
+      const c = char(uid), now = Date.now(); if (!w || !c) return;
+      let sup = null;
+      if (k === 'fin') { const g = D.GUARD[c.cls]; if (g.finSup && now < (pl.finUntil || 0) && !pl.finAid) { sup = g.finSup; pl.finAid = 1; } }
+      else { const a = D.AWSK[c.cls] && D.AWSK[c.cls][k]; if (a && a.sup && c.lv >= D.AWSKLV && awkEl(pl, now) >= 0 && !D.skillLock(c, k) && now - ((pl.gAidT ||= {})[k] || 0) >= 5000) { sup = a.sup; pl.gAidT[k] = now; } }
+      if (!sup) return;
+      const hb = D.stats(c).healB || 0;
       for (const u of [uid, ...partyMates(uid)]) {
         const o = w.players.get(u); if (!o) continue;
-        ns.to('u:' + u).emit('gAid', { k, cls: c.cls, by: uid, name: nameOf(uid), hb });
+        ns.to('u:' + u).emit('gAid', { k, cls: c.cls, by: uid, name: nameOf(uid), hb, sup });
         if (isPvp(w) && o.php > 0) {   // PVP 的血量和護盾由伺服器處理
-          if (heal) { o.php = Math.min(o.pmax, o.php + o.pmax * heal * (1 + hb)); o.hpPct = Math.round(o.php / o.pmax * 100); ns.to('u:' + u).emit('php', { hp: Math.round(o.php), max: o.pmax }); }
-          if (a.shield) o.shieldT = now + 8000;
+          if (sup.heal) { o.php = Math.min(o.pmax, o.php + o.pmax * sup.heal * (1 + hb)); o.hpPct = Math.round(o.php / o.pmax * 100); ns.to('u:' + u).emit('php', { hp: Math.round(o.php), max: o.pmax }); }
+          if (sup.shield) o.shieldT = now + 8000;
         }
       }
     });
