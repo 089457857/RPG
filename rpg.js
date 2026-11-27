@@ -65,8 +65,9 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   // ---------------- 模擬 ----------------
   const TICK = 1000 / 30;
   setInterval(() => {
+    const now0 = Date.now();
     for (const w of allWorlds()) {
-      if (!w.players.size) continue;
+      if (!w.players.size) { for (const m of w.mons) if (D.MON[m.t].boss && !m.dead && m.hp < m.max) bossRegen(w, m, D.MON[m.t], now0, false); continue; }
       for (const m of w.mons) stepMon(w, m);
       for (const [id, d] of w.drops) if (Date.now() > d.until) { w.drops.delete(id); ns.to(w.room).emit('dgone', { id }); }
     }
@@ -154,16 +155,16 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     const sy = D.MAPS[m.mi].seg[m.seg].y, gy = p.rope || p.gy == null ? p.y : p.gy;
     return Math.abs(p.x - m.x) <= D.bossZone(m.t) && gy > sy - 50 && gy < sy + 20;
   }
+  function bossRegen(w, m, d, now, say) {
+    if (!m.regen) { m.regen = 1; m.regT = now + D.BOSSREGEN.every; if (say) ns.to(w.room).emit('sys', { t: `${d.name} 偵測不到可以攻擊的人，開始回血！（每 5 秒回復 20%）` }); }
+    if (now >= m.regT) { m.hp = Math.min(m.max, m.hp + m.max * D.BOSSREGEN.pct); m.regT += D.BOSSREGEN.every; }
+  }
   function bossAI(w, m, d) {
     if (d.rival) { const p0 = [...w.players.values()][0]; if (p0) { m.aggro = 840; m.target = p0.uid; } }   // 試煉之影一開場就主動攻擊挑戰者
-    // 打不到任何人時快速回血：沒有活著的玩家站在 Boss 這一層附近（例如全躲在高處平台上偷打）
-    const sy = D.MAPS[m.mi].seg[m.seg].y;
+    // 偵測不到可攻擊的玩家（全員倒地、離開、躲在危險區外或高處）超過 4 秒：每 5 秒回復 20% 血量
     let reach = false; for (const p of w.players.values()) if (!p.dead && inZone(p, m)) { reach = true; break; }
-    if (reach || m.hp >= m.max) { m.noReach = 0; if (m.regen) { m.regen = 0; } }
-    else if ((m.noReach = (m.noReach || 0) + 1) > 120) {
-      if (!m.regen) { m.regen = 1; ns.to(w.room).emit('sys', { t: `${d.name} 碰不到任何人，開始快速回血！快下來跟它正面對決！` }); }
-      m.hp = Math.min(m.max, m.hp + m.max * .03 / 30);
-    }
+    if (reach || m.hp >= m.max) { m.noReach = 0; m.regen = 0; }
+    else if ((m.noReach = (m.noReach || 0) + 1) > 120) bossRegen(w, m, d, Date.now(), true);
     const rage = !d.trial && m.hp < m.max * .3;   // 覺醒試煉的影子會暴怒
     if (rage && !m.rage) { m.rage = 1; ns.to(w.room).emit('sys', { t: `${d.name} 暴怒了！招式變得更快更兇！` }); }
     if (m.warn > 0) { m.vx = 0; if ((m.warn -= 1) <= 0) { if (m.pend === 'charge') m.dash = 12; else if (m.pend === 'leap') { m.leap = 12; m.vy = -4.2; m.hop = -.01; m.pend = null; } } return; }
@@ -321,7 +322,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   function pvpDamage(ac, tc, tpl, h, now, apl) {
     const st = D.stats(ac), ts = D.stats(tc), aa = apl && awkOf(apl, now, true), ta = awkOf(tpl, now, true);
     const fin = apl && h.fin && now < (apl.finUntil || 0), mult = clamp(+h.mult || 1, .1, fin ? 6 : 3.2), crit = Math.random() * 100 < st.crit + clamp(+h.cb || 0, 0, 40);
-    let raw = st.atk * mult * rnd(.9, 1.1) * (crit ? st.critD || 1.7 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1) * (aa ? aa.atk : 1);
+    const G = D.GUARD[ac.cls], dm = fin ? G.fdm || 1 : h.ga && aa ? G.gdm || 1 : typeof h.k === 'string' && D.SK[ac.cls][h.k] && !D.skillLock(ac, h.k) ? D.SK[ac.cls][h.k].dm || 1 : 1;
+    let raw = st.atk * mult * rnd(.9, 1.1) * (crit ? st.critD || 1.7 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1) * (aa ? aa.atk : 1) * dm;
     let dmg = raw * .32 - ts.def * .5;
     const diff = ac.lv - tc.lv; dmg *= diff > 0 ? Math.max(.35, 1 - diff * .03) : Math.min(1.6, 1 - diff * .02);   // 等級差距修正
     // 所有減傷相乘，但總減傷最多 80%
@@ -456,7 +458,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('hit', (list) => {
       const c = char(uid); if (!w || !c || !Array.isArray(list) || pl.dead || pl.mount) return;
       const now = Date.now(); if (now - rate.t > 1000) { rate = { t: now, n: 0 }; }
-      const st = D.stats(c), out = [], efs = D.efOf(c.cls), aw = awkOf(pl, now); let dealt = 0;
+      const st = D.stats(c), out = [], efs = D.efOf(c.cls), aw = awkOf(pl, now), G = D.GUARD[c.cls]; let dealt = 0;
+      const skScale = h => (h.fin ? G.fdm || 1 : h.ga && aw ? G.gdm || 1 : typeof h.k === 'string' && D.SK[c.cls][h.k] && !D.skillLock(c, h.k) ? D.SK[c.cls][h.k].dm || 1 : 1);
       for (const h of list.slice(0, 20)) {
         if (++rate.n > 60) break;
         const m = w.mons[h.m | 0]; if (!m || m.dead || m.hp <= 0) continue;
@@ -465,7 +468,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         const crit = Math.random() * 100 < st.crit + cb;
         const boss = D.MON[m.t].boss;
         if (boss && !inZone(pl, m)) { if (now - (pl.immT || 0) > 400) { pl.immT = now; socket.emit('bimm', { i: m.i }); } continue; }   // 危險區外偷打：Boss 不受傷
-        let dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? st.critD || 1.7 : 1) * (now < m.vuln ? 1.2 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1) * (aw ? aw.atk : 1) * (fin && boss ? D.AWK.finBoss : 1)));
+        let dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? st.critD || 1.7 : 1) * (now < m.vuln ? 1.2 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1) * (aw ? aw.atk : 1) * (fin && boss ? D.AWK.finBoss : 1) * skScale(h)));
         // 靈魂收割：直接處決殘血的一般怪
         if (h.ex && !boss && m.hp - dmg < m.max * .15) dmg = Math.max(dmg, Math.ceil(m.hp));
         if (h.vu) m.vuln = now + 8000;
@@ -527,7 +530,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const no = msg => ack && ack({ ok: false, msg });
       if (k === 'pot' || k === 'eth' || k === 'pot10' || k === 'rest') {
         if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
-        const price = D.SHOP[k]; if (c.gold < price) return no('金幣不足');
+        const price = D.shopPrice(k, c.lv); if (c.gold < price) return no('金幣不足');
         c.gold -= price; if (k === 'pot') c.pot++; else if (k === 'eth') c.eth++; else if (k === 'pot10') c.pot += 10;
       } else if (k === 'wep') {
         const it = D.WEAPONS[c.cls][i | 0]; if (!it || it[4] || (i | 0) <= c.wep) return no(it && it[4] ? '傳說武器只能從怪物身上取得' : '無法購買');
@@ -711,6 +714,21 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ack && ack({ ok: true });
     });
     socket.on('duelQuit', () => { if (pl.duel) { const du = duels.get(pl.duel); if (du) duelEnd(pl.duel, du.a === uid ? du.b : du.a, '對手投降'); } });
+    // 90 級守護靈輔助技能（四轉第三招 c4）：自己和同地圖的隊友一起套用
+    socket.on('gAid', ({ k } = {}) => {
+      const c = char(uid), now = Date.now(); if (!w || !c || k !== 'c4') return;
+      const a = D.AWSK[c.cls] && D.AWSK[c.cls][k]; if (!a || c.lv < D.AWSKLV || awkEl(pl, now) < 0 || D.skillLock(c, k)) return;
+      if (now - (pl.gAidT || 0) < 5000) return; pl.gAidT = now;
+      const hb = D.stats(c).healB || 0, heal = { warrior: .5, archer: .45 }[c.cls] || 0;
+      for (const u of [uid, ...partyMates(uid)]) {
+        const o = w.players.get(u); if (!o) continue;
+        ns.to('u:' + u).emit('gAid', { k, cls: c.cls, by: uid, name: nameOf(uid), hb });
+        if (isPvp(w) && o.php > 0) {   // PVP 的血量和護盾由伺服器處理
+          if (heal) { o.php = Math.min(o.pmax, o.php + o.pmax * heal * (1 + hb)); o.hpPct = Math.round(o.php / o.pmax * 100); ns.to('u:' + u).emit('php', { hp: Math.round(o.php), max: o.pmax }); }
+          if (a.shield) o.shieldT = now + 8000;
+        }
+      }
+    });
     socket.on('pheal', ({ k } = {}) => {   // PVP 裡的自我治療技能
       const c = char(uid); if (!c || !isPvp(w) || !(pl.php > 0)) return; const sk = D.SK[c.cls][k]; if (!sk || !sk.g || sk.g.type !== 'heal' || D.skillLock(c, k)) return;
       const now = Date.now(); pl.hcd ||= {}; if (now - (pl.hcd[k] || 0) < sk.cd * 1000 / 60 * .7) return; pl.hcd[k] = now;
