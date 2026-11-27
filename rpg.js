@@ -41,7 +41,9 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   }
   const char = uid => D.fix(S.rpg[uid]);
   // GM 測試帳號：在 Render 的環境變數 RPG_GM 填入帳號暱稱（多個用逗號分開）
-  const GMS = new Set(String(process.env.RPG_GM || '').split(/[,，\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean));
+  // 也可以在專案裡放 gm.txt（一行一個暱稱），不用到 Render 設定環境變數
+  const gmFile = (() => { try { return fs.readFileSync(path.join(dir, 'gm.txt'), 'utf8'); } catch (e) { return ''; } })();
+  const GMS = new Set((String(process.env.RPG_GM || '') + '\n' + gmFile).split(/[,，\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean));
   const isGM = uid => GMS.size > 0 && GMS.has(String(S.users[uid]?.name || '').toLowerCase());
   const nameOf = uid => (S.users[uid]?.name || '玩家') + (S.rpg[uid]?.gm ? '［GM］' : '');
   function me(uid) { const c = char(uid); return c ? { ...c, max: D.stats(c), gmOk: isGM(uid) } : null; }
