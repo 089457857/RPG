@@ -215,7 +215,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (!w.players.size) continue;
       const m = w.mons.map(m => [m.i, Math.round(m.x * 10) / 10, Math.round(m.hop), m.f, Math.max(0, Math.round(m.hp)), m.dead ? 1 : 0, monMask(m, now), m.hurt > 8 ? 1 : 0]);
       const p = [...w.players.values()].map(pl => playerPub(pl));
-      ns.to(w.room).emit('st', { m, p });
+      ns.to(w.room).volatile.emit('st', { m, p });   // 網路塞住時丟掉舊的狀態，不要排隊造成延遲
     }
   }, 100);
   function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now())]; }
@@ -265,8 +265,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       pushMe(uid);
     }
     if (d.boss) ns.to(w.room).emit('sys', { t: `${D.MON[m.t].name} 被打倒了！最後一擊：${nameOf(killer)}` });
-    // 打倒虛空之主：最後一擊的玩家，和他在同一張地圖的隊友，等級上限變成 100
-    if (m.t === 'voidking') for (const u of new Set([killer, ...partyMates(killer)])) {
+    // 打倒虛空之主：有出手的玩家（不限最後一擊），和他們在同一張地圖的隊友，等級上限都變成 100
+    if (m.t === 'voidking') for (const u of new Set([killer, ...gain])) {
       const c = char(u); if (!c || !w.players.has(u) || D.capOf(c) >= D.MAXLV2) continue;
       c.cap = D.MAXLV2; pushMe(u);
       ns.to('u:' + u).emit('notice', { t: `🌊 你突破了極限！等級上限提升到 ${D.MAXLV2}，可以到「潮聲港」找船長出海了` });
@@ -520,9 +520,12 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       } else c[d.t] = (c[d.t] || 0) + 1;
       ns.to(w.room).emit('dgone', { id, by: uid }); save(); pushMe(uid); ack && ack({ ok: true, t: d.t, v: d.v, leg });
     });
+    const potT = {}; // 每個連線各自記錄喝藥時間，換地圖也不會重置
     socket.on('use', ({ k } = {}, ack) => {
       const c = char(uid); if (!c || !['pot', 'eth'].includes(k) || !(c[k] > 0)) return ack && ack({ ok: false });
-      c[k]--; save(); ack && ack({ ok: true, me: me(uid) });
+      const now = Date.now();
+      if (now - (potT[k] || 0) < D.POTCD - 250) return ack && ack({ ok: false, cd: 1, me: me(uid) }); // 留 250ms 給網路延遲
+      potT[k] = now; c[k]--; save(); ack && ack({ ok: true, me: me(uid) });
       if (k === 'pot' && isPvp(w) && pl.php > 0) { const st = D.stats(c); pvpHp(pl.php + (st.hp * .35 + 40) * (1 + (st.potB || 0))); }
     });
     socket.on('buy', ({ k, i } = {}, ack) => {

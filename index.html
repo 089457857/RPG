@@ -42,7 +42,7 @@ h1{margin:0;font:900 clamp(24px,4vw,36px)/1.1 "Noto Serif TC",serif;color:var(--
 .b span{position:absolute;inset:0;display:grid;place-items:center;font:700 11px "Noto Sans TC";text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums;white-space:nowrap}
 .inv{display:flex;gap:8px;align-items:center;font-size:13px;white-space:nowrap}
 .inv .g{color:var(--gold);font-weight:900}
-.slot{color:var(--ink);font-family:inherit;cursor:pointer;display:grid;place-items:center;min-width:46px;height:40px;border-radius:8px;background:#0006;border:1px solid #ffffff22;font-size:11px;line-height:1.1;text-align:center;padding:2px 6px}
+.slot{position:relative;overflow:hidden;color:var(--ink);font-family:inherit;cursor:pointer;display:grid;place-items:center;min-width:46px;height:40px;border-radius:8px;background:#0006;border:1px solid #ffffff22;font-size:11px;line-height:1.1;text-align:center;padding:2px 6px}
 .slot b{font-size:14px}
 .touch{display:none;position:relative;height:194px;margin-top:6px;background:linear-gradient(180deg,#232a48,#171c33);border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none}
 .touch button{position:absolute;border-radius:50%;background:#0008;border:2px solid #ffffff55;color:#fff;font:900 14px "Noto Sans TC";touch-action:none;-webkit-tap-highlight-color:transparent;padding:0}
@@ -163,6 +163,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
 .lead{display:grid;gap:4px;margin-top:6px}
 .lead div{display:flex;justify-content:space-between;gap:10px;background:#10142a;border-radius:8px;padding:6px 10px;font-size:14px}
 .lead b{color:var(--gold)}
+.slot.cding::after{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(var(--cd)*100%);background:#000a;pointer-events:none}
 </style>
 </head>
 <body>
@@ -256,9 +257,9 @@ const npcsHere=()=>MAPS[MI].npcs||(MAPS[MI].town?NPCS:[]);
 
 // ================= 畫布 =================
 const cv=$('#cv'),ctx=cv.getContext('2d'),scr=$('#screen');
-const buf=document.createElement('canvas'),b=buf.getContext('2d');
+let DPRCAP=2;const buf=document.createElement('canvas'),b=buf.getContext('2d');
 let SW=0,SH=0,S=3,IW=0,IH=0;
-function resize(){const r=scr.getBoundingClientRect();SW=Math.round(r.width);SH=Math.round(r.height);const dpr=Math.min(2,devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+function resize(){const r=scr.getBoundingClientRect();SW=Math.round(r.width);SH=Math.round(r.height);const dpr=Math.min(DPRCAP,devicePixelRatio||1);cv.width=SW*dpr;cv.height=SH*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
   S=Math.max(2,Math.round(Math.min(SH/165,SW/250)));IW=Math.ceil(SW/S);IH=Math.ceil(SH/S);buf.width=IW;buf.height=IH;b.imageSmoothingEnabled=false;ctx.imageSmoothingEnabled=false}
 const ro=new ResizeObserver(resize);ro.observe(scr);resize();
 const R=(x,y,w,h,c)=>{b.fillStyle=c;b.fillRect(Math.round(x),Math.round(y),w,h)};
@@ -370,10 +371,13 @@ function updHero(){const p=P;if(p.dead){if(!p.ground){p.vy=Math.min(MAXF,p.vy+G)
   if(p.y>WH+40){p.x=MAPS[MI].start;p.y=GY;p.vy=0}
   p.walk+=p.ground&&ax?1:0;
   if(tap('atk')||K.atk)doSkill('atk',P);for(const k of ['s1','s2','s3','s4','s5','s6'])if(tap(k)){const id=slotK(k);if(id)doSkill(id,P);else toast('這一格還沒有配置技能（按「技能」設定）')}}
-function usePot(k){if(!P||P.dead)return;if(k==='pot'?P.hp>=P.max.hp:P.mp>=P.max.mp)return;if(!(P[k]>0)){toast(k==='pot'?'紅藥水用完了':'藍藥水用完了');return}
-  P[k]--;const pb=1+(P.max.potB||0),amt=k==='pot'?Math.min(Math.round((P.max.hp*.35+40)*pb),P.max.hp-P.hp):Math.min(Math.round((P.max.mp*.35+30)*pb),P.max.mp-P.mp);
+const potT={pot:0,eth:0};
+function usePot(k){if(!P||P.dead)return;if(performance.now()-potT[k]<D.POTCD)return;if(k==='pot'?P.hp>=P.max.hp:P.mp>=P.max.mp)return;if(!(P[k]>0)){toast(k==='pot'?'紅藥水用完了':'藍藥水用完了');return}
+  potT[k]=performance.now();P[k]--;const pb=1+(P.max.potB||0),amt=k==='pot'?Math.min(Math.round((P.max.hp*.35+40)*pb),P.max.hp-P.hp):Math.min(Math.round((P.max.mp*.35+30)*pb),P.max.mp-P.mp);
   if(k==='pot'){P.hp+=amt;num(P.x,P.y-30,'+'+amt,'heal')}else{P.mp+=amt;num(P.x,P.y-30,'+'+amt,'mp')}ui();
-  sock.emit('use',{k},r=>{if(r&&r.ok)applyMe(r.me)})}
+  sock.emit('use',{k},r=>{if(r&&(r.ok||r.me))applyMe(r.me)})}
+function potCdUi(){for(const [k,id] of [['pot','potSlot'],['eth','ethSlot']]){const el=$('#'+id);if(!el)continue;const left=D.POTCD-(performance.now()-potT[k]);
+  const p=left>0?Math.round(left/D.POTCD*50)/50:0;if(el._cd===p)continue;el._cd=p;el.style.setProperty('--cd',p);el.classList.toggle('cding',p>0)}}
 function usePortal(pt){if(pt.rec&&P.lv<pt.rec)toast(`${pt.label}建議 Lv ${pt.rec} 以上，怪物很強，記得找朋友一起打！`);
   sock.emit('portal',{to:pt.to},r=>{if(!r||!r.ok)toast(r&&r.msg||'傳送失敗')})}
 
@@ -745,7 +749,7 @@ function drawPoop(wx,wy,ox,oy){const x=Math.round(wx-ox),y=Math.round(wy-oy),s2=
   for(let k=0;k<2;k++){const a=frame/9+k*3.1;R(Math.round(x+Math.cos(a)*12),Math.round(y-20+Math.sin(a*1.3)*5),2,2,'#1a1a1a')}}
 function drawOthers(ox,oy){for(const o of others.values()){const fake={x:o.x,y:o.y,f:o.f,cls:o.cls,job:o.job,wep:o.wep,ground:o.ground,walk:o.walk,act:o.act||0,rope:o.rope?{}:null,dead:0};
   if(o.dead){drawPoop(o.x,o.y,ox,oy);continue}
-  if(o.pet)drawPet(o,o.pet,ox,oy);
+  drawGuard(o,ox,oy);  if(o.pet)drawPet(o,o.pet,ox,oy);
   if(o.mount){drawMount({...fake,vx:o.walk?1:0},ox,oy,typeof o.mount==='string'?o.mount:'horse');drawBody({...fake,y:fake.y-8,ground:false},ox,oy);continue}
   if(o.clone){b.globalAlpha=.4;drawBody({...fake,x:o.x-o.f*12},ox,oy,'#1a1030');b.globalAlpha=1}
   drawBody(fake,ox,oy);const x=Math.round(o.x-ox),y=Math.round(o.y-oy);R(x-8,y-30,16,2,'#000a');R(x-8,y-30,Math.round(16*o.hp/100),2,'#ff4d5e')}}
@@ -1074,7 +1078,13 @@ function step(){frame++;if(P&&ready){updHero();updMons();updOthers();updShots();
   const z=MAPS[MI].zones.find(z=>P.x<z[0])[1];if(z!==zoneName){zoneName=z;zoneT=150}
   const tx=clamp(P.x-IW/2+P.f*20,0,WW-IW),ty=clamp(P.y-IH*.62,-60,WH-IH);cam.x+=(tx-cam.x)*.1;cam.y+=(ty-cam.y)*.1}
   for(const e of fx)e.life--;fx=fx.filter(e=>e.life>0);for(const n of nums)n.life--;nums=nums.filter(n=>n.life>0);if(msgT>0)msgT--;if(zoneT>0)zoneT--}
-function loop(now){acc+=Math.min(100,now-last);last=now;while(acc>=1000/60){if(!paused)step();acc-=1000/60}draw();requestAnimationFrame(loop)}
+let perfN=0,perfT=0,LOWFX=0;
+function loop(now){const dt=now-last;last=now;acc+=Math.min(50,dt);let n=0;while(acc>=1000/60&&n<3){if(!paused)step();acc-=1000/60;n++}if(n>=3)acc=0;
+  if(fx.length>(LOWFX?90:180))fx.splice(0,fx.length-(LOWFX?90:180));if(nums.length>60)nums.splice(0,nums.length-60);
+  draw();potCdUi();
+  if(!document.hidden&&dt<500){perfT+=dt;perfN++;if(perfN>=120){const avg=perfT/perfN;perfN=0;perfT=0; // 每約 2 秒檢查一次
+    if(avg>24){if(DPRCAP>1){DPRCAP=1;resize()}else LOWFX=1}else if(avg<17.5&&LOWFX)LOWFX=0}}
+  requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 
 // ================= UI =================
@@ -1205,7 +1215,7 @@ $('#ptYes').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:true},r=>{if
 $('#ptNo').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:false});ptFrom=null;$('#ptReq').hidden=true};
 // ---------- 潮聲港碼頭 ----------
 function openBoat(){const ok=D.capOf(P)>=D.MAXLV2;
-  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，要出海到「深淵海溝」嗎？那裡的怪物都是 Lv 101～105，最深處住著深淵海皇・克拉肯。記得找隊友一起去！':`深淵海溝太危險了，只有突破極限的冒險者才能去。<br>打倒<b>虛空之主</b>（最後一擊的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
+  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，要出海到「深淵海溝」嗎？那裡的怪物都是 Lv 101～105，最深處住著深淵海皇・克拉肯。記得找隊友一起去！':`深淵海溝太危險了，只有突破極限的冒險者才能去。<br>打倒<b>虛空之主</b>（有出手的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
     <div class="row"><button class="btn" data-close="1">下次再說</button><button class="btn pri" data-sail="1" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div>`,bt=>{
     if(bt.dataset.sail){bt.disabled=true;sock.emit('sail',{},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出海');bt.disabled=false;return}closePop()})}})}
 // ---------- 更新公告（每個帳號每個版本一次） ----------

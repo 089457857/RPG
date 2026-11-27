@@ -48,7 +48,8 @@ async function checkReload() {
 }
 setInterval(() => { if (pool) checkReload().catch(() => {}); }, 15000);
 let saveTimer = null, saving = false, again = false;
-function save() { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 800); }
+let firstDirty = 0;
+function save() { const now = Date.now(); if (!firstDirty) firstDirty = now; clearTimeout(saveTimer); saveTimer = setTimeout(() => { firstDirty = 0; flush(); }, now - firstDirty > 5000 ? 0 : 800); }   // 一直在打怪時最多 5 秒也會存一次
 async function flush() {
   if (saving) { again = true; return; }
   saving = true;

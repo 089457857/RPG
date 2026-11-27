@@ -97,6 +97,7 @@
   const ARMORS = [['布衣', 0, 0, 1, 0], ['皮甲', 4, 30, 8, 250], ['鎖子甲', 10, 90, 16, 1400], ['秘銀鎧', 18, 180, 24, 4600], ['龍鱗甲', 30, 340, 32, 12000], ['神聖鎧甲', 44, 560, 40, 26000], ['暗黑龍甲', 60, 820, 50, 56000], ['天穹戰衣', 80, 1150, 60, 105000]];
   const SHOP = { pot: 25, eth: 30, pot10: 240, rest: 15 };
   // 藥水依角色等級漲價（紅藥水；藍藥水再貴 20%；10 瓶裝打 96 折；完全休息和紅藥水同價）
+  const POTCD = 1500; // 紅、藍藥水各自的冷卻（毫秒）
   function shopPrice(k, lv) { const red = lv >= 80 ? 2500 : lv >= 60 ? 1000 : lv >= 30 ? 250 : 30;
     return k === 'pot' || k === 'rest' ? red : k === 'eth' ? Math.round(red * 1.2) : k === 'pot10' ? Math.round(red * 10 * .96) : 0; }
   const MON = {
@@ -206,7 +207,10 @@
       portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }], start: 150 },
   ];
   // 升級經驗：前期和以前差不多，後期大幅變難（滿等總經驗約為舊版的 4 倍）
-  const needExp = lv => Math.round(12 * Math.pow(lv, 1.8));
+  // 升級所需經驗（2026-11-27h 改版）：依「每級要打幾隻當地小怪」設計，從約 4 隻慢慢爬到 100 等前約 130 隻，1→100 約 5000 隻
+  const EXPT = [47,60,76,99,129,151,178,210,226,243,291,348,416,495,613,758,936,1036,1193,1371,1573,1730,1899,2081,2410,2676,2966,3379,3845,4371,5111,5642,6223,6857,7336,7842,8376,8680,8989,10135,11420,12859,14470,16273,18881,21894,23286,24751,26296,27922,30527,32312,34186,36152,38214,40378,42646,43709,44781,45862,49137,52628,56348,60311,66091,72402,79291,82950,88960,95378,102232,106966,111890,117010,122335,124699,127078,129473,131884,134310,157680,185079,217193,254829,308190,372652,450514,472268,509886,550405,594040,621765,650677,680823,712253,765228,822019,881056,942249,1005491];
+  const needExp = lv => lv <= EXPT.length ? EXPT[Math.max(1, lv) - 1] : Math.round(EXPT[EXPT.length - 1] * Math.pow(1.06, lv - EXPT.length));
+  const needExpOld = lv => Math.round(12 * Math.pow(lv, 1.8)); // 舊曲線，只用來換算舊存檔
   // 能力值：每升 1 級得 3 點，可分配到 力量／體質／智慧／敏捷
   const APL = 3, APRESET = 20000;
   // 能力值 2.0：每個職業有主屬性（決定攻擊力）；每一項都有攻擊與生存效果；點越多效率越低
@@ -222,9 +226,9 @@
   const effRate = n => (n || 0) < 100 ? 1 : (n || 0) < 200 ? .7 : .4;
   // 主屬性給的攻擊力：單主屬性每點 +1.3；雙主屬性每點 +1.3 × 0.75（兩項分開點比較划算）
   function mainAtk(cls, s) { const m = MAIN[cls] || ['str']; const k = m.length > 1 ? .75 : 1; return m.reduce((a, x) => a + eff(s[x]) * 1.3 * k, 0); }
-  function newChar(cls) { return { slots: [...DEFSLOTS], cls, lv: 1, exp: 0, gold: 20, pot: 5, eth: 3, base: { ...CL[cls].base }, job: 0, wep: 0, arm: 0, map: 0, ap: 0, apv: 2, st: { str: 0, vit: 0, int: 0, dex: 0 } }; }
+  function newChar(cls) { return { slots: [...DEFSLOTS], cls, lv: 1, exp: 0, gold: 20, pot: 5, eth: 3, base: { ...CL[cls].base }, job: 0, wep: 0, arm: 0, map: 0, ap: 0, apv: 2, xv: 2, st: { str: 0, vit: 0, int: 0, dex: 0 } }; }
   // 舊存檔補上能力值（依目前等級補發點數）
-  function fix(c) { if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
+  function fix(c) { if (c && c.xv !== 2) { c.xv = 2; if (c.exp > 0 && c.lv < capOf(c)) c.exp = Math.min(needExp(c.lv) - 1, Math.floor(c.exp / needExpOld(c.lv) * needExp(c.lv))); } if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
   // 寵物：65 等解鎖，四選一；之後可花金幣更換
   const PETLV = 65, PETSWAP = 30000;
   const PETS = {
@@ -307,11 +311,23 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-27i', notes: [
+      ['👻 守護靈大家都看得到了', '以前覺醒時只有自己看得到身後的守護靈，現在同地圖的其他玩家也看得到。'],
+      ['🌊 突破 100 等更容易', '打倒虛空之主時，只要有出手的玩家都能突破等級上限，同地圖的隊友也一起突破，不再只限最後一擊的那一隊。'],
+      ['⚡ 流暢度優化', '手機比較吃力時會自動降低解析度、減少特效數量；網路不穩時不會再累積延遲，也修正了掉幀時越來越卡的問題。'],
+    ] },
+    { v: '2026-11-27h', notes: [
+      ['📈 升級經驗曲線重新設計', '以前越後面反而越快升級，現在每升一級要打的怪會穩定增加：前期一樣很快，後期需要多練一點，1 到 100 級大約 8～10 小時。'],
+      ['🛡️ 舊角色不吃虧', '已經練上去的角色等級不變，目前的經驗條會照百分比換算到新曲線（例如原本 60%，改版後還是 60%）。'],
+    ] },
+    { v: '2026-11-27g', notes: [
+      ['🧪 喝藥水冷卻', '紅藥水、藍藥水各自有 1.5 秒冷卻，冷卻中藥水欄會變暗倒數。紅藍分開計算，喝完紅藥還是能馬上補藍。'],
+    ] },
     { v: '2026-11-27f', notes: [
-      '守護靈第二批登場：武神「明王」、機神「機神」、深淵君主「魔像」、天使長「熾天」，一樣分三階段成形，附專屬普攻與終結技',
-      '武神、機神、深淵君主、天使長達到 Lv 90 並打倒虛空之主後，四轉技能在覺醒中變成守護靈版本；天使長終結技「聖域」會幫同地圖隊友回血加護盾',
-      '技能特效大改版：八個職業的特效風格各自獨立，相似的招式都換上了新外觀',
-      '90 級守護靈技能的 ×1.3 加成改由伺服器計算，多段招式也能吃滿加成；機甲全彈發射會集中轟炸最強的敵人',
+      ['👹 第二批守護靈', '武神「明王」、機神「機神」、深淵君主「魔像」、天使長「熾天」登場，一樣分三階段成形，附專屬普攻與終結技。'],
+      ['✨ 90 級守護靈技能全開放', '八個職業都能在 Lv 90、打倒虛空之主後，於覺醒中把四轉技能變成守護靈版本。天使長終結技「聖域」會幫同地圖隊友回血加護盾。'],
+      ['🎨 技能特效大改版', '八個職業的特效風格各自獨立，原本看起來太像的招式都換上新外觀。'],
+      ['🚀 平衡調整', '90 級守護靈技能的 ×1.3 加成改由伺服器計算，多段招式也能吃滿；機甲「全彈發射」會集中轟炸最強的敵人。'],
     ] },
     { v: '2026-11-27e', notes: [
       ['⚖️ 技能強度重新平衡', '每一階的技能都重新調整：越高階的技能單發越痛、冷卻越長（初始 1 秒 → 四轉 4.5 秒），整體每秒輸出大致不變。增益、補血類技能冷卻改為 15～35 秒。強度順序：終結技 > 90 級守護靈技能 > 守護靈普攻 > 四轉 > 三轉 > 二轉 > 一轉。'],
@@ -343,13 +359,13 @@
     ['👑 Boss 也吃控制', '控制對 Boss 有效，但時間只有 60%；同一個人控完要等 5 秒才能再控同一隻，隊友輪流接控就能把牠壓住。'],
     ['⚔️ PVP 控制', '決鬥場和競技場裡控制技能也會打在玩家身上，一樣只有 60% 時間，並有 5 秒的免疫時間。'],
     ['👥 組隊', '按下方「隊伍」邀請玩家，最多 6 人。同地圖的隊友就算沒出手也分得到經驗，畫面左上角看得到隊友血量。'],
-    ['🌊 突破 100 等', '打倒虛空之主時，最後一擊的玩家和同地圖的隊友，等級上限會提升到 100。'],
+    ['🌊 突破 100 等', '打倒虛空之主時，有出手的玩家和同地圖的隊友，等級上限會提升到 100。'],
     ['⚓ 新地圖', '虛空裂隙最右邊可以通往村莊「潮聲港」，突破 100 等後找碼頭的船長出海，挑戰 Lv 101～105 的「深淵海溝」與 Boss 深淵海皇・克拉肯。'],
     ] },
   ];
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
