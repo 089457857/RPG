@@ -60,6 +60,15 @@ h1{margin:0;font:900 clamp(24px,4vw,36px)/1.1 "Noto Serif TC",serif;color:var(--
 .t-mnt{top:152px!important;left:8px!important}.t-pot{left:62px!important;top:152px!important}.t-eth{left:124px!important;top:152px!important}
 .rot{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:24px;background:#070a14f0;text-align:center}.rot[hidden]{display:none}.rot b{font:900 24px "Noto Serif TC",serif;color:var(--gold)}.rot p{color:var(--dim)}
 /* 手機專用（body.mob）：選單收合、技能按鈕顯示冷卻 */
+.duelreq{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:95;background:#1a1f36f2;border:2px solid var(--gold);border-radius:14px;padding:12px 16px;display:grid;gap:8px;justify-items:center;box-shadow:0 10px 30px #000a;max-width:92vw;text-align:center}.duelreq[hidden]{display:none}
+body:not(.fs) .bar-ui{grid-template-columns:auto minmax(0,1fr)}body:not(.fs) .bar-ui .inv{grid-column:1/-1;justify-content:flex-end;flex-wrap:wrap}
+@media(max-width:640px){body:not(.fs) .bar-ui{grid-template-columns:1fr}body:not(.fs) .bar-ui .inv{justify-content:flex-start}}
+@media(max-width:400px){body:not(.fs) .t-mnt{left:6px!important;width:46px!important}body:not(.fs) .t-pot{left:56px!important;width:50px!important;font-size:11px!important}body:not(.fs) .t-eth{left:110px!important;width:50px!important;font-size:11px!important}}
+@media(max-width:340px){body:not(.fs) .joy{left:8px;top:22px;width:104px;height:104px}body:not(.fs) .knob{width:44px;height:44px;margin:-22px 0 0 -22px}
+  body:not(.fs) .t-mnt{left:4px!important;width:42px!important;font-size:11px!important}body:not(.fs) .t-pot{left:48px!important;width:46px!important}body:not(.fs) .t-eth{left:96px!important;width:46px!important}
+  body:not(.fs) .t-x,body:not(.fs) .t-c,body:not(.fs) .t-v,body:not(.fs) .t-b,body:not(.fs) .t-n,body:not(.fs) .t-m{width:38px;height:38px;font-size:11px}
+  body:not(.fs) .t-x,body:not(.fs) .t-b{right:94px}body:not(.fs) .t-c,body:not(.fs) .t-n{right:52px}body:not(.fs) .t-v,body:not(.fs) .t-m{right:10px}
+  body:not(.fs) .t-z{right:70px;width:54px;height:54px}body:not(.fs) .t-j{right:8px;width:58px;height:58px}}
 .menub,.pwa-tip{display:none}
 body.mob.fs #fsBtn{display:none}
 body.mob.fs #ui{width:min(330px,42vw)!important;grid-template-columns:auto minmax(0,1fr) auto!important;padding:4px 6px!important;align-items:center}
@@ -149,6 +158,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
 </head>
 <body>
 <div class="rot" id="rot" hidden><div><b>把手機轉成橫向</b><p>橫向會自動切換成全螢幕遊玩，畫面更大、輪盤更好操作。<br>（LINE 和 iPhone 的瀏覽器會留著網址列；想要真正全螢幕，可以用 Safari／Chrome 開啟後「加入主畫面」。）</p><button class="btn pri" id="rotOk" type="button">先用直向玩</button></div></div>
+<div class="duelreq" id="duelReq" hidden><b id="drTxt"></b><div class="row"><button class="btn pri sm" id="drYes" type="button">接受</button><button class="btn sm" id="drNo" type="button">拒絕</button></div></div>
 <div class="wrap">
   <div class="top"><h1>屁眼王國大冒險</h1><span class="netinfo" id="net">連線中…</span></div>
   <p class="sub">連線版 2D 橫向捲軸打怪：和朋友在同一張地圖一起打怪，一起出手的人都分得到經驗。15、30、45、60 級轉職，一路打到 80 級，組隊挑戰虛空之主搶傳說武器。</p>
@@ -196,7 +206,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
         <div class="b xp"><i id="uXp"></i><span id="uXpT"></span></div>
       </div>
       <button class="btn sm menub" id="menuBtn" type="button" aria-expanded="false" aria-label="選單">☰</button>
-      <div class="inv"><span class="g" id="uGold">0</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
+      <div class="inv"><span class="g" id="uGold">0</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="btn sm" id="pvpBtn">PVP</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
     </div>
     <div class="chat" id="chat" hidden>
       <div class="log" id="log" aria-live="polite"></div>
@@ -223,6 +233,8 @@ const PAL={
   dark:{sky:['#07050f','#1e1236','#4a2a6a'],h1:'#1e1436',h2:'#140d26',trunk:'#120b1e',l1:'#2a1a44',l2:'#3e2666',top:'#5a4a7a',dirt:'#241c34',dirt2:'#170f22',speck:'#9a7aff',cloud:'#7a5aff26',tree:'dead',fx:'ember',fxc:['#c9a6ff','#7a5aff']},
   sky:{sky:['#4a8cf0','#bcdcff','#fff2d0'],h1:'#ffffff',h2:'#e6ecfb',trunk:'#ece6d4',l1:'#fffaf0',l2:'#ffd86a',top:'#fff8dc',dirt:'#d6d0ea',dirt2:'#b6aed2',speck:'#ffd86a',cloud:'#ffffffee',tree:'pillar',fx:'ember',fxc:['#ffe680','#ffffff']},
   void:{sky:['#010304','#04201f','#0b4a3e'],h1:'#06201c',h2:'#041512',trunk:'#0a2a24',l1:'#0f3a30',l2:'#1a5a48',top:'#2a7a62',dirt:'#0c1a18',dirt2:'#071110',speck:'#3affc8',cloud:'#3affc826',tree:'dead',fx:'ember',fxc:['#3affc8','#b46aff']},
+  arena:{sky:['#3a2a1e','#8a5a3a','#d8a070'],h1:'#a07850',h2:'#7a5a3a',trunk:'#c8b090',l1:'#e0d0b0',l2:'#c8463a',top:'#c8a878',dirt:'#8a6a48',dirt2:'#6a4a30',speck:'#c8463a',cloud:'#ffffff30',tree:'pillar'},
+  trial:{sky:['#2a1a4a','#6a4a9a','#e8c8ff'],h1:'#5a3a8a',h2:'#3a2466',trunk:'#ffe9a8',l1:'#fff6d0',l2:'#ffd23f',top:'#d8c8ff',dirt:'#4a3a6a',dirt2:'#2e2048',speck:'#ffd23f',cloud:'#ffffff60',tree:'pillar',fx:'ember',fxc:['#ffd23f','#ffffff']},
 };
 const NPCS=[{x:188,kind:'shop',name:'商人 老陳'},{x:58,kind:'job',name:'轉職教官 艾倫'}];
 
@@ -339,11 +351,16 @@ function usePortal(pt){if(pt.rec&&P.lv<pt.rec)toast(`${pt.label}建議 Lv ${pt.r
 // ================= 技能（自己出招會打到怪；別人出招只播特效） =================
 function buffMul(){const f=P&&P.bf||{};return (f.rage>0?1.3:1)*(f.bless>0?1.2:1)*(f.pow>0?1.25:1)}
 function hitMon(m,mult,o={}){if(m.dead||m.hp<=0)return;m.hurt=14;mult=Math.min(3.2,mult*buffMul());
+  if(m.isP){pvpQ.push({u:m.uid,mult:Math.round(mult*100)/100,cb:o.crit||0,sk:o.sk?1:0,heal:o.heal||0,s:o.stack||0});return}
   hitQ.push({m:m.i,mult:Math.round(mult*100)/100,cb:o.crit||0,fz:o.freeze||0,kb:Math.min(4,(o.kb??1.5)*(1+(P.max.kbB||0))),sk:o.sk?1:0,s:o.stack||0,vu:o.vu?1:0,rt:o.rt?1:0,pl:o.pull?1:0,ex:o.ex?1:0});
   if(o.heal&&P&&!P.dead){const h=Math.round(P.max.hp*o.heal);P.hp=Math.min(P.max.hp,P.hp+h);if(Math.random()<.4)num(P.x+6,P.y-30,'+'+h,'heal')}
   if(P.clone>0&&!o.cl)setTimeout(()=>{if(m.hp>0&&!m.dead)hitMon(m,mult*.6,{...o,cl:1,stack:(o.stack||0)+1,kb:0})},90)}
 function inBox(m,x1,x2,y1,y2){return !m.dead&&m.hp>0&&m.x+m.w/2>=x1&&m.x-m.w/2<=x2&&m.y>=y1&&m.y-m.h<=y2}
-function live(){return mons.filter(m=>!m.dead&&m.hp>0)}
+// PVP：在決鬥場只能打對手，在競技場可以打所有人（實際傷害由伺服器判定）
+let duel=null,pvpQ=[];const pvpT=new Map();
+function pvpTargets(){const pv=MAPS[MI]&&MAPS[MI].pvp;if(!pv||!P||P.dead)return [];if(pv==='duel'&&(!duel||Date.now()<duel.go))return [];const a=[];
+  for(const o of others.values()){if(o.dead||(pv==='duel'&&o.id!==duel.opp))continue;let t=pvpT.get(o.id);if(!t){t={isP:1,uid:o.id,w:12,h:26,hop:0,i:-1,t:'',hurt:0};pvpT.set(o.id,t)}t.x=o.x;t.y=o.y;t.hp=1;t.dead=0;a.push(t)}return a}
+function live(){return mons.filter(m=>!m.dead&&m.hp>0).concat(pvpTargets())}
 function sklOk(k){return D.skillLock(P,k)}
 function slotK(key){const i=+key.slice(1)-1;return (P&&P.slots&&P.slots[i])||''}
 const BUFFN={pow:'攻擊 +25%（20 秒）',guard:'受到傷害 -30%（15 秒）',haste:'移動速度 +25%、技能冷卻縮短（20 秒）'};
@@ -415,11 +432,11 @@ function doSkill(k,A){const local=A===P;if(k==='dj'){if(!local)fx.push({t:'dj',x
     case 'angel:s3':fx.push({t:'ring',x,y:y-10,life:30,col:'#ffd23f'});if(local)sock.emit('aid',{k:'s3'});break;
     case 'angel:s4':fx.push({t:'ring',x,y:y-10,life:30,col:'#ffffff'});if(local)sock.emit('aid',{k:'s4'});break;
     case 'angel:s5':{const ts=near(220).sort((a,c)=>Math.abs(a.x-x)-Math.abs(c.x-x)).slice(0,6);ts.forEach((m,i)=>setTimeout(()=>{fx.push({t:'hsword',x:m.x,y:m.y,life:22});setTimeout(()=>{if(m.hp>0&&!m.dead)H(m,2.2,{kb:1})},180)},i*90));break}
-    default:if(s.g)genSkill(s.g,A,local,H,box,near,cos);break;
+    default:if(s.g)genSkill(s.g,A,local,H,box,near,cos,k);break;
     case 'angel:s6':fx.push({t:'holy',x,y,life:60});if(local){sock.emit('aid',{k:'s6'});for(const m of near(220,120))H(m,2.6,{kb:2})}break;
   }if(local)ui()}
 // 通用技能引擎：a0、b1～b4、c1～c4 這些技能都用資料描述，這裡依類型執行
-function genSkill(g,A,local,H,box,near,cos){const f=A.f,x=A.x,y=A.y,o={kb:g.kb??1,heal:g.heal||0,crit:g.crit||0};
+function genSkill(g,A,local,H,box,near,cos,sk){const f=A.f,x=A.x,y=A.y,o={kb:g.kb??1,heal:g.heal||0,crit:g.crit||0};
   const nearest=(r)=>{let tg=null,bd=r;for(const m of live()){const d=Math.abs(m.x-x);if(d<bd&&Math.abs(m.y-y)<120){bd=d;tg=m}}return tg};
   switch(g.type){
     case 'melee':fx.push({t:'gslash',x:x+f*g.w/2,y:y-12,w:g.w,col:g.col,life:12});box(g.w,g.h,g.mult,g.max,o);break;
@@ -432,7 +449,7 @@ function genSkill(g,A,local,H,box,near,cos){const f=A.f,x=A.x,y=A.y,o={kb:g.kb??
     case 'multi':{const ts=near(g.r).sort((a,c)=>Math.abs(a.x-x)-Math.abs(c.x-x)).slice(0,g.n);ts.forEach((m,i)=>setTimeout(()=>{fx.push({t:'glink',x:A.x,y:A.y-14,x2:m.x,y2:m.y-m.h/2,col:g.col,life:14});H(m,g.mult,o)},i*50));break}
     case 'proj':{if(g.back&&local){P.vx=-f*3;P.vy=-3;P.ground=false}const n=g.spread?3:g.burst||1;for(let i=0;i<n;i++)setTimeout(()=>shots.push({sk:1,t:g.big?'big':'gproj',x:A.x+A.f*8,y:A.y-12,vx:A.f*g.spd,vy:g.spread?(i-1)*.7:0,life:55,mult:g.mult,pierce:g.pierce,col:g.col,boom:g.boom,cos}),g.burst?i*90:0);break}
     case 'buff':if(local){P.bf[g.buff]=g.buff==='guard'?900:1200;toast(BUFFN[g.buff])}fx.push({t:'ring',x,y:y-10,life:30,col:'#ffd23f'});break;
-    case 'heal':if(local){const h=Math.round(P.max.hp*g.pct*(1+(P.max.healB||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}fx.push({t:'ring',x,y:y-10,life:30,col:'#9affb0'});break;
+    case 'heal':if(local&&MAPS[MI].pvp)sock.emit('pheal',{k:sk});if(local){const h=Math.round(P.max.hp*g.pct*(1+(P.max.healB||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}fx.push({t:'ring',x,y:y-10,life:30,col:'#9affb0'});break;
     case 'mpheal':if(local){const h=Math.round(P.max.mp*g.pct);P.mp=Math.min(P.max.mp,P.mp+h);num(P.x,P.y-34,'+'+h,'mp')}fx.push({t:'ring',x,y:y-10,life:30,col:'#7fb8ff'});break;
   }}
 function updShots(){for(const s of shots){s.x+=s.vx;if(s.vy)s.y+=s.vy;s.life--;if(s.spin!==undefined)s.spin++;if(s.t==='boomer'&&s.life===s.turn){s.vx=-s.vx;s.hit=new Set()}
@@ -601,6 +618,11 @@ function drawMon(m,ox,oy){if(m.dead)return;const d=MON[m.t],x=Math.round(m.x-ox)
     case 'seraph':{const fl=Math.floor(frame/7)%2,b2=Math.sin(frame/12)*2;R(x-13,y-24+b2+(fl?-2:1),7,12,'#5a5470');R(x+6,y-24+b2+(fl?-2:1),7,12,'#5a5470');R(x-5,y-18+b2,10,15,W||'#f4f0ff');R(x-5,y-4+b2,10,2,'#c9c0e8');R(x-4,y-25+b2,8,7,W||'#ffe3c8');R(x-2+f,y-23+b2,2,2,'#c03a6a');R(x-5,y-29+b2,10,2,'#ffd23f');R(x+2,y-29+b2,2,2,'#8a6a2a');R(x+f*7-1,y-20+b2,2,14,'#d8d0ff');break}
     case 'stargolem':{const st=Math.floor(frame/10)%2;R(x-9,y-6,6,6-st,'#1a2246');R(x+3,y-6,6,5+st,'#1a2246');R(x-11,y-20,22,15,W||'#2a3466');R(x-11,y-20,22,2,'#4a5a9a');R(x-7,y-26,14,7,W||'#2a3466');R(x-4+f,y-24,2,2,'#5af0ff');R(x+2+f,y-24,2,2,'#5af0ff');for(let k=0;k<5;k++)R(x-9+((k*7)%18),y-18+((k*5)%12),1,1,frame%40<20?'#ffffff':'#ffe680');R(x-14,y-18,4,10,W||'#2a3466');R(x+10,y-18,4,10,W||'#2a3466');break}
     case 'phoenix':{const fl=Math.floor(frame/5)%2,b2=Math.sin(frame/9)*3;R(x-11,y-14+b2+(fl?-4:2),8,5,'#ff9a2a');R(x+3,y-14+b2+(fl?-4:2),8,5,'#ff9a2a');R(x-6,y-14+b2,12,8,W||'#ff4a1a');R(x-6,y-14+b2,12,2,'#ffd23f');R(x+f*5-2,y-18+b2,6,5,W||'#ff4a1a');R(x+f*9-1,y-16+b2,3,2,'#ffd23f');R(x+f*6,y-17+b2,1,1,'#000');for(let k=0;k<3;k++)R(x-f*(8+k*3)-1,y-11+b2+k,3,2,k%2?'#ffd23f':'#ff6a2a');break}
+    case 'trial1':case 'trial2':case 'trial3':case 'trial4':{const tier=+m.t[5],C=[null,['#c8d0e0','#8a96b0'],['#7fd3ff','#2f7ab0'],['#c77dff','#6a2aa0'],['#ffd23f','#c8921c']][tier],hw=Math.round(d.w/2),gl=frame%40<20,st=Math.floor(frame/9)%2;
+      b.globalAlpha=.25+.1*Math.sin(frame/8);R(x-hw-4,y-d.h-6,hw*2+8,d.h+6,C[0]);b.globalAlpha=1;
+      R(x-hw+6,y-10,10,10-st,C[1]);R(x+hw-16,y-10,10,9+st,C[1]);R(x-hw+2,y-d.h+16,hw*2-4,d.h-26,W||C[0]);R(x-hw+2,y-d.h+16,hw*2-4,3,'#ffffff');R(x-hw+2,y-24,hw*2-4,3,C[1]);
+      R(x-hw-6,y-d.h+18,8,20,W||C[1]);R(x+hw-2,y-d.h+18,8,20,W||C[1]);R(x-10,y-d.h+2,20,16,W||C[0]);R(x-7+f*2,y-d.h+8,5,3,gl?'#ffffff':C[1]);R(x+2+f*2,y-d.h+8,5,3,gl?'#ffffff':C[1]);
+      R(x-12,y-d.h-4,24,3,'#ffe680');for(let k=0;k<tier;k++)R(x-9+k*6,y-d.h-9,4,5,'#ffd23f');R(x+f*(hw+6)-2,y-d.h+4,4,d.h-8,'#e6ebf3');R(x+f*(hw+6)-5,y-d.h+2,10,4,'#ffd23f');break}
     case 'voidling':{const st=Math.floor(frame/5)%2;R(x-7,y-3,3,3-st,'#062a24');R(x+4,y-3,3,2+st,'#062a24');R(x-7,y-13,14,10,W||'#0f3a30');R(x-7,y-13,14,2,'#3affc8');R(x+f*5-3,y-17,8,7,W||'#0f3a30');R(x+f*7-1,y-15,2,2,'#3affc8');R(x+f*5-3,y-19,2,3,'#3affc8');R(x+f*9-2,y-10,4,2,'#b46aff');R(x-f*9-2,y-12+st,4,2,'#0f3a30');break}
     case 'chaosknight':{const st=Math.floor(frame/8)%2;R(x-6,y-6,4,6-st,'#160a20');R(x+2,y-6,4,5+st,'#160a20');R(x-8,y-19,16,13,W||'#2a1238');R(x-8,y-19,16,2,'#b46aff');R(x-6,y-27,12,9,W||'#2a1238');R(x-4+f*2,y-23,6,2,'#3affc8');R(x-6,y-30,2,4,'#b46aff');R(x+4,y-30,2,4,'#b46aff');R(x+f*10-1,y-30,3,24,'#3affc8');R(x+f*10-3,y-10,7,2,'#2a1238');R(x-f*10-4,y-20,6,11,W||'#3a1a4a');break}
     case 'abyssmage':{const b2=Math.sin(frame/10)*2;R(x-7,y-20+b2,14,18,W||'#0a1f2a');R(x-7,y-20+b2,14,2,'#3affc8');for(let k=0;k<4;k++)R(x-7+k*4,y-3+b2+(k%2),3,3,'#0a1f2a');R(x-5,y-28+b2,10,9,W||'#0a1f2a');R(x-3+f,y-24+b2,2,2,'#3affc8');R(x+1+f,y-24+b2,2,2,'#3affc8');R(x+f*9-1,y-30+b2,2,28,'#4a3a5a');b.globalAlpha=.6+.3*Math.sin(frame/5);R(x+f*9-3,y-34+b2,6,6,'#b46aff');b.globalAlpha=1;break}
@@ -729,7 +751,12 @@ function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
   for(const m of mons){if(m.dead||!MON[m.t].boss)continue;label(m.x,m.y+6,`Lv${MON[m.t].lv} ${MON[m.t].name}`,'#ffd23f')}
   for(const o of others.values()){label(o.x,o.y+3,`${o.name}　Lv${o.lv} ${CL[o.cls].jobs[o.job]}`,'#9fe0ff');if(o.chatT>0)bubble(o.x,o.y-34,o.chat)}
   if(P){label(P.x,P.y+3,`${myName}　${CL[P.cls].jobs[P.job]}`,'#fff');if(P.chatT>0)bubble(P.x,P.y-34,P.chat)}
-  ctx.textAlign='left';ctx.font='700 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';const nt=`此地圖 ${others.size+1} 人`,ntw=ctx.measureText(nt).width+14,nx=TOUCH&&document.body.classList.contains('fs')?SW-ntw-8:8;ctx.fillRect(nx,8,ntw,20);ctx.fillStyle='#7dff9a';ctx.fillText(nt,nx+7,22);ctx.textAlign='center';
+  ctx.textAlign='left';ctx.font='700 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';const nt=`此地圖 ${others.size+1} 人`,ntw=ctx.measureText(nt).width+14,nx=TOUCH&&document.body.classList.contains('fs')?SW-ntw-8:8;ctx.fillRect(nx,8,ntw,20);ctx.fillStyle='#7dff9a';ctx.fillText(nt,nx+7,22);
+  if(MAPS[MI].pvp==='duel'&&duel){const now=Date.now();ctx.textAlign='center';let big='',small='';
+    if(duel.over){big=duel.over;small='即將回到原本的位置…'}else if(now<duel.go){big=String(Math.ceil((duel.go-now)/1000));small=`決鬥：你 vs ${duel.name}`}else{const left=Math.max(0,duel.end-now),mm=Math.floor(left/60000),ss=Math.floor(left%60000/1000);small=`決鬥中 vs ${duel.name}　剩 ${mm}:${String(ss).padStart(2,'0')}`;if(now-duel.go<900)big='開始！'}
+    if(big){ctx.font='900 64px "Noto Serif TC",serif';ctx.lineWidth=6;ctx.strokeStyle='#000a';ctx.strokeText(big,SW/2,SH*.42);ctx.fillStyle='#ffd23f';ctx.fillText(big,SW/2,SH*.42)}
+    ctx.font='700 15px "Noto Sans TC",sans-serif';const tw=ctx.measureText(small).width+24;ctx.fillStyle='#000b';ctx.fillRect(SW/2-tw/2,90,tw,26);ctx.fillStyle='#fff';ctx.fillText(small,SW/2,108)}
+  if(MAPS[MI].pvp==='arena'||MAPS[MI].trial){ctx.textAlign='center';ctx.font='700 14px "Noto Sans TC",sans-serif';const tip=MAPS[MI].trial?'轉職試煉：打倒試煉官就能轉職！（左邊傳送門可以放棄）':'競技場：可以攻擊所有玩家，打倒對手得積分（左邊傳送門離開）';const tw=Math.min(SW-16,ctx.measureText(tip).width+24);ctx.fillStyle='#000b';ctx.fillRect(SW/2-tw/2,90,tw,24);ctx.fillStyle=MAPS[MI].trial?'#ffd23f':'#ff8a95';ctx.fillText(tip,SW/2,107,SW-28)}ctx.textAlign='center';
   if(zoneT>0){ctx.globalAlpha=Math.min(1,zoneT/30);ctx.font='900 18px "Noto Serif TC",serif';ctx.fillStyle='#000a';const w=ctx.measureText(zoneName).width+30;ctx.fillRect(SW/2-w/2,14,w,30);ctx.fillStyle='#fff';ctx.fillText(zoneName,SW/2,35);ctx.globalAlpha=1}
   if(msgT>0){ctx.globalAlpha=Math.min(1,msgT/30);ctx.font='700 15px "Noto Sans TC",sans-serif';const w=ctx.measureText(msg).width+28;ctx.fillStyle='#000c';ctx.fillRect(SW/2-w/2,54,w,28);ctx.strokeStyle='#ffd23f';ctx.strokeRect(SW/2-w/2+.5,54.5,w-1,27);ctx.fillStyle='#fff';ctx.fillText(msg,SW/2,73);ctx.globalAlpha=1}
   if(P&&!TOUCH){const ks=['atk',...(P.slots||D.DEFSLOTS)],bw=Math.min(52,(SW-20)/7-3),top=document.body.classList.contains('fs')&&TOUCH;ks.forEach((k,i)=>{const s=k?SK[P.cls][k]:null,x=SW-10-(7-i)*(bw+3),y=top?8:SH-50,lock=k?sklOk(k):'空';
@@ -741,6 +768,7 @@ function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
 let last=performance.now(),acc=0,posT=0;
 function step(){frame++;if(P&&ready){updHero();updMons();updOthers();updShots();updDrops();if(P.chatT>0)P.chatT--;
   if(hitQ.length){sock.emit('hit',hitQ.splice(0,20))}
+  if(pvpQ.length){sock.emit('phit',pvpQ.splice(0,20))}
   if(++posT>=6){posT=0;sock.emit('pos',{x:P.x,y:P.y,f:P.f,act:P.act>0,rope:!!P.rope,dead:!!P.dead,hp:P.hp/P.max.hp*100,clone:P.clone>0,mount:!!P.mount})}
   if(frame%60===0&&!P.dead){P.mp=Math.min(P.max.mp,P.mp+2+Math.floor(P.lv/3));if(MAPS[MI].town&&P.x<260)P.hp=Math.min(P.max.hp,P.hp+Math.ceil(P.max.hp*.05));ui()}
   const z=MAPS[MI].zones.find(z=>P.x<z[0])[1];if(z!==zoneName){zoneName=z;zoneT=150}
@@ -787,10 +815,10 @@ function openShop(){const render=()=>{const W=WEAPONS[P.cls];
     sock.emit('buy',req,r=>{if(!r||!r.ok){toast(r&&r.msg||'購買失敗');return render()}const oldHp=P.max.hp;applyMe(r.me);if(r.rest){P.hp=P.max.hp;P.mp=P.max.mp}if(req.k==='arm')P.hp=Math.min(P.max.hp,P.hp+(P.max.hp-oldHp));
       if(req.k==='wep')toast(`裝備了 ${WEAPONS[P.cls][P.wep][0]}！`);if(req.k==='arm')toast(`穿上了 ${ARMORS[P.arm][0]}！`);if(req.k==='mount')toast(`買到了${D.MOUNTS[req.i].n}！已設為目前的坐騎`);ui();render()})})};render()}
 function openJob(){const c=CL[P.cls],sk=SK[P.cls];const render=()=>{const next=P.job<4?P.job+1:null,req=next?JOBLV[next]:0,can=next&&P.lv>=req;
-  openPop(`<h2>轉職教官 艾倫</h2><p class="sub" style="margin:0">${next?(can?`你已經達到 Lv ${req}，可以轉職成「${c.jobs[next]}」了！`:`等你到 Lv ${req}，就能轉職成「${c.jobs[next]}」。`):'你已經完成所有轉職，是真正的強者了！'}</p>
+  openPop(`<h2>轉職教官 艾倫</h2><p class="sub" style="margin:0">${next?(can?`你已經達到 Lv ${req}！接受轉職試煉，在試煉之地一個人打倒「${MON['trial'+next].name}」，就能轉職成「${c.jobs[next]}」。試煉官的招式預警比較長、傷害也比較低，失敗了可以無限重試，不會扣經驗。`:`等你到 Lv ${req}，就能轉職成「${c.jobs[next]}」。`):'你已經完成所有轉職，是真正的強者了！'}</p>
     <div class="jobs">${c.jobs.map((j,i)=>`<div class="job${i===P.job?' cur':''}${i<P.job?' done':''}"><b>${['初始','一轉','二轉','三轉','四轉'][i]}　${j}</b><p>${i===0?'Lv 1 · '+c.desc:`Lv ${JOBLV[i]} · ${c.jobDesc[i]}`}</p><p>技能：${Object.entries(sk).filter(([k,v])=>k!=='atk'&&tierOf(v)===i).map(([k,v])=>`<b style="font-size:14px">${v.n}</b>`).join('、')}</p>${i>0?`<p>能力：攻擊 ×${JOBATK[i]}、HP/MP ×${JOBHP[i]}、爆擊 +${i*3}%</p>`:''}</div>`).join('')}</div>
-    <div class="row"><button class="btn" data-close="1">離開</button>${next?`<button class="btn pri" data-adv="1" ${can?'':'disabled'}>${can?`轉職成 ${c.jobs[next]}`:`需要 Lv ${req}`}</button>`:''}</div>`,bt=>{
-    if(bt.dataset.adv){bt.disabled=true;sock.emit('advance',{},r=>{if(!r||!r.ok){toast(r&&r.msg||'轉職失敗');return render()}applyMe(r.me);P.hp=P.max.hp;P.mp=P.max.mp;fx.push({t:'lvup',x:P.x,y:P.y,life:90});toast(`轉職成功！成為「${c.jobs[P.job]}」，學會 ${Object.entries(sk).filter(([k,v])=>k!=='atk'&&tierOf(v)===P.job).map(([k,v])=>v.n).join('、')}。按「技能」可以調整技能配置`);render()})}})};render()}
+    <div class="row"><button class="btn" data-close="1">離開</button>${next?`<button class="btn pri" data-adv="1" ${can?'':'disabled'}>${can?`接受轉職試煉（${MON['trial'+next].name}）`:`需要 Lv ${req}`}</button>`:''}</div>`,bt=>{
+    if(bt.dataset.adv){bt.disabled=true;sock.emit('trial',{},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法開始試煉');return render()}closePop()})}})};render()}
 function tierOf(s){return s.job||0}
 function openSkills(sel){const sk=SK[P.cls];const render=()=>{const sl=P.slots||[];
   openPop(`<h2>技能配置</h2><p class="sub" style="margin:0">每一轉有 3 個技能，挑 6 個放進 X C V B N M。點技能右邊的按鍵，就能把它放進那一格（Z 固定是普攻）。</p>
@@ -822,6 +850,20 @@ async function openInfo(){const c=CL[P.cls],sk=SK[P.cls];let top=null;try{top=aw
   <div class="row"><span class="keys" style="margin:0">練等路線：蘑菇森林（1–15）→ 冰雪山谷（15–30）→ 熔岩深淵（30–45）→ 暗黑神殿（45–60）→ 天空聖域（65–80）→ 虛空裂隙（80，怪物 Lv 86～100，必須組隊）</span><button class="btn pri" data-close="1">關閉</button></div>`,bt=>{if(bt.dataset.sk)openSkills();if(bt.dataset.mntopen)openMounts()})}
 $('#potSlot').onclick=()=>usePot('pot');$('#ethSlot').onclick=()=>usePot('eth');
 $('#infoBtn').onclick=()=>{if(P&&$('#pop').hidden)openInfo()};
+let duelFrom=null,duelReqT=0;
+$('#drYes').onclick=()=>{if(duelFrom)sock.emit('duelAns',{from:duelFrom,ok:true},r=>{if(r&&!r.ok)toast(r.msg||'無法開始決鬥')});duelFrom=null;$('#duelReq').hidden=true};
+$('#drNo').onclick=()=>{if(duelFrom)sock.emit('duelAns',{from:duelFrom,ok:false});duelFrom=null;$('#duelReq').hidden=true};
+function openPvp(){sock.emit('pvpInfo',{},r=>{if(!r||!r.ok)return;const inArena=MI===7,inDuel=r.duel,rec=r.rec;
+  openPop(`<h2>PVP 對戰</h2><div class="stats"><span>競技場積分 <b>${rec.pts}</b></span><span>擊倒 <b>${rec.k}</b></span><span>被擊倒 <b>${rec.d}</b></span><span>決鬥 <b>${rec.w} 勝 ${rec.l} 敗</b></span></div>
+    <h3>競技場</h3><p class="sub" style="margin:0">所有人混戰：打倒玩家積分 +10（對手比你低 15 級以上只 +2），被打倒 -3。倒下 3 秒後在場內復活，不會掉經驗。目前場內 ${r.arena} 人。</p>
+    <div class="row" style="justify-content:flex-start">${inArena?'<button class="btn" data-arena="0">離開競技場</button>':`<button class="btn pri" data-arena="1" ${P.lv<10||inDuel?'disabled':''}>進入競技場${P.lv<10?'（Lv 10）':''}</button>`}</div>
+    <h3>決鬥</h3>${inDuel?'<div class="row" style="justify-content:flex-start"><button class="btn red" data-surr="1">投降</button></div>':inArena||MAPS[MI].trial?'<p class="sub">在一般地圖才能邀請決鬥。</p>':`<p class="sub" style="margin:0">邀請同一張地圖的玩家 1 對 1，對方接受後一起傳送到決鬥場，限時 3 分鐘。輸了不會掉任何東西。</p><div class="list">${r.list.length?r.list.map(o=>`<div class="item"><div><div class="nm">${esc(o.name)}</div><div class="ds">Lv ${o.lv} · ${esc(o.job)}</div></div><button class="btn sm pri" data-duel="${esc(o.uid)}" ${o.busy?'disabled':''}>${o.busy?'決鬥中':'邀請決鬥'}</button></div>`).join(''):'<div class="ds">這張地圖沒有其他玩家。</div>'}</div>`}
+    <h3>競技場排行榜</h3><div class="lead">${r.top.length?r.top.map((t,i)=>`<div><span>${i+1}. ${esc(t.name)}　<span class="ds">${esc(t.cls)} Lv ${t.lv}</span></span><span><b>${t.pts}</b> 分 · ${t.w} 勝</span></div>`).join(''):'<div class="ds">還沒有人上榜，快去競技場搶第一！</div>'}</div>
+    <div class="row"><button class="btn" data-close="1">關閉</button></div>`,bt=>{
+    if(bt.dataset.arena!==undefined)sock.emit('arena',{go:bt.dataset.arena==='1'},x=>{if(x&&!x.ok)toast(x.msg||'無法進入');else closePop()});
+    if(bt.dataset.duel){bt.disabled=true;sock.emit('duelInv',{to:bt.dataset.duel},x=>{toast(x&&x.ok?'已送出決鬥邀請，等對方回應…':(x&&x.msg)||'邀請失敗')})}
+    if(bt.dataset.surr){if(!bt.dataset.sure){bt.dataset.sure=1;bt.textContent='確定投降？';return}sock.emit('duelQuit');closePop()}})})}
+$('#pvpBtn').onclick=()=>{if(P&&$('#pop').hidden)openPvp()};
 $('#skBtn').onclick=()=>{if(P&&$('#pop').hidden)openSkills()};
 $('#apBtn').onclick=()=>{if(P&&$('#pop').hidden)openAP()};
 $('#petBtn').onclick=()=>{if(P&&$('#pop').hidden)openPet()};
@@ -859,9 +901,10 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
   sock.on('disconnect',()=>{$('#net').textContent='連線中斷，重新連線中…';ready=false});
   sock.on('connect',()=>{$('#net').innerHTML='<b>●</b> 已連線'});
   sock.on('hello',d=>{myName=d.name;myId=d.id;if(inWorld&&d.me){P=null;applyMe(d.me);enterWorld(false)}else{P=null;inWorld=false;const first=d.list.findIndex(c=>!c);if(!d.list.some(Boolean)){curSlot=0;$('#hiName').textContent=`${d.name}，你還沒有角色，選一個職業開始冒險吧！`;$('#ui').hidden=true;$('#chat').hidden=true;showPanel('clsPanel')}else showChars(d.list,d.act)}});
-  sock.on('init',d=>{MI=d.map;SEG=MAPS[MI].seg;ROPES=MAPS[MI].ropes;haz=[];others.clear();shots=[];fx=[];parts=[];hitQ=[];zoneName='';
-    mons=MAPS[MI].spawns.map((sp,i)=>mkLocalMon(sp,i,d.mons[i]));drops=d.drops.map(x=>({...x,ty:x.y,vy:null}));for(const a of d.players)upsertOther(a);
+  sock.on('init',d=>{const prevMI=MI;MI=d.map;pvpT.clear();if(!d.pvp){duel=null}SEG=MAPS[MI].seg;ROPES=MAPS[MI].ropes;haz=[];others.clear();shots=[];fx=[];parts=[];hitQ=[];zoneName='';
+    mons=d.mons.map((st,i)=>mkLocalMon(st.sp||MAPS[MI].spawns[i],i,st));drops=d.drops.map(x=>({...x,ty:x.y,vy:null}));for(const a of d.players)upsertOther(a);
     if(P){P.x=d.x;P.y=GY;P.vx=0;P.vy=0;P.ground=true;P.rope=null;P.inv=90;P.map=MI;cam.x=clamp(P.x-IW/2,0,WW-IW);cam.y=clamp(P.y-IH*.62,-60,WH-IH);fx.push({t:'poof',x:P.x,y:P.y-12,life:20,big:1})}
+    if(P){if(d.pvp){P.hp=d.php;P.dead=0}else if(prevMI!=null&&MAPS[prevMI]&&(MAPS[prevMI].pvp||MAPS[prevMI].trial)){P.hp=P.max.hp;P.mp=P.max.mp;P.dead=0}}
     ready=true;ui()});
   sock.on('st',d=>{for(const a of d.m){const m=mons[a[0]];if(!m)continue;m.tx=a[1];m.hop=a[2];m.f=a[3];m.hp=a[4];if(a[5]&&!m.dead){m.dead=1}else if(!a[5]&&m.dead){m.dead=0;m.x=m.tx}m.frozen=a[6];if(a[7])m.hurt=Math.max(m.hurt,9)}
     const seen=new Set();for(const a of d.p){if(a[0]===myId)continue;seen.add(a[0]);upsertOther(a)}for(const id of [...others.keys()])if(!seen.has(id))others.delete(id)});
@@ -880,6 +923,14 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
     else if(d.k==='s6'){if(P.dead){P.dead=0;P.hp=Math.round(P.max.hp*.5);P.inv=120;toast(`${d.name} 讓你復活了！`)}else{const h=Math.round(P.max.hp*.5*hb);P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}}
     fx.push({t:'ring',x:P.x,y:P.y-10,life:24,col:'#fff6c8'});ui()});
   sock.on('notice',d=>{toast(d.t);chatLog(`<span class="sys">${esc(d.t)}</span>`)});
+  sock.on('duelReq',d=>{duelFrom=d.from;$('#drTxt').textContent=`${d.name}（Lv ${d.lv} ${d.job}）邀請你決鬥！`;$('#duelReq').hidden=false;clearTimeout(duelReqT);duelReqT=setTimeout(()=>{$('#duelReq').hidden=true;duelFrom=null},18000)});
+  sock.on('duelStart',d=>{duel={opp:d.opp,name:d.oppName,go:Date.now()+3500,end:Date.now()+3500+180000}});
+  sock.on('duelGo',()=>{if(duel)duel.go=Math.min(duel.go,Date.now())});
+  sock.on('duelEnd',d=>{toast(d.msg);if(duel)duel.over=d.win?'勝利！':d.draw?'平手':'落敗';if(d.win&&P)fx.push({t:'lvup',x:P.x,y:P.y,life:90})});
+  sock.on('php',d=>{if(!P)return;P.hp=d.hp;if(d.hp<=0&&!P.dead){P.dead=110;P.rope=null}ui()});
+  sock.on('pdie',d=>{if(!P)return;P.hp=0;if(!P.dead)P.dead=110;P.rope=null;toast(`被 ${d.by} 打倒了！`);ui()});
+  sock.on('phurt',d=>{const t=d.u===myId?P:others.get(d.u);if(!t)return;num(t.x,t.y-34-(d.s||0)*11,d.dmg,d.u===myId?'hurt':d.by===myId?(d.crit?'crit':'dmg'):(d.crit?'ocrit':'odmg'));if(d.u===myId&&P&&!P.rope){P.vy=-1.6;P.vx=(P.x<(others.get(d.by)||P).x?-1:1)*1.2;P.ground=false}});
+  sock.on('trialDone',d=>{if(P){fx.push({t:'lvup',x:P.x,y:P.y,life:120});P.hp=P.max.hp}toast(`🎉 試煉通過！轉職成為「${d.name}」，獲得 ${d.gold.toLocaleString()} 金幣。按「技能」設定新技能，稍後自動回到晨露村`)});
   sock.on('heal',d=>{if(!P||P.dead)return;P.hp=Math.min(P.max.hp,P.hp+d.hp);if(Math.random()<.35)num(P.x+8,P.y-30,'+'+d.hp,'heal');ui()});
   sock.on('gain',d=>{if(!P)return;num(P.x,P.y-42,`經驗 +${d.exp}`,'exp');if(d.up){fx.push({t:'lvup',x:P.x,y:P.y,life:90});
     if(d.lv>=MAXLV)toast(`恭喜達到滿等 Lv ${MAXLV}！`);else if(d.lv>=D.PETLV&&d.lv-d.up<D.PETLV)toast(`Lv ${D.PETLV}！寵物系統解鎖，點「寵物」挑一隻夥伴`);else if(d.newJob)toast(`Lv ${d.lv}！可以轉職了，回晨露村找轉職教官`);else if(d.lv===3)toast(`學會了新技能「${SK[P.cls].s2.n}」！按 C 使用`);else toast(`升級！Lv ${d.lv}　獲得 ${D.APL*d.up} 能力點數（按「能力」分配）`)}});
