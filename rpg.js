@@ -248,7 +248,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ns.to(w.room).volatile.emit('st', { m, p });   // 網路塞住時丟掉舊的狀態，不要排隊造成延遲
     }
   }, 100);
-  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now()), c.lookW ?? c.wep ?? 0, c.lookA ?? c.arm ?? 0]; }
+  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now()), c.lookW ?? c.wep ?? 0, c.lookA ?? c.arm ?? 0, c.elem || '']; }
 
   // ---------------- 擊殺與經驗 ----------------
   function kill(w, m, killer) {
@@ -454,7 +454,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     ctl.set(uid, { pl, goRet, wmi: () => w ? w.mi : -1, inTrial: () => !!(w && trials.get(uid) === w), enter: (mi, x) => { saveRet(); enter(mi, x); } });
     function pvpHp(v) { pl.php = clamp(Math.round(v), 0, pl.pmax); pl.hpPct = Math.round(pl.php / pl.pmax * 100); socket.emit('php', { hp: pl.php, max: pl.pmax }); }
 
-    socket.emit('hello', { me: me(uid), name: S.users[uid]?.name || '玩家', id: uid, list: slotList(uid), act: alt(uid).act });
+    socket.emit('hello', { gm: isGM(uid) ? 1 : 0, me: me(uid), name: S.users[uid]?.name || '玩家', id: uid, list: slotList(uid), act: alt(uid).act });
     function leaveWorld() { if (pl.duel) { const du = duels.get(pl.duel); if (du) duelEnd(pl.duel, du.a === uid ? du.b : du.a, '對手離開'); } if (w) { w.players.delete(uid); ns.to(w.room).emit('pleave', { id: uid }); socket.leave(w.room); if (trials.get(uid) === w) trials.delete(uid); w = null; } ret = null; }
     // 切換到第 i 格（使用中的角色收回自己的格子）
     function swapTo(i) { const a = alt(uid); if (i === a.act) return; a.slots[a.act] = S.rpg[uid] || null; S.rpg[uid] = a.slots[i]; a.slots[i] = null; a.act = i; if (!S.rpg[uid]) delete S.rpg[uid]; }
@@ -466,6 +466,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     });
     socket.on('create', ({ cls, slot, nm } = {}, ack) => {
       if (!D.CL[cls]) return ack && ack({ ok: false });
+      if (D.HIDDEN[cls] && !isGM(uid)) return ack && ack({ ok: false, msg: '這個職業還沒開放' });
       nm = String(nm || '').trim(); if (nm) { const er = nameErr(uid, nm, null); if (er) return ack && ack({ ok: false, msg: er }); }
       const a = alt(uid); slot = slot == null ? a.act : slot | 0; if (slot < 0 || slot >= MAXSLOT) return ack && ack({ ok: false });
       if ((slot === a.act ? S.rpg[uid] : a.slots[slot])) return ack && ack({ ok: false, msg: '這一格已經有角色了' });
@@ -499,6 +500,13 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (pl.bf && pl.bf.fight && pl.bf.fight.u.has(uid)) pl.x = clamp(pl.x, pl.bf.fight.x1, pl.bf.fight.x2); else pl.bf = null;
       pl.clone = p.clone ? 1 : 0; if (p.gy != null) pl.gy = clamp(+p.gy || 0, -100, D.WH + 60); pl.mount = p.mount && (char(uid)?.lv || 0) >= D.MOUNTLV && awkEl(pl, Date.now()) < 0 ? (char(uid).mnt || 'horse') : 0;
     });
+    socket.on('elem', ({ e } = {}, ack) => {   // 巨龍使者：一轉時免費選屬性，之後找轉職教官花金幣更換
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || c.cls !== 'dragon') return no('');
+      if (!D.ELEM[e]) return no('沒有這個屬性'); if (c.job < 1) return no('一轉後才能選擇龍的屬性'); if (c.elem === e) return no('已經是這個屬性了');
+      if (c.elem) { if (!w || w.mi !== 0) return no('要在晨露村找轉職教官更換'); if (c.gold < D.ELEMSWAP) return no(`更換屬性需要 ${D.ELEMSWAP.toLocaleString()} 金幣`); c.gold -= D.ELEMSWAP; }
+      c.elem = e; D.fix(c); save(); pushMe(uid); ack && ack({ ok: true, me: me(uid) });
+      if (w) ns.to(w.room).emit('sys', { t: `🐉 ${nameOf(uid)} 的龍覺醒了「${D.ELEM[e].n}」之力！`, quiet: 1 });
+    });
     socket.on('equip', ({ k, i } = {}, ack) => {   // 換上已擁有的武器／防具（商店最好的那件，或傳說／神話）
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c) return no(''); D.gearOk(c); i = i | 0;
       if (k === 'w') { const it = D.WEAPONS[c.cls][i]; if (!it || !(i === c.shopW || c.own.w.includes(i))) return no('還沒有這把武器'); if (c.lv < it[2]) return no(`需要 Lv ${it[2]}`); c.wep = i; }
@@ -528,7 +536,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('hit', (list) => {
       const c = char(uid); if (!w || !c || !Array.isArray(list) || pl.dead || pl.mount) return;
       const now = Date.now(); if (now - rate.t > 1000) { rate = { t: now, n: 0 }; }
-      const st = D.stats(c), out = [], efs = D.efOf(c.cls), aw = awkOf(pl, now), G = D.GUARD[c.cls]; let dealt = 0;
+      const st = D.stats(c), out = [], efs = D.efOf(c.cls, c), aw = awkOf(pl, now), G = D.GUARD[c.cls]; let dealt = 0;
       const skScale = h => (h.fin ? G.fdm || 1 : h.ga && aw ? G.gdm || 1 : typeof h.k === 'string' && D.SK[c.cls][h.k] && !D.skillLock(c, h.k) ? (D.SK[c.cls][h.k].dm || 1) * (h.g9 && aw && c.lv >= D.AWSKLV && D.AWSK[c.cls] && D.AWSK[c.cls][h.k] ? D.AWSK_MULT : 1) : 1);
       for (const h of list.slice(0, 20)) {
         if (++rate.n > 60) break;
@@ -639,6 +647,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     });
     socket.on('pet', ({ p } = {}, ack) => {
       const c = char(uid); if (!c || !D.PETS[p]) return ack && ack({ ok: false });
+      if (c.cls === 'dragon') return ack && ack({ ok: false, msg: '巨龍使者的龍就是夥伴，不能另外擁有寵物' });
       if (c.lv < D.PETLV) return ack && ack({ ok: false, msg: `Lv ${D.PETLV} 才能擁有寵物` });
       if (c.pet === p) return ack && ack({ ok: false, msg: '已經是這隻寵物了' });
       if (c.pet) { if (c.gold < D.PETSWAP) return ack && ack({ ok: false, msg: `更換寵物需要 ${D.PETSWAP} 金幣` }); c.gold -= D.PETSWAP; }
@@ -693,7 +702,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         pl.finUsed = 1; pl.finUntil = now + D.AWK.finWin; ack && ack({ ok: true, fin: 1 });
         socket.to(w.room).emit('awkFin', { u: uid, x: Math.round(pl.x), f: pl.f }); return;
       }
-      if (pl.dead) return no(''); if (pl.mount) return no('騎乘中不能覺醒，按 F 下坐騎');
+      if (pl.dead) return no(''); if (pl.mount && c.cls !== 'dragon') return no('騎乘中不能覺醒，按 F 下坐騎'); pl.mount = 0;
       if (D.MAPS[w.mi].trial) return no('試煉中不能覺醒');
       if (now < (pl.awCd || 0)) return no(`守護靈冷卻中（還要 ${Math.ceil((pl.awCd - now) / 1000)} 秒）`);
       if ((c.ag || 0) < D.AWK.max) return no(`覺醒值還不夠（${Math.floor(c.ag || 0)}/${D.AWK.max}），繼續打怪或承受傷害就會累積`);
@@ -707,7 +716,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (c.lv < D.AWK.lv || c.job < 4) return no(`要 Lv ${D.AWK.lv} 並完成四轉`);
       if (!D.GUARD[c.cls].ready) return no(`${D.GUARD[c.cls].n} 還在準備中，下次更新開放`);
       if (!w || w.mi !== 0) return no('要在晨露村找轉職教官');
-      const opts = Object.keys(D.CL).filter(k => k !== c.cls), rc = opts[ri(0, opts.length - 1)];
+      const opts = Object.keys(D.CL).filter(k => k !== c.cls && !D.HIDDEN[k]), rc = opts[ri(0, opts.length - 1)];
       const tw = mkWorld(8, [{ t: 'rival_' + rc, s: 0, a: 1000, b: 1600 }], 'trial:' + uid); trials.set(uid, tw);
       ret = { mi: 0, x: 120 }; ack && ack({ ok: true, rival: D.MON['rival_' + rc].name }); enter(8, 300, tw);
       socket.emit('notice', { t: `覺醒試煉開始！打倒「${D.MON['rival_' + rc].name}」就能喚醒守護靈「${D.GUARD[c.cls].n}」` });
@@ -824,7 +833,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('phit', (list) => {
       const c = char(uid); if (!w || !c || !Array.isArray(list) || !isPvp(w) || !(pl.php > 0) || pl.mount) return;
       const now = Date.now(); if (now - rate.t > 1000) { rate = { t: now, n: 0 }; }
-      const du = pl.duel && duels.get(pl.duel), arena = D.MAPS[w.mi].pvp === 'arena', efs = D.efOf(c.cls);
+      const du = pl.duel && duels.get(pl.duel), arena = D.MAPS[w.mi].pvp === 'arena', efs = D.efOf(c.cls, c);
       if (!arena && !(du && now >= du.start)) return;
       for (const h of list.slice(0, 20)) {
         if (++rate.n > 40) break;

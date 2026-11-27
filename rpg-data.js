@@ -20,6 +20,8 @@
       jobs: ['惡魔', '夢魘', '魔將', '魔王', '深淵君主'], jobDesc: ['', '惡魔化之後攻擊與速度都大幅提升。', '釋放詛咒之霧，持續侵蝕敵人。', '打開深淵之門，魔手抓住敵人重重砸下。', '收割靈魂，直接處決殘血的敵人。'] },
     angel: { name: '天使', col: '#f0e6c0', col2: '#c8a04a', desc: '輔助型職業，能治療、祝福、保護隊友。', base: { hp: 75, mp: 70, atk: 11, def: 4, crit: 8 }, grow: { hp: 15, mp: 9, atk: 2.4, def: 1.0 },
       jobs: ['天使', '守護天使', '熾天使', '大天使', '天使長'], jobDesc: ['', '祝福隊友，一起提升攻擊力。', '展開天使之翼，讓附近隊友受到的傷害減半。', '召喚審判之劍，從天上刺向敵人。', '神聖復活：讓倒地的隊友重新站起來。'] },
+    dragon: { name: '巨龍使者', col: '#e0703a', col2: '#7a2a1a', desc: '本人不攻擊，由身後的巨龍出手。龍會隨轉職成長，一轉選擇火、雷、冰、暗屬性。', base: { hp: 66, mp: 80, atk: 14, def: 3, crit: 6 }, grow: { hp: 12, mp: 10, atk: 2.7, def: .8 },
+      jobs: ['巨龍使者', '巨龍使者', '巨龍使者', '巨龍使者', '巨龍使者'], jobDesc: ['', '龍長出翅膀，選擇屬性（火、雷、冰、暗），學會屬性吐息。', '成年龍展開雙翼，學會飛龍俯衝。', '古龍長出雙角與背刺，學會龍王之怒。', '龍王戴上龍冠，學會天崩龍隕，還能騎上自己的龍。'] },
   };
   const SK = {
     warrior: { atk: { n: '揮砍', cd: 26, d: '打前方 3 隻' }, s1: { n: '猛擊', mp: 6, cd: 45, d: '大範圍重擊並擊退' }, s2: { n: '衝鋒斬', mp: 12, cd: 90, lv: 3, d: '往前衝刺一路砍過去' }, s3: { n: '破甲斬', mp: 16, cd: 60, job: 1, d: '重斬前方敵人，8 秒內它們受到的傷害 +20%' }, s4: { n: '聖光審判', mp: 34, cd: 150, job: 2, d: '周圍降下光柱，連續三次重擊' }, s5: { n: '龍魂斬', mp: 50, cd: 120, job: 3, d: '龍息噴向前方，連燒四次' }, s6: { n: '萬劍歸宗', mp: 80, cd: 240, job: 4, d: '五把巨劍接連往前飛出，貫穿所有敵人' } },
@@ -30,6 +32,24 @@
     mech: { atk: { n: '雷射槍', cd: 28, d: '瞬間命中直線上第一隻敵人' }, s1: { n: '散彈砲', mp: 6, cd: 45, d: '近距離扇形散射，最多打 5 隻' }, s2: { n: '追蹤飛彈', mp: 14, cd: 90, lv: 3, d: '3 枚飛彈自動追蹤最近的敵人' }, s3: { n: '自動砲台', mp: 24, cd: 420, job: 1, d: '架設砲台 12 秒，自動射擊附近敵人' }, s4: { n: '地雷陣', mp: 32, cd: 130, job: 2, d: '在前方埋下 4 顆地雷，稍後連環引爆' }, s5: { n: '能量護盾', mp: 40, cd: 600, job: 3, d: '10 秒內受到的傷害減少 40%' }, s6: { n: '軌道衛星砲', mp: 84, cd: 240, job: 4, d: '衛星雷射對目標位置連續轟擊 6 次' } },
     demon: { atk: { n: '魔爪', cd: 24, d: '撕裂前方 2 隻，命中時回復少量 HP' }, s1: { n: '暗影吞噬', mp: 7, cd: 50, d: '吞噬前方最多 4 隻，每命中一隻回復 4% HP' }, s2: { n: '地獄鎖鏈', mp: 12, cd: 80, lv: 3, d: '把附近的敵人拉到面前並造成傷害' }, s3: { n: '惡魔化', mp: 20, cd: 600, job: 1, d: '消耗 10% HP，15 秒內攻擊 +30%、移動速度 +15%' }, s4: { n: '詛咒之霧', mp: 32, cd: 130, job: 2, d: '前方毒霧持續 4 秒，不斷侵蝕敵人' }, s5: { n: '深淵之門', mp: 48, cd: 120, job: 3, d: '深淵之手抓住前方敵人，1 秒後重重砸下' }, s6: { n: '靈魂收割', mp: 80, cd: 240, job: 4, d: '收割周圍敵人並回血，直接處決 HP 低於 15% 的一般怪' } },
     angel: { atk: { n: '光之羽', cd: 26, d: '扇形射出 3 片光羽' }, s1: { n: '治癒之光', mp: 10, cd: 90, d: '治療自己和附近隊友 20% HP' }, s2: { n: '聖十字', mp: 14, cd: 80, lv: 3, d: '在最近的敵人身上炸開十字聖光，上下左右都打得到' }, s3: { n: '祝福', mp: 24, cd: 600, job: 1, d: '自己和附近隊友 20 秒內攻擊 +20%' }, s4: { n: '天使之翼', mp: 36, cd: 480, job: 2, d: '自己和附近隊友 6 秒內受到的傷害減半' }, s5: { n: '審判之劍', mp: 50, cd: 120, job: 3, d: '聖劍從天而降，刺向最多 6 隻敵人' }, s6: { n: '神聖復活', mp: 90, cd: 420, job: 4, d: '復活附近倒地的隊友、治療全隊並重創周圍敵人' } },
+  };
+  SK.dragon = {
+    atk: { n: '龍息彈', cd: 28, d: '龍吐出屬性火球；二轉後連吐兩發、四轉後一次三發', g: { type: 'proj', mult: 1.0, pierce: 0, col: '#ff8a3a', spd: 5 } },
+    s1: { n: '龍爪撕裂', mp: 6, cd: 45, d: '龍往前撲，爪子橫掃前方最多 5 隻並擊退', g: { type: 'melee', w: 56, h: 36, mult: 2.0, max: 5, kb: 2.5, col: '#ffcf7a' } },
+    s2: { n: '龍吼', mp: 12, cd: 90, lv: 3, d: '龍大吼一聲，震退周圍的敵人', g: { type: 'around', r: 85, hits: 1, mult: 2.0, kb: 3, col: '#ffd27a' } },
+    a0: { n: '龍尾橫掃', mp: 6, cd: 40, lv: 8, d: '龍尾在身邊橫掃兩圈', g: { type: 'around', r: 58, hits: 2, mult: 1.0, kb: 2.5, col: '#e0703a' } },
+    s3: { n: '屬性吐息', mp: 20, cd: 90, job: 1, d: '龍朝前方持續噴出屬性吐息，連打 4 次', g: { type: 'line', len: 135, hits: 4, mult: .75, col: '#ff6a2a' } },
+    b1: { n: '龍威', mp: 16, cd: 600, job: 1, d: '龍的威壓：20 秒內攻擊 +25%', g: { type: 'buff', buff: 'pow' } },
+    c1: { n: '龍炎彈', mp: 14, cd: 60, job: 1, d: '吐出巨大的龍炎彈，可貫穿 2 隻', g: { type: 'proj', mult: 3.0, pierce: 2, col: '#ff8a3a', spd: 5, big: 1 } },
+    s4: { n: '飛龍俯衝', mp: 32, cd: 130, job: 2, d: '龍飛上天再俯衝掃過前方一大片，連打 2 次', g: { type: 'line', len: 220, hits: 2, mult: 2.1, col: '#ffb04a' } },
+    b2: { n: '龍鱗護體', mp: 18, cd: 600, job: 2, d: '龍鱗包覆全身：15 秒內受到傷害 -30%', g: { type: 'buff', buff: 'guard' } },
+    c2: { n: '龍息爆彈', mp: 22, cd: 90, job: 2, d: '在最近的敵人身上引爆屬性龍息，連爆 2 次', g: { type: 'target', r: 180, rad: 46, hits: 2, mult: 2.1, col: '#ff7a2a' } },
+    s5: { n: '龍王之怒', mp: 46, cd: 120, job: 3, d: '龍王的怒火轟向最近的敵人，大範圍連爆 2 次', g: { type: 'target', r: 220, rad: 72, hits: 2, mult: 2.8, col: '#ff5a2a' } },
+    b3: { n: '龍之治癒', mp: 24, cd: 600, job: 3, d: '龍的生命力分給你：回復 30% HP', g: { type: 'heal', pct: .3 } },
+    c3: { n: '龍旋風', mp: 30, cd: 100, job: 3, d: '龍拍翅捲起屬性旋風，周圍連打 4 次', g: { type: 'around', r: 95, hits: 4, mult: 1.4, kb: .5, col: '#ffb04a' } },
+    s6: { n: '天崩龍隕', mp: 84, cd: 240, job: 4, d: '龍王衝上高空再砸下來，大範圍重擊 3 次', g: { type: 'target', r: 240, rad: 110, hits: 3, mult: 2.5, col: '#ffd23f' } },
+    b4: { n: '龍魂共鳴', mp: 30, cd: 600, job: 4, d: '與龍心意相通：20 秒內移動速度 +25%、技能冷卻縮短', g: { type: 'buff', buff: 'haste' } },
+    c4: { n: '千龍亂舞', mp: 40, cd: 120, job: 4, d: '召喚龍影同時撲向最近的 10 隻敵人', g: { type: 'multi', r: 260, n: 10, mult: 3.0, col: '#ffd23f' } },
   };
   // 每一轉 3 個技能：原本的 s1～s6 加上 a0、b1～b4、c1～c4（用通用技能引擎執行）
   Object.assign(SK.warrior, { a0: { n: '盾擊', mp: 5, cd: 40, lv: 8, d: '用盾牌重撞前方 2 隻並大幅擊退', g: {'type': 'melee', 'w': 30, 'h': 26, 'mult': 1.6, 'max': 2, 'kb': 4, 'col': '#c9ced9'} }, b1: { n: '怒吼', mp: 15, cd: 600, job: 1, d: '20 秒內攻擊 +25%', g: {'type': 'buff', 'buff': 'pow'} }, c1: { n: '迴旋斬', mp: 14, cd: 70, job: 1, d: '原地旋轉，連砍周圍敵人 3 次', g: {'type': 'around', 'r': 55, 'hits': 3, 'mult': 0.95, 'col': '#ffd27a'} }, b2: { n: '鋼鐵意志', mp: 24, cd: 600, job: 2, d: '15 秒內受到傷害 -30%', g: {'type': 'buff', 'buff': 'guard'} }, c2: { n: '崩山擊', mp: 28, cd: 100, job: 2, d: '跳到最近的敵人身上重砸地面', g: {'type': 'target', 'r': 170, 'rad': 55, 'hits': 1, 'mult': 2.6, 'col': '#ffb34d', 'leap': 1} }, b3: { n: '突進連斬', mp: 34, cd: 90, job: 3, d: '往前突進，沿路連砍兩次', g: {'type': 'dash', 'dist': 110, 'hits': 2, 'mult': 1.9, 'col': '#ffb34d'} }, c3: { n: '斬鐵閃', mp: 38, cd: 100, job: 3, d: '一閃斬出直線刀光，連斬兩次', g: {'type': 'line', 'len': 180, 'hits': 2, 'mult': 2.2, 'col': '#ffffff'} }, b4: { n: '戰神之怒', mp: 70, cd: 200, job: 4, d: '怒氣爆發，周圍敵人被重擊 4 次', g: {'type': 'around', 'r': 150, 'hits': 4, 'mult': 1.45, 'col': '#ff6a3d'} }, c4: { n: '不滅意志', mp: 60, cd: 600, job: 4, d: '立刻回復 35% HP', g: {'type': 'heal', 'pct': 0.35} } });
@@ -63,6 +83,12 @@
     demon: { s2: 'rt', s4: 'ps', b3: 'bn', c4: 'bn' },
     angel: { c1: 'rt', c3: 'st' },
   };
+  // 巨龍使者：效果依屬性決定
+  const ELEM = { fire: { n: '火龍', ef: 'bn', col: '#ff6a2a', pet: 'qinglong', soul: '攻擊 +15%' }, thunder: { n: '雷龍', ef: 'pz', col: '#7fa8ff', pet: 'baihu', soul: '技能冷卻 -20%、移動速度 +20%' },
+    ice: { n: '冰龍', ef: 'fz', col: '#bfefff', pet: 'xuanwu', soul: '防禦 +40%、HP +10%' }, dark: { n: '暗龍', ef: 'ps', col: '#c46aff', pet: 'zhuque', soul: '攻擊吸血 5%' } };
+  const ELEMSK = ['s3', 'c2', 's5', 'c3'], ELEMSWAP = 100000;
+  Object.assign(SK.dragon.c4, { dm: 2.5 }); SK.dragon.c3.dm = .8; SK.dragon.s6.dm = .85; SK.dragon.s5.dm = .9;
+  for (const k of ELEMSK) { SK.dragon[k].ef = 'E'; SK.dragon[k].d += '（附加屬性效果：火燒傷、雷麻痺、冰凍結、暗中毒）'; }
   const efText = k => { const e = EF[k]; return e.dot ? `${e.n} ${e.t / 1000} 秒` : `${e.n} ${e.t / 1000} 秒`; };
   for (const [cls, m] of Object.entries(EFSK)) for (const [k, e] of Object.entries(m)) {
     const s = SK[cls][k]; s.ef = e; s.d = s.d.replace(/，?凍結敵人 0\.75 秒（Boss 免疫）|，命中的敵人 2\.5 秒無法移動（Boss 免疫）/, '') + `（${efText(e)}）`;
@@ -74,7 +100,9 @@
   const REBAL = {"dm":{"warrior":{"s1":0.909,"s2":0.87,"s3":1.5,"s4":0.636,"s5":0.824,"s6":1.0,"c1":1.053,"c2":1.615,"b3":1.474,"c3":1.273,"b4":1.293,"a0":1.25},"mage":{"s1":1.25,"s2":1.29,"s3":0.938,"s4":0.48,"s5":0.982,"s6":0.987,"a0":1.481,"c1":1.053,"c2":1.2,"b3":1.474,"b4":1.389,"c4":3.75},"rogue":{"s1":0.784,"s2":0.435,"s4":0.933,"s5":3.5,"s6":1.19,"c1":2.069,"c2":1.12,"b3":1.75,"c3":1.867,"b4":3.409,"a0":1.333},"archer":{"s1":1.053,"s2":0.667,"s3":1.0,"s4":2.625,"s5":2.333,"s6":1,"a0":1.538,"c1":1.053,"c2":2.1,"b3":2.947,"c3":3.294,"b4":2.778},"brawler":{"s1":1.333,"s2":0.909,"s3":1.071,"s4":0.7,"s5":2.8,"s6":1.389,"a0":1.25,"c1":1.053,"c2":2.211,"b3":2.333,"c3":1.474,"b4":1.389},"mech":{"s1":1.429,"s2":1.053,"s4":0.913,"s6":0.694,"a0":0.889,"c1":1.935,"c2":1.4,"b3":3.5,"c3":1.623,"c4":1.316},"demon":{"s1":1.25,"s2":1.538,"s4":0.75,"s5":1.273,"s6":2.679,"a0":1.25,"c1":1.765,"c2":2.897,"b3":1.623,"c3":1.867,"b4":1.705,"c4":1.389},"angel":{"s2":1.0,"s5":2.545,"a0":1.29,"c1":2.069,"c2":1.474,"c3":1.6,"c4":1.351}},"cd":{"warrior":{"s1":60,"s2":60,"s3":90,"s4":132,"s5":180,"s6":270,"a0":60,"b1":1200,"c1":90,"b2":1500,"c2":132,"b3":180,"c3":180,"b4":270,"c4":2100},"mage":{"s1":60,"s2":60,"s3":90,"s4":132,"s5":180,"s6":270,"a0":60,"b1":1200,"c1":90,"b2":132,"c2":132,"b3":180,"c3":1800,"b4":270,"c4":270},"rogue":{"s1":60,"s2":60,"s3":1200,"s4":132,"s5":180,"s6":270,"a0":60,"b1":1200,"c1":90,"b2":1500,"c2":132,"b3":180,"c3":180,"b4":270,"c4":2100},"archer":{"s1":60,"s2":60,"s3":90,"s4":132,"s5":180,"s6":270,"a0":60,"b1":1200,"c1":90,"b2":1500,"c2":132,"b3":180,"c3":180,"b4":270,"c4":2100},"brawler":{"s1":60,"s2":60,"s3":90,"s4":132,"s5":180,"s6":270,"a0":60,"b1":1200,"c1":90,"b2":1500,"c2":132,"b3":180,"c3":180,"b4":270,"c4":2100},"mech":{"s1":60,"s2":60,"s3":1200,"s4":132,"s5":1800,"s6":270,"a0":60,"b1":1200,"c1":90,"b2":1500,"c2":132,"b3":180,"c3":180,"b4":2100,"c4":270},"demon":{"s1":60,"s2":60,"s3":1200,"s4":132,"s5":180,"s6":270,"a0":60,"b1":1200,"c1":90,"b2":1500,"c2":132,"b3":180,"c3":180,"b4":270,"c4":270},"angel":{"s1":900,"s2":60,"s3":1200,"s4":1500,"s5":180,"s6":2100,"a0":60,"b1":1200,"c1":90,"b2":1500,"c2":132,"b3":1800,"c3":180,"b4":2100,"c4":270}}};
   SK.mech.c3.g.dyn = 1; SK.mech.c3.d = '丟出一捆炸藥包，在敵人身邊彈兩下後連環爆炸 3 次';
   for (const c in REBAL.cd) for (const k in REBAL.cd[c]) { SK[c][k].cd = REBAL.cd[c][k]; if (REBAL.dm[c] && REBAL.dm[c][k]) SK[c][k].dm = REBAL.dm[c][k]; }
-  const efOf = cls => new Set(Object.values(EFSK[cls] || {}));
+  const efOf = (cls, c) => { const s = new Set(Object.values(EFSK[cls] || {})); if (cls === 'dragon' && c && ELEM[c.elem]) s.add(ELEM[c.elem].ef); return s; };
+  // 還沒開放給一般玩家的職業（只有 GM 能建立）
+  const HIDDEN = { dragon: 1 };
   // 技能欄位：X C V B N M 六格可以自由配置
   const SLOTN = 6, DEFSLOTS = ['s1', 's2', 's3', 's4', 's5', 's6'];
   const JOBLV = [0, 15, 30, 45, 60], JOBATK = [1, 1.15, 1.32, 1.5, 1.7], JOBHP = [1, 1.1, 1.22, 1.36, 1.5];
@@ -90,13 +118,15 @@
     angel: [['羽杖', 0, 1, 0], ['祈禱權杖', 8, 8, 300], ['光之權杖', 20, 16, 1600], ['熾天權杖', 36, 24, 5200], ['天使聖杖', 58, 32, 13000], ['星輝聖杖', 82, 40, 30000], ['晨星權杖', 112, 50, 62000], ['天堂之鑰', 150, 60, 115000]],
   };
   // 傳說專屬武器：商店不賣，只會從「虛空裂隙」的怪物身上隨機掉落（第 5 個欄位 1 = 傳說）
-  const LEGEND = { warrior: '軒轅劍', mage: '太初法典', rogue: '月影雙刃・朧', archer: '后羿射日弓', brawler: '盤古神拳', mech: '創世機神砲', demon: '路西法之鐮', angel: '米迦勒之劍' };
+  WEAPONS.dragon = [['幼龍之珠', 0, 1, 0], ['青銅龍珠', 8, 8, 300], ['赤炎龍珠', 20, 16, 1600], ['蒼雷龍珠', 36, 24, 5200], ['寒冰龍珠', 58, 32, 13000], ['暗影龍珠', 82, 40, 30000], ['龍王寶珠', 112, 50, 62000], ['龍神之心', 150, 60, 115000]];
+  const LEGEND = { dragon: '燭龍之眼', warrior: '軒轅劍', mage: '太初法典', rogue: '月影雙刃・朧', archer: '后羿射日弓', brawler: '盤古神拳', mech: '創世機神砲', demon: '路西法之鐮', angel: '米迦勒之劍' };
   for (const k in WEAPONS) WEAPONS[k].push([LEGEND[k], 230, 80, 0, 1, { crit: 3 }, { c1: '#ff4fd8', c2: '#ffe680', fx: 'star' }]);
   const LEGI = 8, LEGGOLD = 50000;
   // ===== 100 等裝備擴充 =====
   // 武器格式：[名稱, 攻擊, 需求等級, 價格, 等級（0 商店／1 傳說／2 神話）, 額外能力, 外觀]
   // 索引：0～7 商店、8 舊傳說、9～10 商店（Lv90／100）、11～15 傳說、16～18 神話
   const WNEW = {
+    dragon: [['真龍寶珠', '太古龍晶'], ['應龍之珠', '蛟龍逆鱗', '螭吻寶珠', '睚眥血珠', '狻猊炎珠'], ['祖龍神珠', '燭龍神目', '鴻蒙龍元']],
     warrior: [['破軍戰刃', '霸王神劍'], ['赤霄神劍', '湛盧', '干將', '莫邪', '屠神之刃'], ['誅仙劍', '戮仙劍', '絕仙劍']],
     mage: [['大魔導杖', '永恆星杖'], ['神農百草杖', '伏羲八卦杖', '女媧補天石', '崑崙仙杖', '玄冥寒杖'], ['鴻蒙紫氣杖', '混沌源杖', '太極陰陽杖']],
     rogue: [['月蝕雙刃', '無影刺'], ['魚腸劍', '純鈞', '勝邪', '巨闕', '影武者之刃'], ['刑天之刃', '九幽冥刃', '天罰影刺']],
@@ -182,6 +212,7 @@
     rival_brawler: { name: '試煉之影・武神', cls: 'brawler', lv: 80, sk: ['quake', 'charge', 'icering', 'bounce'], skn: { quake: '震地拳（跳過震波）', charge: '鐵頭衝撞（躲開箭頭方向）', icering: '獅子吼（離開牠身邊）', bounce: '飛身重拳（離開紅圈）' } },
     rival_mech: { name: '試煉之影・機神', cls: 'mech', lv: 80, sk: ['homing', 'rain', 'firefloor', 'laser'], skn: { homing: '追蹤飛彈（一直移動）', rain: '轟炸（避開紅點）', firefloor: '火焰噴射（跑到另一邊）', laser: '雷射掃射（站在地上別跳）' } },
     rival_demon: { name: '試煉之影・深淵君主', cls: 'demon', lv: 80, sk: ['pull', 'firefloor', 'tail', 'rain'], skn: { pull: '地獄鎖鏈（往外跑）', firefloor: '煉獄火海（跑到另一邊）', tail: '魔翼橫掃（別站在牠背後）', rain: '魔火雨（避開紅點）' } },
+    rival_dragon: { name: '試煉之影・巨龍使者', cls: 'dragon', lv: 80, sk: ['breath', 'rain', 'charge', 'firefloor'], skn: { breath: '龍焰吐息（離開正前方）', rain: '龍炎雨（避開紅點）', charge: '飛龍突進（躲開箭頭方向）', firefloor: '烈焰大地（跳起來或離開）' } },
     rival_angel: { name: '試煉之影・天使長', cls: 'angel', lv: 80, sk: ['laser', 'pillars', 'safe', 'homing'], skn: { laser: '天罰橫掃（站在地上別跳）', pillars: '審判之劍（站在空隙）', safe: '神之審判（站進綠色安全區）', homing: '追蹤聖光（一直移動）' } },
     // 轉職試煉官：每個玩家獨立挑戰；招式預警比一般 Boss 長、傷害較低，一轉 1 招～四轉 4 招
     trial1: { name: '見習試煉官', lv: 15, hp: 6500, atk: 29, exp: 0, gold: [300, 300], w: 40, h: 40, spd: .4, boss: true, trial: 1, sk: ['slam'], skn: { slam: '試煉重壓（跳起來躲）' } },
@@ -258,7 +289,7 @@
   // 能力值：每升 1 級得 3 點，可分配到 力量／體質／智慧／敏捷
   const APL = 3, APRESET = 20000;
   // 能力值 2.0：每個職業有主屬性（決定攻擊力）；每一項都有攻擊與生存效果；點越多效率越低
-  const MAIN = { warrior: ['str'], brawler: ['str'], mage: ['int'], angel: ['int'], rogue: ['dex'], archer: ['dex'], mech: ['str', 'int'], demon: ['str', 'vit'] };
+  const MAIN = { dragon: ['int'], warrior: ['str'], brawler: ['str'], mage: ['int'], angel: ['int'], rogue: ['dex'], archer: ['dex'], mech: ['str', 'int'], demon: ['str', 'vit'] };
   const STATS = {
     str: { n: '力量', d: '攻擊力 +0.3、擊退距離 +0.2%' },
     vit: { n: '體質', d: 'HP +8、防禦 +0.4、受傷後無敵時間 +0.3%' },
@@ -272,7 +303,7 @@
   function mainAtk(cls, s) { const m = MAIN[cls] || ['str']; const k = m.length > 1 ? .75 : 1; return m.reduce((a, x) => a + eff(s[x]) * 1.3 * k, 0); }
   function newChar(cls) { return { slots: [...DEFSLOTS], cls, lv: 1, exp: 0, gold: 20, pot: 5, eth: 3, base: { ...CL[cls].base }, job: 0, wep: 0, arm: 0, map: 0, ap: 0, apv: 2, xv: 2, st: { str: 0, vit: 0, int: 0, dex: 0 } }; }
   // 舊存檔補上能力值（依目前等級補發點數）
-  function fix(c) { gearOk(c); if (c && c.xv !== 2) { c.xv = 2; if (c.exp > 0 && c.lv < capOf(c)) c.exp = Math.min(needExp(c.lv) - 1, Math.floor(c.exp / needExpOld(c.lv) * needExp(c.lv))); } if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
+  function fix(c) { gearOk(c); if (c && c.cls === 'dragon') { c.pet = c.lv >= PETLV && ELEM[c.elem] ? ELEM[c.elem].pet : null; if (!c.mounts) c.mounts = []; const has = c.mounts.includes('mydragon'); if (c.job >= 4 && !has) c.mounts.push('mydragon'); if (c.job < 4 && has) { c.mounts = c.mounts.filter(x => x !== 'mydragon'); if (c.mnt === 'mydragon') c.mnt = c.mounts[0] || 'horse'; } } if (c && c.xv !== 2) { c.xv = 2; if (c.exp > 0 && c.lv < capOf(c)) c.exp = Math.min(needExp(c.lv) - 1, Math.floor(c.exp / needExpOld(c.lv) * needExp(c.lv))); } if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
   // 寵物：65 等解鎖，四選一；之後可花金幣更換
   const PETLV = 65, PETSWAP = 30000;
   const PETS = {
@@ -318,6 +349,7 @@
     moto: { dr: 0.3, n: '重型機車', lv: 50, price: 80000, spd: 2.95, jump: 1, d: '直線速度很快，但跳不高' },
     dragon: { dr: 0.36, n: '黑龍', lv: 55, price: 0, drop: 'dragon', rate: .08, spd: 3.1, jump: 1.4, glide: 1, d: '黑龍王掉落（8%）。按住跳躍可以滑翔' },
     cloud: { dr: 0.38, n: '筋斗雲', lv: 65, price: 0, drop: 'titan', rate: .06, spd: 3.25, jump: 1.55, glide: 1, d: '天穹泰坦掉落（6%）。跳得最高，可以滑翔' },
+    mydragon: { dr: 0.42, n: '我的龍王', lv: 60, price: 0, own: 1, spd: 3.45, jump: 1.55, glide: 1, d: '巨龍使者四轉後，可以騎上自己的龍王。可以滑翔' },
     qilin: { dr: 0.42, n: '麒麟', lv: 85, price: 0, tier: 1, spd: 3.5, jump: 1.5, d: '傳說坐騎（Boss 掉落）。踏著祥雲奔跑的瑞獸' },
     phoenix: { dr: 0.42, n: '火鳳凰', lv: 90, price: 0, tier: 1, spd: 3.55, jump: 1.6, glide: 1, d: '傳說坐騎（Boss 掉落）。可以滑翔，身後拖著火焰' },
     kunpeng: { dr: 0.44, n: '鯤鵬', lv: 95, price: 0, tier: 1, spd: 3.6, jump: 1.55, glide: 1, d: '傳說坐騎（Boss 掉落）。北冥之魚化身的巨鳥，可以滑翔' },
@@ -336,6 +368,7 @@
     brawler: { n: '金剛明王', fin: '千手連拳', gdm: 2, fdm: 0.96, d: '多臂金剛明王，普攻變成巨大金剛拳', fd: '千隻拳頭對單一目標狂打', col: '#ffb34d', ready: 1 },
     mech: { n: '巨神機甲', fin: '全彈發射', gdm: 2, fdm: 1.667, d: '搭進巨型機甲，普攻變成肩砲齊射', fd: '飛彈雨覆蓋前方一大片', col: '#9ab0c8', ready: 1 },
     demon: { n: '深淵魔像', fin: '深淵吞噬', gdm: 2, fdm: 1.333, d: '黑紅骨甲巨像，普攻變成吸血魔爪', fd: '深淵巨口吞掉周圍敵人並大量吸血', col: '#ff2a4a', ready: 1 },
+    dragon: { n: '金色龍神', fin: '滅世龍炎', gdm: 2, fdm: 2, d: '自己的龍進化成金色龍神，普攻變成貫穿前方的龍神吐息', fd: '龍神噴出貫穿整個畫面的金色龍炎，並附加屬性效果', col: '#ffd23f', ready: 1, self: 1 },
     angel: { n: '熾天聖鎧', fin: '聖域', gdm: 2, fdm: 2, d: '六翼光之巨人，普攻變成聖光長槍', fd: '展開聖域：同地圖隊友回復 60% HP 並獲得護盾，同時重創周圍敵人', col: '#fff6c8', ready: 1, finSup: { heal: .6, shield: 1 } },
   };
   const BOSSRESPAWN = 180;   // Boss 被打倒後固定 3 分鐘重生（秒）
@@ -351,6 +384,7 @@
     brawler: { s6: { n: '明王・天霸千拳', d: '金剛明王的巨拳從天而降，威力 ×1.3' }, b4: { n: '明王・崩山八極', d: '跳到敵人身邊，範圍更大的崩勁連爆，威力 ×1.3' }, c4: { n: '明王・金剛不壞', d: '自己和同地圖隊友回復 50% HP，並在 8 秒內受到傷害 -40%', sup: { heal: .5, shield: 1 } } },
     mech: { s6: { n: '機神・終焉衛星砲', d: '衛星砲換成機神主砲，轟炸範圍更大，威力 ×1.3' }, b4: { n: '機神・超載', d: '自己和同地圖隊友 20 秒內攻擊 +25%、移動與冷卻加快', sup: { pow: 1, haste: 1 } }, c4: { n: '機神・粒子殲滅砲', d: '更長更粗的粒子砲，威力 ×1.3' } },
     demon: { s6: { n: '魔像・萬魂收割', d: '收割範圍更大，威力 ×1.3，一樣能處決殘血的一般怪' }, b4: { n: '魔像・深淵魔翼', d: '展開巨大魔翼衝得更遠，威力 ×1.3' }, c4: { n: '魔像・煉獄黑日', d: '黑色太陽吞沒更大範圍，威力 ×1.3' } },
+    dragon: { s3: { n: '龍神・吐息極', d: '龍神噴出更寬更長的金色吐息，威力 ×1.3' }, s4: { n: '龍神・天翔', d: '龍神俯衝兩趟，威力 ×1.3' }, s6: { n: '龍神・降世', d: '龍神從天而降，砸下後再爆出屬性衝擊波，威力 ×1.3' } },
     angel: { s6: { n: '熾天・神聖凱旋', d: '復活附近倒地的隊友，並以更強的聖光重創敵人，威力 ×1.3' }, b4: { n: '熾天・恩典之光', d: '自己和同地圖隊友回復 70% HP，並在 8 秒內受到傷害 -40%', sup: { heal: .7, shield: 1 } }, c4: { n: '熾天・終焉天罰', d: '更長更粗的天罰光束，威力 ×1.3' } },
   };
   // 依經過時間算出目前的階段與加成（pvp 為 true 時改用 PVP 的數值）
@@ -433,6 +467,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
