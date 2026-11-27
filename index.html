@@ -664,7 +664,7 @@ function mkLocalMon(sp,i,st){const m=MON[sp.t],seg=SEG[sp.s];return{i,t:sp.t,sp,
 let haz=[];const HCOL=['#b8f07a','#bfe8ff','#ff7a2a','#b46aff','#ffe680','#3affc8'];HCOL[10]='#ff9ad8';
 // Boss 招式：伺服器決定招式與位置，每位玩家的畫面依預警範圍自行判定有沒有被打中
 function addBoss(d){const m=mons[d.i],now=performance.now();if(d.mob){if(m&&P&&Math.abs(P.x-d.x)<400)num(m.x,m.y-m.h-12,d.n,'ef','#ffb34d')}else if(m&&d.n&&P&&Math.abs(P.x-d.x)<560)toast(`${MON[m.t].name}：${d.n}！${d.rage?'（暴怒）':''}`);
-  const base={x:d.x,y:d.y,f:d.f,t0:now,warn:d.warn,atk:d.atk,mi:d.i,safe:!d.mob&&!myFight(d.i)};
+  const base={x:d.x,y:d.y,f:d.f,t0:now,warn:d.warn,atk:d.atk,mi:d.i,safe:!d.mob&&!bossCanHit(d.i)};
   if(d.k==='rain')d.xs.forEach((x,j)=>haz.push({...base,k:'rain',x,warn:d.warn+j*70}));
   else if(d.k==='pillars')haz.push({...base,k:'pillars',xs:d.xs});
   else if(d.k==='homing')(d.tg||[]).forEach((u,j)=>haz.push({...base,k:'homing',tg:u,hx:d.x+(j-1)*14,hy:d.y-30,warn:d.warn+j*150}));
@@ -720,7 +720,7 @@ function drawHaz(ox,oy){const now=performance.now(),col=HCOL[MI]||'#fff',blink=.
     else if(h.k==='safe'){if(t<0){b.globalAlpha=blink*.6;R(x-h.r,y-90,h.r*2,90,'#ff3b3b');b.globalAlpha=1;for(const sx0 of h.xs){const sx=Math.round(sx0-ox);b.globalAlpha=.55;R(sx-h.w/2,y-90,h.w,90,'#3aff7a');b.globalAlpha=1;R(sx-h.w/2,y-2,h.w,3,'#3aff7a')}}else{b.globalAlpha=Math.max(0,.8-t/500);R(x-h.r,y-90,h.r*2,90,col);b.globalAlpha=1}}}}
 function updMons(){updHaz();const p=P;for(const m of mons){if(m.dead)continue;if(m.hurt>0)m.hurt--;
   const dx=m.tx-m.x;m.x+=Math.abs(dx)>60?dx:dx*.25;
-  if(p&&!p.dead&&p.inv<=0&&!m.frozen&&(!MON[m.t].boss||myFight(m.i))&&Math.abs(p.x-m.x)<(m.w/2+5)&&p.y>m.y-m.h+m.hop-2&&p.y-20<m.y+m.hop)hurtHero(MON[m.t].atk*(m.dark?D.DARK.atk:1),m.x)}}
+  if(p&&!p.dead&&p.inv<=0&&!m.frozen&&(!MON[m.t].boss||bossCanHit(m.i))&&Math.abs(p.x-m.x)<(m.w/2+5)&&p.y>m.y-m.h+m.hop-2&&p.y-20<m.y+m.hop)hurtHero(MON[m.t].atk*(m.dark?D.DARK.atk:1),m.x)}}
 function hurtHero(atk,fromX){const p=P;if(!p||p.dead)return;const aw=awkFxC(p),red=Math.max(1-D.AWK.drCap,(CL[p.cls].dr||1)*(p.bf.shield>0?.6:1)*(p.bf.wing>0?.5:1)*(p.bf.guard>0?.7:1)*(p.mount?1-((D.MOUNTS[p.mnt]||{}).dr||.25):1)*(aw?1-aw.dr:1));
   const dmg=Math.max(1,Math.round((atk*rnd(.9,1.1)-p.max.def*.7)*red));p.hp-=dmg;p.inv=Math.round(70*(1+(p.max.invB||0)));num(p.x,p.y-30,dmg,'hurt');
   if(!p.rope){p.vy=-2.6;p.vx=(p.x<fromX?-1:1)*1.6;p.ground=false}
@@ -744,6 +744,8 @@ function potFull(d){if((d.t!=='pot'&&d.t!=='eth')||(P[d.t]||0)<D.POTMAX)return f
 function setFight(f){if(!f)return;if(f.end){const was=BF[f.i];delete BF[f.i];if(was&&was.u.has(myId)){if(f.why==='win')toast('🏆 挑戰成功！空氣牆消失了');else toast(f.why==='time'?'⌛ 時間到，挑戰失敗！':'挑戰失敗……')}return}
   const was=BF[f.i];BF[f.i]={...f,u:new Set(f.u),t0:performance.now(),left:f.until-Date.now()};if(!was&&BF[f.i].u.has(myId)){const m=mons[f.i];toast(`⚔️ 開戰！打倒 ${m?MON[m.t].name:'Boss'} 之前離不開這個場地（限時 10 分鐘）`)}}
 const myFight=i=>{const f=BF[i];return !!(f&&f.u.has(myId))};
+// 這隻 Boss 打得到我嗎：試煉的 Boss 一律打得到；一般 Boss 要我有參戰
+const bossCanHit=i=>{const m=mons[i];return !m||!openBossOk(m)||myFight(i)};
 function myArena(){for(const i in BF)if(BF[i].u.has(myId))return BF[i];return null}
 const openBossOk=m=>{const d=MON[m.t];return d.boss&&!d.trial&&!d.rival&&!MAPS[MI].trial};
 function talkBoss(){const p=P;if(!p||myArena())return null;for(const m of mons){if(m.dead||!openBossOk(m))continue;if(Math.abs(p.x-m.x)<=D.bossZone(m.t)&&Math.abs(p.y-m.y)<60)return m}return null}
@@ -1340,7 +1342,7 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
   sock.on('respawn',d=>{const m=mons[d.i];if(m){delete BF[d.i];if(d.max)m.max=d.max;m.dark=d.dark||0;m.dead=0;m.hp=m.max;fx.push({t:'poof',x:m.x,y:m.y-m.h/2,life:14})}});
   sock.on('drop',list=>{for(const x of list)drops.push({...x,ty:x.y,y:x.fy,vy:-2.6})});
   sock.on('dgone',d=>{drops=drops.filter(x=>x.id!==d.id)});
-  sock.on('stomp',d=>{if(P&&!P.dead&&myFight(d.i)&&P.ground&&P.inv<=0&&Math.abs(P.x-d.x)<85&&Math.abs(P.y-GY)<10)hurtHero(d.atk,d.x);fx.push({t:'wave',x:d.x,y:GY,life:24})});
+  sock.on('stomp',d=>{if(P&&!P.dead&&bossCanHit(d.i)&&P.ground&&P.inv<=0&&Math.abs(P.x-d.x)<85&&Math.abs(P.y-GY)<10)hurtHero(d.atk,d.x);fx.push({t:'wave',x:d.x,y:GY,life:24})});
   sock.on('aid',d=>{if(!P)return;const who=d.by===myId?'':`${d.name} 的`;
     const hb=1+(d.hb||0);
     if(d.k==='s1'){if(P.dead)return;const h=Math.round(P.max.hp*.2*hb);P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}
