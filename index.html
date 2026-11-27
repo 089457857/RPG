@@ -69,6 +69,7 @@ body:not(.fs) .bar-ui{grid-template-columns:auto minmax(0,1fr)}body:not(.fs) .ba
   body:not(.fs) .t-x,body:not(.fs) .t-c,body:not(.fs) .t-v,body:not(.fs) .t-b,body:not(.fs) .t-n,body:not(.fs) .t-m{width:38px;height:38px;font-size:11px}
   body:not(.fs) .t-x,body:not(.fs) .t-b{right:94px}body:not(.fs) .t-c,body:not(.fs) .t-n{right:52px}body:not(.fs) .t-v,body:not(.fs) .t-m{right:10px}
   body:not(.fs) .t-z{right:70px;width:54px;height:54px}body:not(.fs) .t-j{right:8px;width:58px;height:58px}}
+.afk{position:fixed;inset:0;z-index:99;display:grid;place-items:center;padding:24px;background:#070a14ee;text-align:center}.afk[hidden]{display:none}.afk b{font:900 24px "Noto Serif TC",serif;color:var(--gold)}.afk p{color:var(--dim)}
 .menub,.pwa-tip{display:none}
 body.mob.fs #fsBtn{display:none}
 body.mob.fs #ui{width:min(330px,42vw)!important;grid-template-columns:auto minmax(0,1fr) auto!important;padding:4px 6px!important;align-items:center}
@@ -158,6 +159,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
 </head>
 <body>
 <div class="rot" id="rot" hidden><div><b>把手機轉成橫向</b><p>橫向會自動切換成全螢幕遊玩，畫面更大、輪盤更好操作。<br>（LINE 和 iPhone 的瀏覽器會留著網址列；想要真正全螢幕，可以用 Safari／Chrome 開啟後「加入主畫面」。）</p><button class="btn pri" id="rotOk" type="button">先用直向玩</button></div></div>
+<div class="afk" id="afk" hidden><div><b>已自動斷線</b><p>你已經 5 分鐘沒有動作，為了節省伺服器時數，已經自動斷線。</p><button class="btn pri" type="button" id="afkBack">重新連線</button></div></div>
 <div class="duelreq" id="duelReq" hidden><b id="drTxt"></b><div class="row"><button class="btn pri sm" id="drYes" type="button">接受</button><button class="btn sm" id="drNo" type="button">拒絕</button></div></div>
 <div class="wrap">
   <div class="top"><h1>屁眼王國大冒險</h1><span class="netinfo" id="net">連線中…</span></div>
@@ -863,6 +865,12 @@ function openPvp(){sock.emit('pvpInfo',{},r=>{if(!r||!r.ok)return;const inArena=
     if(bt.dataset.arena!==undefined)sock.emit('arena',{go:bt.dataset.arena==='1'},x=>{if(x&&!x.ok)toast(x.msg||'無法進入');else closePop()});
     if(bt.dataset.duel){bt.disabled=true;sock.emit('duelInv',{to:bt.dataset.duel},x=>{toast(x&&x.ok?'已送出決鬥邀請，等對方回應…':(x&&x.msg)||'邀請失敗')})}
     if(bt.dataset.surr){if(!bt.dataset.sure){bt.dataset.sure=1;bt.textContent='確定投降？';return}sock.emit('duelQuit');closePop()}})})}
+// ---- 掛機 5 分鐘自動斷線（節省伺服器時數）----
+{let last=Date.now(),warned=false;const act=()=>{last=Date.now();warned=false};['pointerdown','keydown','touchstart','wheel'].forEach(ev=>addEventListener(ev,act,{passive:true}));
+  setInterval(()=>{if(!sock||!sock.connected)return;const idle=Date.now()-last;
+    if(idle>270000&&!warned){warned=true;toast('30 秒後會因為掛機自動斷線，動一下就能繼續')}
+    if(idle>300000){$('#afk').hidden=false;sock.disconnect()}},5000);
+  $('#afkBack').onclick=()=>{last=Date.now();warned=false;$('#afk').hidden=true;$('#net').textContent='重新連線中…';if(sock)sock.connect()}}
 $('#pvpBtn').onclick=()=>{if(P&&$('#pop').hidden)openPvp()};
 $('#skBtn').onclick=()=>{if(P&&$('#pop').hidden)openSkills()};
 $('#apBtn').onclick=()=>{if(P&&$('#pop').hidden)openAP()};
@@ -898,7 +906,7 @@ function enterWorld(fresh){showPanel('waitPanel');$('#waitTx').textContent='進�
 function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPanel('waitPanel');$('#waitTx').textContent='正在連上伺服器。如果伺服器在休眠，約需一分鐘喚醒。';
   sock=io('/rpg',{auth:{token}});
   sock.on('connect_error',e=>{if(e.message==='auth'){try{localStorage.removeItem('pyan-token')}catch(x){}sock.disconnect();showPanel('authPanel')}else{$('#net').textContent='連線中斷，重新連線中…'}});
-  sock.on('disconnect',()=>{$('#net').textContent='連線中斷，重新連線中…';ready=false});
+  sock.on('disconnect',r=>{$('#net').textContent=$('#afk').hidden?'連線中斷，重新連線中…':'已因掛機斷線';ready=false;if(r==='io server disconnect'&&$('#afk').hidden)setTimeout(()=>sock&&!sock.connected&&sock.connect(),1500)});
   sock.on('connect',()=>{$('#net').innerHTML='<b>●</b> 已連線'});
   sock.on('hello',d=>{myName=d.name;myId=d.id;if(inWorld&&d.me){P=null;applyMe(d.me);enterWorld(false)}else{P=null;inWorld=false;const first=d.list.findIndex(c=>!c);if(!d.list.some(Boolean)){curSlot=0;$('#hiName').textContent=`${d.name}，你還沒有角色，選一個職業開始冒險吧！`;$('#ui').hidden=true;$('#chat').hidden=true;showPanel('clsPanel')}else showChars(d.list,d.act)}});
   sock.on('init',d=>{const prevMI=MI;MI=d.map;pvpT.clear();if(!d.pvp){duel=null}SEG=MAPS[MI].seg;ROPES=MAPS[MI].ropes;haz=[];others.clear();shots=[];fx=[];parts=[];hitQ=[];zoneName='';

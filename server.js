@@ -19,7 +19,8 @@ async function load() {
   if (DATABASE_URL) {
     const { Pool } = require('pg');
     pool = new Pool({ connectionString: DATABASE_URL, ssl: /render\.com|sslmode=require/.test(DATABASE_URL) ? { rejectUnauthorized: false } : false });
-    await pool.query('CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v JSONB NOT NULL)');
+    // 兩個遊戲共用資料庫，同時啟動時可能一起建立資料表：撞到「已經存在」就當作成功
+    try { await pool.query('CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v JSONB NOT NULL)'); } catch (e) { if (!['23505', '42P07'].includes(e.code)) throw e; }
     const r = await pool.query('SELECT v FROM kv WHERE k=$1', [KV_KEY]);
     if (r.rows[0]) Object.assign(S, r.rows[0].v);
     console.log('已連上 Postgres 資料庫');
@@ -28,13 +29,31 @@ async function load() {
     console.log('使用本機 data.json（未設定 DATABASE_URL）');
   }
   if (!S.rpg) S.rpg = {};
+  if (!S.rpgAlt) S.rpgAlt = {};
+  loadedAt = Date.now();
 }
+// ---------------- 還原備份後自動重新載入 ----------------
+// 牛牛管理後台還原備份時，會在資料庫寫入「<KV_KEY>:reload」的時間；這裡發現比上次載入還新，就重新讀取資料
+let loadedAt = 0, ioRef = null;
+async function reloadedAt() { if (!pool) return 0; try { const r = await pool.query('SELECT v FROM kv WHERE k=$1', [KV_KEY + ':reload']); return r.rows[0] ? +r.rows[0].v.at || 0 : 0; } catch (e) { return 0; } }
+async function checkReload() {
+  const at = await reloadedAt(); if (!at || at <= loadedAt) return false;
+  const r = await pool.query('SELECT v FROM kv WHERE k=$1', [KV_KEY]);
+  for (const k of Object.keys(S)) delete S[k];
+  Object.assign(S, { users: {}, sessions: {}, rpg: {}, rpgAlt: {}, seq: 1 }, r.rows[0] ? r.rows[0].v : {});
+  loadedAt = Date.now(); clearTimeout(saveTimer);
+  console.log('偵測到備份還原，已重新載入資料');
+  if (ioRef) ioRef.of('/rpg').disconnectSockets(true);
+  return true;
+}
+setInterval(() => { if (pool) checkReload().catch(() => {}); }, 15000);
 let saveTimer = null, saving = false, again = false;
 function save() { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 800); }
 async function flush() {
   if (saving) { again = true; return; }
   saving = true;
   try {
+    if (pool && await checkReload()) { saving = false; again = false; return; }   // 剛還原過備份：不要用舊資料蓋掉
     const data = JSON.stringify(S);
     if (pool) await pool.query('INSERT INTO kv (k, v) VALUES ($1, $2) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v', [KV_KEY, data]);
     else fs.writeFileSync(FILE, data);
@@ -71,7 +90,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/healthz', (_, res) => res.send('ok'));
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server); ioRef = io;
 const rpg = require('./rpg')({ io, app, S, save, dir: __dirname, page: 'index.html', routes: ['/', '/rpg'] });
 app.get('/rpg-data.js', (req, res) => res.type('application/javascript').sendFile(path.join(__dirname, 'rpg-data.js')));
 app.get('/api/rpg-top', (req, res) => res.json({ online: rpg.online(), top: rpg.top() }));
