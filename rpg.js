@@ -105,7 +105,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   const monMask = (m, now) => (m.frozen > 0 ? ({ fz: 1, pz: 2, st: 4 }[m.ccK] || 1) : 0) | (m.root > 0 ? 8 : 0) | (m.slow > 0 ? 16 : 0) | (m.bn && now <= m.bn.until ? 32 : 0) | (m.ps && now <= m.ps.until ? 64 : 0);
   function stepMon(w, m) {
     const d = D.MON[m.t];
-    if (m.dead) { if (d.trial) return; m.dead--; if (m.dead <= 0) { Object.assign(m, mkMon(m.sp, m.i, m.mi)); ns.to(w.room).emit('respawn', { i: m.i }); } return; }
+    if (m.dead) { if (d.trial || d.rival) return; m.dead--; if (m.dead <= 0) { Object.assign(m, mkMon(m.sp, m.i, m.mi)); ns.to(w.room).emit('respawn', { i: m.i }); } return; }
     // 30Hz 模擬，速度 ×2 對齊瀏覽器的 60Hz
     if (m.hurt > 0) m.hurt -= 2; if (m.aggro > 0) m.aggro -= 2;
     const seg = D.MAPS[m.mi].seg[m.seg];
@@ -163,7 +163,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (!m.regen) { m.regen = 1; ns.to(w.room).emit('sys', { t: `${d.name} 碰不到任何人，開始快速回血！快下來跟它正面對決！` }); }
       m.hp = Math.min(m.max, m.hp + m.max * .03 / 30);
     }
-    const rage = !d.trial && m.hp < m.max * .3;
+    const rage = !d.trial && !d.rival && m.hp < m.max * .3;
     if (rage && !m.rage) { m.rage = 1; ns.to(w.room).emit('sys', { t: `${d.name} 暴怒了！招式變得更快更兇！` }); }
     if (m.warn > 0) { m.vx = 0; if ((m.warn -= 1) <= 0) { if (m.pend === 'charge') m.dash = 12; else if (m.pend === 'leap') { m.leap = 12; m.vy = -4.2; m.hop = -.01; m.pend = null; } } return; }
     if (m.leap > 0) { m.leap--; m.x += (m.ltx - m.x) / Math.max(1, m.leap); m.vx = 0; return; }
@@ -202,7 +202,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     else if (k === 'laser') { ev.warn = 1000; ev.r = 240; m.warn = 46; }
     else if (k === 'orbit') { ev.warn = 700; ev.n = rage ? 4 : 3; ev.r = 85; ev.dur = 3200; m.warn = 40; }
     else if (k === 'split') { ev.warn = 700; ev.dist = 260; m.warn = 50; }
-    if (d.trial) { ev.warn = Math.round((ev.warn || 0) * 1.4); m.warn = Math.round((m.warn || 0) * 1.4); ev.atk = Math.round(ev.atk * .75); ev.rage = 0; }
+    if (d.trial || d.rival) { ev.warn = Math.round((ev.warn || 0) * 1.4); m.warn = Math.round((m.warn || 0) * 1.4); ev.atk = Math.round(ev.atk * .75); ev.rage = 0; }
     if (k !== 'charge' && k !== 'bounce') m.pend = null;
     ns.to(w.room).emit('bskill', ev);
   }
@@ -216,11 +216,20 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ns.to(w.room).emit('st', { m, p });
     }
   }, 100);
-  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now())]; }
+  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now())]; }
 
   // ---------------- 擊殺與經驗 ----------------
   function kill(w, m, killer) {
     const d = D.MON[m.t];
+    if (d.rival) {   // 覺醒試煉：打倒對手就解鎖守護靈
+      m.dead = 1; m.hp = 0; ns.to(w.room).emit('kill', { i: m.i });
+      for (const uid of w.players.keys()) { const c = char(uid); if (!c || c.awk) continue;
+        c.awk = 1; c.ag = D.AWK.max; c.gold += d.gold[0]; save(); pushMe(uid);
+        const g = D.GUARD[c.cls]; ns.to('u:' + uid).emit('awkUnlock', { n: g.n, fin: g.fin, gold: d.gold[0] });
+        ns.to('m0').emit('sys', { t: `🔥 ${nameOf(uid)} 通過覺醒試煉，喚醒了守護靈「${g.n}」！` });
+        setTimeout(() => { const k = ctl.get(uid); if (k && k.inTrial()) k.goRet(); }, 4500); }
+      return;
+    }
     if (d.trial) {   // 轉職試煉：打倒試煉官就轉職
       m.dead = 1; m.hp = 0; ns.to(w.room).emit('kill', { i: m.i });
       for (const uid of w.players.keys()) { const c = char(uid); if (!c || c.job !== d.trial - 1) continue;
@@ -264,6 +273,24 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     m.dmgBy = {}; save();
   }
 
+  // ---------------- 守護靈覺醒 ----------------
+  // pl.awT：啟動時間；pl.awCd：冷卻結束時間；c.ag：覺醒值（存檔）；c.awk：已解鎖
+  const awkEl = (pl, now) => (pl.awT && now - pl.awT < D.AWK.dur ? now - pl.awT : -1);
+  const awkOf = (pl, now, pvp) => D.awkFx(awkEl(pl, now), pvp);
+  function addAg(uid, pl, v) {
+    const c = char(uid), now = Date.now(); if (!c || !c.awk || !(v > 0) || awkEl(pl, now) >= 0 || now < (pl.awCd || 0)) return;
+    const old = c.ag || 0; if (old >= D.AWK.max) return;
+    c.ag = Math.min(D.AWK.max, old + v);
+    if (Math.floor(c.ag) !== Math.floor(old)) ns.to('u:' + uid).emit('ag', { v: Math.floor(c.ag) });
+  }
+  setInterval(() => {   // 覺醒時間到：結束並開始冷卻
+    const now = Date.now();
+    for (const w of allWorlds()) for (const pl of w.players.values()) if (pl.awT && now - pl.awT >= D.AWK.dur) {
+      pl.awT = 0; pl.awCd = now + D.AWK.cd; pl.finUntil = 0;
+      ns.to('u:' + pl.uid).emit('awkSt', { on: 0, cd: D.AWK.cd }); ns.to(w.room).emit('sys', { t: `${nameOf(pl.uid)} 的守護靈消散了`, quiet: 1 });
+    }
+  }, 250);
+
   // ---------------- 組隊（最多 6 人；隊伍只存在伺服器記憶體，離線就離開隊伍） ----------------
   const PARTYMAX = 6, parties = new Map(), partyOf = new Map(), invites = new Map(); let partySeq = 1;
   const partyMates = uid => { const p = parties.get(partyOf.get(uid)); return p ? p.members.filter(u => u !== uid) : []; };
@@ -290,14 +317,15 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   });
   // ---------------- PVP：決鬥與競技場（血量與傷害都由伺服器判定） ----------------
   const pvpRec = c => (c.pvp ||= { pts: 0, k: 0, d: 0, w: 0, l: 0 });
-  function pvpDamage(ac, tc, tpl, h, now) {
-    const st = D.stats(ac), ts = D.stats(tc);
-    const mult = clamp(+h.mult || 1, .1, 3.2), crit = Math.random() * 100 < st.crit + clamp(+h.cb || 0, 0, 40);
-    let raw = st.atk * mult * rnd(.9, 1.1) * (crit ? st.critD || 1.7 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1);
+  function pvpDamage(ac, tc, tpl, h, now, apl) {
+    const st = D.stats(ac), ts = D.stats(tc), aa = apl && awkOf(apl, now, true), ta = awkOf(tpl, now, true);
+    const fin = apl && h.fin && now < (apl.finUntil || 0), mult = clamp(+h.mult || 1, .1, fin ? 6 : 3.2), crit = Math.random() * 100 < st.crit + clamp(+h.cb || 0, 0, 40);
+    let raw = st.atk * mult * rnd(.9, 1.1) * (crit ? st.critD || 1.7 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1) * (aa ? aa.atk : 1);
     let dmg = raw * .32 - ts.def * .5;
     const diff = ac.lv - tc.lv; dmg *= diff > 0 ? Math.max(.35, 1 - diff * .03) : Math.min(1.6, 1 - diff * .02);   // 等級差距修正
-    dmg *= (D.CL[tc.cls].dr || 1) * (tpl.mount ? 1 - ((D.MOUNTS[tpl.mount] || {}).dr || .25) : 1);
-    if (now < (tpl.guardT || 0)) dmg *= .7; if (now < (tpl.shieldT || 0)) dmg *= .6; if (now < (tpl.wingT || 0)) dmg *= .5;
+    // 所有減傷相乘，但總減傷最多 80%
+    let red = (D.CL[tc.cls].dr || 1) * (tpl.mount ? 1 - ((D.MOUNTS[tpl.mount] || {}).dr || .25) : 1) * (now < (tpl.guardT || 0) ? .7 : 1) * (now < (tpl.shieldT || 0) ? .6 : 1) * (now < (tpl.wingT || 0) ? .5 : 1) * (ta ? 1 - ta.dr : 1);
+    dmg *= Math.max(1 - D.AWK.drCap, red);
     return { dmg: Math.max(1, Math.round(dmg)), crit };
   }
   // ---- PVP 擊倒（直接攻擊或燒傷／中毒都會走這裡） ----
@@ -359,7 +387,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
 
     function enter(mi, x, world) {
       if (w) { w.players.delete(uid); socket.leave(w.room); ns.to(w.room).emit('pleave', { id: uid }); if (trials.get(uid) === w && world !== w) trials.delete(uid); }
-      w = world || worlds[mi]; pl.x = x ?? D.MAPS[mi].start; pl.y = D.GY; pl.gy = null; pl.dead = 0; pl.pdot = null; pl.pcc = null;
+      w = world || worlds[mi]; pl.x = x ?? D.MAPS[mi].start; pl.y = D.GY; pl.gy = null; pl.dead = 0; pl.pdot = null; pl.pcc = null; if (D.MAPS[mi].trial && pl.awT) { pl.awT = 0; pl.awCd = Date.now() + D.AWK.cd; }
       // 同一個帳號只留一個連線在世界裡
       for (const w2 of allWorlds()) w2.players.delete(uid);
       w.players.set(uid, pl); socket.join(w.room);
@@ -416,27 +444,27 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (c.gold < D.APRESET) return ack && ack({ ok: false, msg: `重置需要 ${D.APRESET} 金幣` }); c.gold -= D.APRESET; c.ap += used; c.st = { str: 0, vit: 0, int: 0, dex: 0 }; save(); ack && ack({ ok: true, me: me(uid) });
     });
     socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); if (D.MAPS[c.map || 0]?.pvp || D.MAPS[c.map || 0]?.trial) c.map = 0; if (c.map === 10 && D.capOf(c) < D.MAXLV2) c.map = 9; enter(c.map || 0); ack && ack({ ok: true });
-      if (D.VERSION && S.users[uid] && S.users[uid].seenVer !== D.VERSION) socket.emit('news', { v: D.VERSION, notes: D.NOTES });
+      if (D.VERSION && S.users[uid] && S.users[uid].seenVer !== D.VERSION) socket.emit('news', { v: D.VERSION, list: D.newsSince(S.users[uid].seenVer) });
       if (c.apComp) { delete c.apComp; save(); socket.emit('notice', { t: `能力值系統改版補償：獲得 ${D.APRESET.toLocaleString()} 金幣，可以到「能力」重新配點！` }); } });
     socket.on('pos', (p = {}) => {
       if (!w) return;
       pl.x = clamp(+p.x || 0, 0, D.WW); pl.y = clamp(+p.y || 0, -100, D.WH + 60); pl.f = p.f < 0 ? -1 : 1; pl.act = p.act ? 1 : 0; pl.rope = p.rope ? 1 : 0; pl.dead = p.dead ? 1 : 0;
-      if (isPvp(w)) { pl.dead = pl.php <= 0 ? 1 : 0; } else pl.hpPct = clamp(Math.round(+p.hp || 0), 0, 100);
-      pl.clone = p.clone ? 1 : 0; if (p.gy != null) pl.gy = clamp(+p.gy || 0, -100, D.WH + 60); pl.mount = p.mount && (char(uid)?.lv || 0) >= D.MOUNTLV ? (char(uid).mnt || 'horse') : 0;
+      if (isPvp(w)) { pl.dead = pl.php <= 0 ? 1 : 0; } else { const hp = clamp(Math.round(+p.hp || 0), 0, 100); if (hp < (pl.hpPct ?? 100) && !pl.dead) addAg(uid, pl, Math.min(15, (pl.hpPct ?? 100) - hp) * D.AWK.hurtPer); pl.hpPct = hp; }
+      pl.clone = p.clone ? 1 : 0; if (p.gy != null) pl.gy = clamp(+p.gy || 0, -100, D.WH + 60); pl.mount = p.mount && (char(uid)?.lv || 0) >= D.MOUNTLV && awkEl(pl, Date.now()) < 0 ? (char(uid).mnt || 'horse') : 0;
     });
     socket.on('hit', (list) => {
       const c = char(uid); if (!w || !c || !Array.isArray(list) || pl.dead || pl.mount) return;
       const now = Date.now(); if (now - rate.t > 1000) { rate = { t: now, n: 0 }; }
-      const st = D.stats(c), out = [], efs = D.efOf(c.cls); let dealt = 0;
+      const st = D.stats(c), out = [], efs = D.efOf(c.cls), aw = awkOf(pl, now); let dealt = 0;
       for (const h of list.slice(0, 20)) {
         if (++rate.n > 60) break;
         const m = w.mons[h.m | 0]; if (!m || m.dead || m.hp <= 0) continue;
         if (Math.abs(m.x - pl.x) > 360) continue;
-        const mult = clamp(+h.mult || 1, .1, 3.2), cb = clamp(+h.cb || 0, 0, 40);
+        const fin = h.fin && now < (pl.finUntil || 0), mult = clamp(+h.mult || 1, .1, fin ? 6 : 3.2), cb = clamp(+h.cb || 0, 0, 40);
         const crit = Math.random() * 100 < st.crit + cb;
         const boss = D.MON[m.t].boss;
         if (boss && !inZone(pl, m)) { if (now - (pl.immT || 0) > 400) { pl.immT = now; socket.emit('bimm', { i: m.i }); } continue; }   // 危險區外偷打：Boss 不受傷
-        let dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? st.critD || 1.7 : 1) * (now < m.vuln ? 1.2 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1)));
+        let dmg = Math.max(1, Math.round(st.atk * mult * rnd(.85, 1.15) * (crit ? st.critD || 1.7 : 1) * (now < m.vuln ? 1.2 : 1) * (h.sk ? 1 + (st.skillB || 0) : 1) * (aw ? aw.atk : 1) * (fin && boss ? D.AWK.finBoss : 1)));
         // 靈魂收割：直接處決殘血的一般怪
         if (h.ex && !boss && m.hp - dmg < m.max * .15) dmg = Math.max(dmg, Math.ceil(m.hp));
         if (h.vu) m.vuln = now + 8000;
@@ -448,6 +476,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         if (m.hp <= 0) kill(w, m, uid);
       }
       if (out.length) ns.to(w.room).emit('hits', { by: uid, h: out });
+      if (dealt > 0 && now - (pl.agT || 0) >= 1000) { pl.agT = now; addAg(uid, pl, D.AWK.perSec); }   // 每秒有在打怪就累積覺醒值
       // 朱雀：攻擊吸血 5%，每秒最多回復 12% 最大 HP
       if (c.pet === 'zhuque' && dealt > 0) {
         if (now - (pl.lsT || 0) > 1000) { pl.lsT = now; pl.ls = 0; }
@@ -547,7 +576,9 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const mounts = Object.keys(D.MOUNTS).filter(k => (D.MOUNTS[k].lv || 0) <= lv); if (!mounts.length) mounts.push('horse');
       Object.assign(c, { gm: 1, lv, job, exp: 0, wep, arm, gold: 9999999, pot: 999, eth: 999, ap: (lv - 1) * D.APL, map: w ? w.mi : (old.map || 0), mounts,
         mnt: mounts.includes(old.mnt) ? old.mnt : mounts[mounts.length - 1], pet: lv >= D.PETLV && D.PETS[pet] ? pet : null });
-      if (old.nm) c.nm = old.nm; if (old.rnN) c.rnN = old.rnN; if (lv > D.MAXLV || old.cap) c.cap = D.MAXLV2;   // 保留角色名字
+      if (old.nm) c.nm = old.nm; if (old.rnN) c.rnN = old.rnN; if (lv > D.MAXLV || old.cap) c.cap = D.MAXLV2; if (lv >= D.AWK.lv && job >= 4) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
+      // 套用每一級的能力成長（和正常升級一樣），GM 角色的強度才會等於真正練到這個等級的角色
+      const gr = D.CL[cls].grow; for (let l = 1; l < lv; l++) { c.base.hp += gr.hp; c.base.mp += gr.mp; c.base.atk = Math.round((c.base.atk + gr.atk) * 10) / 10; c.base.def = Math.round((c.base.def + gr.def) * 10) / 10; }
       S.rpg[uid] = c; save();
       ack && ack({ ok: true, me: me(uid) });
       if (w) enter(w.mi, pl.x);
@@ -561,6 +592,36 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const old = nameOf(uid); c.gold -= cost; c.nm = nm; c.rnN = (c.rnN || 0) + 1; save();
       ack && ack({ ok: true, me: me(uid), cost });
       if (w) ns.to(w.room).emit('sys', { t: `${old} 改名為「${nameOf(uid)}」` });
+    });
+    // ---- 守護靈覺醒：第一次按＝啟動，覺醒中再按＝終結技（一次） ----
+    socket.on('awk', (_, ack) => {
+      const c = char(uid), now = Date.now(), no = msg => ack && ack({ ok: false, msg }); if (!c || !w) return no('');
+      const g = D.GUARD[c.cls]; if (!c.awk) return no(`80 級四轉後，找轉職教官完成「覺醒試煉」才能喚醒守護靈`);
+      if (!g.ready) return no(`${g.n} 還在準備中，下次更新開放`);
+      const el = awkEl(pl, now);
+      if (el >= 0) {
+        if (pl.finUsed) return no('這次覺醒的終結技已經用過了');
+        pl.finUsed = 1; pl.finUntil = now + D.AWK.finWin; ack && ack({ ok: true, fin: 1 });
+        socket.to(w.room).emit('awkFin', { u: uid, x: Math.round(pl.x), f: pl.f }); return;
+      }
+      if (pl.dead) return no(''); if (pl.mount) return no('騎乘中不能覺醒，按 F 下坐騎');
+      if (D.MAPS[w.mi].trial) return no('試煉中不能覺醒');
+      if (now < (pl.awCd || 0)) return no(`守護靈冷卻中（還要 ${Math.ceil((pl.awCd - now) / 1000)} 秒）`);
+      if ((c.ag || 0) < D.AWK.max) return no(`覺醒值還不夠（${Math.floor(c.ag || 0)}/${D.AWK.max}），繼續打怪或承受傷害就會累積`);
+      c.ag = 0; pl.awT = now; pl.finUsed = 0; pl.finUntil = 0; save();
+      ack && ack({ ok: true, on: 1 }); socket.emit('ag', { v: 0 });
+      ns.to(w.room).emit('sys', { t: `🔥 ${nameOf(uid)} 喚醒了守護靈「${g.n}」！` });
+    });
+    socket.on('awkTrial', (_, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c) return no('');
+      if (c.awk) return no('你已經喚醒過守護靈了');
+      if (c.lv < D.AWK.lv || c.job < 4) return no(`要 Lv ${D.AWK.lv} 並完成四轉`);
+      if (!D.GUARD[c.cls].ready) return no(`${D.GUARD[c.cls].n} 還在準備中，下次更新開放`);
+      if (!w || w.mi !== 0) return no('要在晨露村找轉職教官');
+      const opts = Object.keys(D.CL).filter(k => k !== c.cls), rc = opts[ri(0, opts.length - 1)];
+      const tw = mkWorld(8, [{ t: 'rival_' + rc, s: 0, a: 1000, b: 1600 }], 'trial:' + uid); trials.set(uid, tw);
+      ret = { mi: 0, x: 120 }; ack && ack({ ok: true, rival: D.MON['rival_' + rc].name }); enter(8, 300, tw);
+      socket.emit('notice', { t: `覺醒試煉開始！打倒「${D.MON['rival_' + rc].name}」就能喚醒守護靈「${D.GUARD[c.cls].n}」` });
     });
     // ---- 組隊 ----
     socket.on('pInfo', (_, ack) => {
@@ -664,8 +725,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         const tu = String(h.u), o = w.players.get(tu), tc = char(tu); if (!o || !tc || tu === uid || !(o.php > 0)) continue;
         if (du && tu !== (du.a === uid ? du.b : du.a)) continue;
         if (now < (o.prot || 0) || Math.abs(o.x - pl.x) > 360) continue;
-        const { dmg, crit } = pvpDamage(c, tc, o, h, now);
+        const { dmg, crit } = pvpDamage(c, tc, o, h, now, pl);
         o.php = Math.max(0, o.php - dmg); o.hpPct = Math.round(o.php / o.pmax * 100);
+        if (now - (pl.agT || 0) >= 1000) { pl.agT = now; addAg(uid, pl, D.AWK.perSec * .5); }   // PVP 覺醒值累積減半
+        addAg(tu, o, Math.min(15, dmg / o.pmax * 100) * D.AWK.hurtPer * .5);
         ns.to(w.room).emit('phurt', { u: tu, by: uid, dmg, crit: crit ? 1 : 0, s: h.s | 0 });
         ns.to('u:' + tu).emit('php', { hp: o.php, max: o.pmax, by: nameOf(uid) });
         if (c.pet === 'zhuque') pvpHp(pl.php + Math.min(dmg * .05, pl.pmax * .04));

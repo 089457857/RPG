@@ -119,6 +119,15 @@
     pirate: { name: '幽靈海盜', lv: 104, hp: 120000, atk: 1520, exp: 13000, gold: [3800, 4600], w: 16, h: 26, spd: .6, leg: .014 },
     kraken: { name: '深淵海皇・克拉肯', lv: 105, hp: 2000000, atk: 1650, exp: 500000, gold: [150000, 180000], w: 68, h: 60, spd: .4, boss: true, leg: .5,
       sk: ['pillars', 'pull', 'split', 'homing'], skn: { pillars: '觸手破地（站在空隙）', pull: '深海漩渦（往外跑）', split: '雙層潮汐（低的跳過、高的蹲在地上）', homing: '追蹤墨彈（一直移動甩掉）' } },
+    // ---- 覺醒試煉的電腦對手：長得像玩家，用該職業風格的招式（預警較長、傷害較低） ----
+    rival_warrior: { name: '試煉之影・劍聖', cls: 'warrior', lv: 80, sk: ['charge', 'breath', 'quake'], skn: { charge: '衝鋒斬（躲開箭頭方向）', breath: '劍氣斬（繞到背後）', quake: '震地重擊（跳過震波）' } },
+    rival_mage: { name: '試煉之影・魔導神', cls: 'mage', lv: 80, sk: ['rain', 'icering', 'homing'], skn: { rain: '隕石術（避開紅點）', icering: '冰環（離開牠身邊）', homing: '追蹤魔彈（一直移動）' } },
+    rival_rogue: { name: '試煉之影・冥王', cls: 'rogue', lv: 80, sk: ['charge', 'split', 'homing'], skn: { charge: '暗影突襲（躲開箭頭方向）', split: '飛刀雙擊（低的跳、高的蹲）', homing: '追蹤飛鏢（一直移動）' } },
+    rival_archer: { name: '試煉之影・星辰弓神', cls: 'archer', lv: 80, sk: ['split', 'rain', 'roll'], skn: { split: '連珠箭（低的跳、高的蹲）', rain: '箭雨（避開紅點）', roll: '貫穿巨箭（跳過去）' } },
+    rival_brawler: { name: '試煉之影・武神', cls: 'brawler', lv: 80, sk: ['quake', 'charge', 'icering'], skn: { quake: '震地拳（跳過震波）', charge: '鐵頭衝撞（躲開箭頭方向）', icering: '獅子吼（離開牠身邊）' } },
+    rival_mech: { name: '試煉之影・機神', cls: 'mech', lv: 80, sk: ['homing', 'rain', 'firefloor'], skn: { homing: '追蹤飛彈（一直移動）', rain: '轟炸（避開紅點）', firefloor: '火焰噴射（跑到另一邊）' } },
+    rival_demon: { name: '試煉之影・深淵君主', cls: 'demon', lv: 80, sk: ['pull', 'firefloor', 'tail'], skn: { pull: '地獄鎖鏈（往外跑）', firefloor: '煉獄火海（跑到另一邊）', tail: '魔翼橫掃（別站在牠背後）' } },
+    rival_angel: { name: '試煉之影・天使長', cls: 'angel', lv: 80, sk: ['laser', 'pillars', 'safe'], skn: { laser: '天罰橫掃（站在地上別跳）', pillars: '審判之劍（站在空隙）', safe: '神之審判（站進綠色安全區）' } },
     // 轉職試煉官：每個玩家獨立挑戰；招式預警比一般 Boss 長、傷害較低，一轉 1 招～四轉 4 招
     trial1: { name: '見習試煉官', lv: 15, hp: 6500, atk: 29, exp: 0, gold: [300, 300], w: 40, h: 40, spd: .4, boss: true, trial: 1, sk: ['slam'], skn: { slam: '試煉重壓（跳起來躲）' } },
     trial2: { name: '精英試煉官', lv: 30, hp: 15000, atk: 70, exp: 0, gold: [1500, 1500], w: 44, h: 44, spd: .42, boss: true, trial: 2, sk: ['slam', 'roll'], skn: { slam: '試煉重壓（跳起來躲）', roll: '試煉滾球（跳過去）' } },
@@ -138,6 +147,7 @@
     siren: { k: 'homing', r: 110, n: '海妖之歌' }, crab: { k: 'quake', r: 90, rad: 90, n: '巨鉗砸地' }, pirate: { k: 'rain', r: 110, n: '幽靈砲擊', two: 1 },
   };
   for (const [t, sp] of Object.entries(MSP)) MON[t].sp = sp;
+  for (const t in MON) if (t.startsWith('rival_')) Object.assign(MON[t], { hp: 110000, atk: 300, exp: 0, gold: [20000, 20000], w: 16, h: 28, spd: .55, boss: true, rival: 1 });
   // Boss 危險區：以牠最遠的招式射程為半徑（至少 200），站在這個範圍外或上方平台攻擊 Boss，Boss 不會受傷
   const BREACH = { slam: 85, roll: 240, bounce: 240, pillars: 240, frostbreath: 140, icering: 75, rain: 240, pull: 200, firefloor: 230, breath: 150, charge: 150, tail: 95, homing: 280, orbit: 85, split: 260, quake: 180, laser: 240, safe: 260 };
   function bossZone(t) { const m = MON[t]; if (!m || !m.boss) return 0; return Math.round(Math.max(200, ...(m.sk || []).map(k => BREACH[k] || 0)) + m.w / 2 + 20); }
@@ -252,16 +262,49 @@
     void: { dr: 0.4, n: '虛空戰獸', lv: 75, price: 0, drop: 'voidking', rate: .12, spd: 3.45, jump: 1.45, glide: 1, d: '虛空之主掉落（12%）。最快的坐騎' },
   };
   for (const m of MAPS) { if (!m.seg) m.seg = SEG; if (!m.ropes) m.ropes = ROPES; }
-  // ---- 更新公告：改版時改 VERSION 並寫上 NOTES，每個帳號登入後會看到一次 ----
-  const VERSION = '2026-11-27';
-  const NOTES = [
+  // ---- 守護靈覺醒（80 級、四轉、通過覺醒試煉後解鎖） ----
+  // 0～4 秒骨架、4～8 秒鎧甲、8～30 秒完全體，30～60 秒效果線性降到 0；結束後冷卻 1 分鐘，冷卻中覺醒值不累積
+  const AWK = { lv: 80, dur: 60000, full: 30000, cd: 60000, max: 100, dr: .6, atk: 2.5, pvpDr: .3, pvpAtk: 1.5, drCap: .8, finBoss: 1.35, finWin: 3500, perSec: 1.7, hurtPer: .35 };
+  const GUARD = {
+    warrior: { n: '劍魂武神', fin: '天斷', d: '金色巨大劍士，普攻變成巨劍橫掃', fd: '巨劍從天劈下，重創單一敵人', col: '#ffd23f', ready: 1 },
+    mage: { n: '元素巨靈', fin: '四象天墜', d: '四色元素巨人，普攻變成元素衝擊', fd: '四色隕星砸滿畫面', col: '#7fd3ff', ready: 1 },
+    rogue: { n: '影之修羅', fin: '千影斷罪', d: '多臂暗影修羅，普攻變成多刃亂斬', fd: '瞬移連斬附近最強的敵人', col: '#b46aff', ready: 1 },
+    archer: { n: '星弓守護者', fin: '星隕穿天箭', d: '持巨弓的星光巨人，普攻變成星光巨箭', fd: '蓄力射出貫穿整個畫面的巨箭', col: '#bfe8ff', ready: 1 },
+    brawler: { n: '金剛明王', fin: '千手連拳', d: '多臂金剛', fd: '對單一目標狂打', col: '#ffb34d' },
+    mech: { n: '巨神機甲', fin: '全彈發射', d: '搭進巨型機甲', fd: '飛彈雨覆蓋前方', col: '#9ab0c8' },
+    demon: { n: '深淵魔像', fin: '深淵吞噬', d: '黑紅骨甲巨像', fd: '吞掉周圍敵人並吸血', col: '#ff2a4a' },
+    angel: { n: '熾天聖鎧', fin: '聖域', d: '六翼光之巨人', fd: '全隊護盾加治療', col: '#fff6c8' },
+  };
+  // 依經過時間算出目前的階段與加成（pvp 為 true 時改用 PVP 的數值）
+  function awkFx(ms, pvp) {
+    if (!(ms >= 0) || ms >= AWK.dur) return null;
+    let stage, kd, ka;   // 骨架：減傷 30%、攻擊 ×1.5；鎧甲：45%、×2；完全體：60%、×2.5
+    if (ms < 4000) { stage = 1; kd = .5; ka = 1 / 3; } else if (ms < 8000) { stage = 2; kd = .75; ka = 2 / 3; } else if (ms < AWK.full) { stage = 3; kd = ka = 1; } else { stage = 3; kd = ka = (AWK.dur - ms) / (AWK.dur - AWK.full); }
+    const dr = (pvp ? AWK.pvpDr : AWK.dr) * kd, atk = 1 + ((pvp ? AWK.pvpAtk : AWK.atk) - 1) * ka;
+    return { stage, k: kd, dr, atk, fade: ms >= AWK.full };
+  }
+  // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
+  const NEWS = [
+    { v: '2026-11-27b', notes: [
+      ['🔥 守護靈覺醒', 'Lv 80 四轉後找轉職教官接「覺醒試煉」，打倒隨機職業的「試煉之影」就能喚醒自己職業的守護靈。'],
+      ['⚡ 覺醒值', '打怪、受傷都會累積覺醒值（認真打怪大約 1 分鐘集滿），集滿按 G（手機按「覺醒」）啟動，畫面左上角看得到覺醒值。'],
+      ['🛡️ 覺醒效果', '持續 1 分鐘：骨架 → 鎧甲 → 完全體，最多受到傷害 -60%、攻擊 ×2.5，普攻變成守護靈的大範圍攻擊；30 秒後逐漸減弱。結束後冷卻 1 分鐘，冷卻中覺醒值不會累積。'],
+      ['💥 終結技', '覺醒中再按一次覺醒鍵，放出守護靈專屬大招（每次覺醒一次），對 Boss 傷害再 ×1.35。'],
+      ['🗡️ 第一批守護靈', '戰士「劍魂武神」、法師「元素巨靈」、刺客「影之修羅」、射手「星弓守護者」。格鬥家、機械戰士、惡魔、天使下次更新開放。'],
+      ['⚔️ PVP', 'PVP 中覺醒效果較弱：最多減傷 30%、攻擊 ×1.5。所有減傷加起來最多 80%。'],
+    ] },
+    { v: '2026-11-27', notes: [
     ['🧊 控制技能', '冰系有凍結、雷系有麻痺、火系有燒傷、毒系有中毒，另外還有暈眩、束縛、緩速。技能說明裡都有標示效果。'],
     ['👑 Boss 也吃控制', '控制對 Boss 有效，但時間只有 60%；同一個人控完要等 5 秒才能再控同一隻，隊友輪流接控就能把牠壓住。'],
     ['⚔️ PVP 控制', '決鬥場和競技場裡控制技能也會打在玩家身上，一樣只有 60% 時間，並有 5 秒的免疫時間。'],
     ['👥 組隊', '按下方「隊伍」邀請玩家，最多 6 人。同地圖的隊友就算沒出手也分得到經驗，畫面左上角看得到隊友血量。'],
     ['🌊 突破 100 等', '打倒虛空之主時，最後一擊的玩家和同地圖的隊友，等級上限會提升到 100。'],
     ['⚓ 新地圖', '虛空裂隙最右邊可以通往村莊「潮聲港」，突破 100 等後找碼頭的船長出海，挑戰 Lv 101～105 的「深淵海溝」與 Boss 深淵海皇・克拉肯。'],
+    ] },
   ];
-  const D = { VERSION, NOTES, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const VERSION = NEWS[0].v;
+  // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
+  const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
+  const D = { AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
