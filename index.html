@@ -860,17 +860,18 @@ function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
   for(const m of mons){if(m.dead||!MON[m.t].boss)continue;label(m.x,m.y+6,`Lv${MON[m.t].lv} ${MON[m.t].name}`,'#ffd23f')}
   for(const o of others.values()){label(o.x,o.y+3,`${inParty(o.id)?'👥':''}${o.name}　Lv${o.lv} ${CL[o.cls].jobs[o.job]}`,inParty(o.id)?'#7dff9a':'#9fe0ff');if(o.chatT>0)bubble(o.x,o.y-34,o.chat)}
   if(P){label(P.x,P.y+3,`${P.nm||myName}${P.gm?'［GM］':''}　${CL[P.cls].jobs[P.job]}`,'#fff');if(P.chatT>0)bubble(P.x,P.y-34,P.chat)}
-  ctx.textAlign='left';ctx.font='700 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';const nt=`此地圖 ${others.size+1} 人`,ntw=ctx.measureText(nt).width+14,nx=TOUCH&&document.body.classList.contains('fs')?SW-ntw-8:8;ctx.fillRect(nx,8,ntw,20);ctx.fillStyle='#7dff9a';ctx.fillText(nt,nx+7,22);
+  ctx.textAlign='left';ctx.font='700 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';const nt=`此地圖 ${others.size+1} 人`,ntw=ctx.measureText(nt).width+14,nx=document.body.classList.contains('fs')?SW-ntw-8:8;ctx.fillRect(nx,8,ntw,20);ctx.fillStyle='#7dff9a';ctx.fillText(nt,nx+7,22);
   let hudY=32;if(party)hudY+=party.members.filter(m=>m.uid!==myId).length*27;
-  if(P&&P.awk&&D.GUARD[P.cls]){const g=D.GUARD[P.cls],aw=awkFxC(P),cd=Math.max(0,(P.awCdEnd||0)-performance.now()),pw=150,px=TOUCH&&document.body.classList.contains('fs')?SW-pw-8:8,py=hudY;
+  if(P&&P.awk&&D.GUARD[P.cls]){const g=D.GUARD[P.cls],aw=awkFxC(P),cd=Math.max(0,(P.awCdEnd||0)-performance.now()),pw=190,px=document.body.classList.contains('fs')?SW-pw-8:8,py=hudY;
     let lab,pct,bc;if(aw){const left=Math.ceil((D.AWK.dur-awkElC(P))/1000);lab=`${g.n} ${['','骨架','鎧甲','完全體'][aw.stage]}${aw.fade?'（衰退）':''} ${left}s`;pct=1-awkElC(P)/D.AWK.dur;bc='#ff4a2a'}
     else if(cd>0){lab=`守護靈冷卻 ${Math.ceil(cd/1000)}s`;pct=1-cd/D.AWK.cd;bc='#6a6a8a'}else{const v=Math.floor(P.ag||0);lab=v>=D.AWK.max?`覺醒值滿了！按 ${TOUCH?'「覺醒」':'G'} 啟動`:`覺醒值 ${v}/${D.AWK.max}`;pct=v/D.AWK.max;bc=v>=D.AWK.max?'#ffd23f':g.col}
     if(!g.ready)lab=`${g.n}（下次更新開放）`;
-    ctx.fillStyle='#000a';ctx.fillRect(px,py,pw,26);ctx.font='700 11px "Noto Sans TC",sans-serif';ctx.fillStyle=aw?'#ffd23f':'#ffffff';ctx.textAlign='left';ctx.fillText(lab,px+5,py+11);
-    if(aw&&!P.finUsed){ctx.fillStyle='#ffb34d';ctx.textAlign='right';ctx.fillText(`再按：${g.fin}`,px+pw-5,py+11);ctx.textAlign='left'}
+    const fin=aw&&!P.finUsed;   // 終結技提示放在條的下方另一行，避免和剩餘時間疊在一起
+    ctx.fillStyle='#000a';ctx.fillRect(px,py,pw,fin?40:26);ctx.font='700 11px "Noto Sans TC",sans-serif';ctx.fillStyle=aw?'#ffd23f':'#ffffff';ctx.textAlign='left';ctx.fillText(lab,px+5,py+11);
+    if(fin){ctx.fillStyle='#ffb34d';ctx.fillText(`再按 ${TOUCH?'「終結技」':'G'}：${g.fin}`,px+5,py+35)}
     ctx.fillStyle='#ffffff22';ctx.fillRect(px+5,py+16,pw-10,6);ctx.fillStyle=bc;ctx.fillRect(px+5,py+16,Math.round((pw-10)*Math.max(0,Math.min(1,pct))),6);
     const tb=$('#tAwk');if(tb){tb.classList.toggle('on',!!aw);tb.classList.toggle('rdy',!aw&&!cd&&(P.ag||0)>=D.AWK.max);tb.textContent=aw?(P.finUsed?'覺醒中':'終結技'):'覺醒'}}
-  if(party){const ms=party.members.filter(m=>m.uid!==myId),pw=150,px=TOUCH&&document.body.classList.contains('fs')?SW-pw-8:8;let py=32;ctx.font='700 11px "Noto Sans TC",sans-serif';
+  if(party){const ms=party.members.filter(m=>m.uid!==myId),pw=150,px=document.body.classList.contains('fs')?SW-pw-8:8;let py=32;ctx.font='700 11px "Noto Sans TC",sans-serif';
     for(const m of ms){const here=m.mi===MI;ctx.fillStyle='#000a';ctx.fillRect(px,py,pw,24);ctx.fillStyle=here?'#ffffff':'#9aa3c0';const nm=(m.uid===party.leader?'👑':'')+m.name;ctx.fillText((nm.length>9?nm.slice(0,9)+'…':nm)+` Lv${m.lv}`,px+5,py+11);
       if(!here){ctx.fillStyle='#9aa3c0';ctx.textAlign='right';ctx.fillText(m.map,px+pw-5,py+11);ctx.textAlign='left'}
       ctx.fillStyle='#ffffff22';ctx.fillRect(px+5,py+15,pw-10,5);ctx.fillStyle=m.hp>30?'#5ad65a':'#ff4d5e';ctx.fillRect(px+5,py+15,Math.round((pw-10)*Math.max(0,Math.min(100,m.hp))/100),5);py+=27}}

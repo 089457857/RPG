@@ -120,14 +120,14 @@
     kraken: { name: '深淵海皇・克拉肯', lv: 105, hp: 2000000, atk: 1650, exp: 500000, gold: [150000, 180000], w: 68, h: 60, spd: .4, boss: true, leg: .5,
       sk: ['pillars', 'pull', 'split', 'homing'], skn: { pillars: '觸手破地（站在空隙）', pull: '深海漩渦（往外跑）', split: '雙層潮汐（低的跳過、高的蹲在地上）', homing: '追蹤墨彈（一直移動甩掉）' } },
     // ---- 覺醒試煉的電腦對手：長得像玩家，用該職業風格的招式（預警較長、傷害較低） ----
-    rival_warrior: { name: '試煉之影・劍聖', cls: 'warrior', lv: 80, sk: ['charge', 'breath', 'quake'], skn: { charge: '衝鋒斬（躲開箭頭方向）', breath: '劍氣斬（繞到背後）', quake: '震地重擊（跳過震波）' } },
-    rival_mage: { name: '試煉之影・魔導神', cls: 'mage', lv: 80, sk: ['rain', 'icering', 'homing'], skn: { rain: '隕石術（避開紅點）', icering: '冰環（離開牠身邊）', homing: '追蹤魔彈（一直移動）' } },
-    rival_rogue: { name: '試煉之影・冥王', cls: 'rogue', lv: 80, sk: ['charge', 'split', 'homing'], skn: { charge: '暗影突襲（躲開箭頭方向）', split: '飛刀雙擊（低的跳、高的蹲）', homing: '追蹤飛鏢（一直移動）' } },
-    rival_archer: { name: '試煉之影・星辰弓神', cls: 'archer', lv: 80, sk: ['split', 'rain', 'roll'], skn: { split: '連珠箭（低的跳、高的蹲）', rain: '箭雨（避開紅點）', roll: '貫穿巨箭（跳過去）' } },
-    rival_brawler: { name: '試煉之影・武神', cls: 'brawler', lv: 80, sk: ['quake', 'charge', 'icering'], skn: { quake: '震地拳（跳過震波）', charge: '鐵頭衝撞（躲開箭頭方向）', icering: '獅子吼（離開牠身邊）' } },
-    rival_mech: { name: '試煉之影・機神', cls: 'mech', lv: 80, sk: ['homing', 'rain', 'firefloor'], skn: { homing: '追蹤飛彈（一直移動）', rain: '轟炸（避開紅點）', firefloor: '火焰噴射（跑到另一邊）' } },
-    rival_demon: { name: '試煉之影・深淵君主', cls: 'demon', lv: 80, sk: ['pull', 'firefloor', 'tail'], skn: { pull: '地獄鎖鏈（往外跑）', firefloor: '煉獄火海（跑到另一邊）', tail: '魔翼橫掃（別站在牠背後）' } },
-    rival_angel: { name: '試煉之影・天使長', cls: 'angel', lv: 80, sk: ['laser', 'pillars', 'safe'], skn: { laser: '天罰橫掃（站在地上別跳）', pillars: '審判之劍（站在空隙）', safe: '神之審判（站進綠色安全區）' } },
+    rival_warrior: { name: '試煉之影・劍聖', cls: 'warrior', lv: 80, sk: ['charge', 'breath', 'quake', 'tail'], skn: { charge: '衝鋒斬（躲開箭頭方向）', breath: '劍氣斬（繞到背後）', quake: '震地重擊（跳過震波）', tail: '回身斬（別站在牠背後）' } },
+    rival_mage: { name: '試煉之影・魔導神', cls: 'mage', lv: 80, sk: ['rain', 'icering', 'homing', 'pillars'], skn: { rain: '隕石術（避開紅點）', icering: '冰環（離開牠身邊）', homing: '追蹤魔彈（一直移動）', pillars: '冰柱陣（站在空隙）' } },
+    rival_rogue: { name: '試煉之影・冥王', cls: 'rogue', lv: 80, sk: ['charge', 'split', 'homing', 'orbit'], skn: { charge: '暗影突襲（躲開箭頭方向）', split: '飛刀雙擊（低的跳、高的蹲）', homing: '追蹤飛鏢（一直移動）', orbit: '環繞飛刃（別貼在牠身邊）' } },
+    rival_archer: { name: '試煉之影・星辰弓神', cls: 'archer', lv: 80, sk: ['split', 'rain', 'roll', 'laser'], skn: { split: '連珠箭（低的跳、高的蹲）', rain: '箭雨（避開紅點）', roll: '貫穿巨箭（跳過去）', laser: '橫掃箭陣（站在地上別跳）' } },
+    rival_brawler: { name: '試煉之影・武神', cls: 'brawler', lv: 80, sk: ['quake', 'charge', 'icering', 'bounce'], skn: { quake: '震地拳（跳過震波）', charge: '鐵頭衝撞（躲開箭頭方向）', icering: '獅子吼（離開牠身邊）', bounce: '飛身重拳（離開紅圈）' } },
+    rival_mech: { name: '試煉之影・機神', cls: 'mech', lv: 80, sk: ['homing', 'rain', 'firefloor', 'laser'], skn: { homing: '追蹤飛彈（一直移動）', rain: '轟炸（避開紅點）', firefloor: '火焰噴射（跑到另一邊）', laser: '雷射掃射（站在地上別跳）' } },
+    rival_demon: { name: '試煉之影・深淵君主', cls: 'demon', lv: 80, sk: ['pull', 'firefloor', 'tail', 'rain'], skn: { pull: '地獄鎖鏈（往外跑）', firefloor: '煉獄火海（跑到另一邊）', tail: '魔翼橫掃（別站在牠背後）', rain: '魔火雨（避開紅點）' } },
+    rival_angel: { name: '試煉之影・天使長', cls: 'angel', lv: 80, sk: ['laser', 'pillars', 'safe', 'homing'], skn: { laser: '天罰橫掃（站在地上別跳）', pillars: '審判之劍（站在空隙）', safe: '神之審判（站進綠色安全區）', homing: '追蹤聖光（一直移動）' } },
     // 轉職試煉官：每個玩家獨立挑戰；招式預警比一般 Boss 長、傷害較低，一轉 1 招～四轉 4 招
     trial1: { name: '見習試煉官', lv: 15, hp: 6500, atk: 29, exp: 0, gold: [300, 300], w: 40, h: 40, spd: .4, boss: true, trial: 1, sk: ['slam'], skn: { slam: '試煉重壓（跳起來躲）' } },
     trial2: { name: '精英試煉官', lv: 30, hp: 15000, atk: 70, exp: 0, gold: [1500, 1500], w: 44, h: 44, spd: .42, boss: true, trial: 2, sk: ['slam', 'roll'], skn: { slam: '試煉重壓（跳起來躲）', roll: '試煉滾球（跳過去）' } },
@@ -147,7 +147,7 @@
     siren: { k: 'homing', r: 110, n: '海妖之歌' }, crab: { k: 'quake', r: 90, rad: 90, n: '巨鉗砸地' }, pirate: { k: 'rain', r: 110, n: '幽靈砲擊', two: 1 },
   };
   for (const [t, sp] of Object.entries(MSP)) MON[t].sp = sp;
-  for (const t in MON) if (t.startsWith('rival_')) Object.assign(MON[t], { hp: 110000, atk: 300, exp: 0, gold: [20000, 20000], w: 16, h: 28, spd: .55, boss: true, rival: 1 });
+  for (const t in MON) if (t.startsWith('rival_')) Object.assign(MON[t], { hp: 330000, atk: 660, exp: 0, gold: [20000, 20000], w: 16, h: 28, spd: .55, boss: true, rival: 1 });
   // Boss 危險區：以牠最遠的招式射程為半徑（至少 200），站在這個範圍外或上方平台攻擊 Boss，Boss 不會受傷
   const BREACH = { slam: 85, roll: 240, bounce: 240, pillars: 240, frostbreath: 140, icering: 75, rain: 240, pull: 200, firefloor: 230, breath: 150, charge: 150, tail: 95, homing: 280, orbit: 85, split: 260, quake: 180, laser: 240, safe: 260 };
   function bossZone(t) { const m = MON[t]; if (!m || !m.boss) return 0; return Math.round(Math.max(200, ...(m.sk || []).map(k => BREACH[k] || 0)) + m.w / 2 + 20); }
@@ -285,6 +285,10 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-27c', notes: [
+      ['😈 覺醒試煉變難了', '試煉之影的血量變成 3 倍、傷害約 2.2 倍，招式預警跟一般 Boss 一樣快，低血量時會暴怒，而且每個職業的影子都多了一招。記得帶藥水、認真躲招！'],
+      ['🖥️ 全螢幕修正', '電腦全螢幕時，「此地圖人數」和覺醒值改到右上角，不會再被左上角的角色資訊擋住；覺醒中的終結技提示改成另一行，不會和剩餘時間疊在一起。'],
+    ] },
     { v: '2026-11-27b', notes: [
       ['🔥 守護靈覺醒', 'Lv 80 四轉後找轉職教官接「覺醒試煉」，打倒隨機職業的「試煉之影」就能喚醒自己職業的守護靈。'],
       ['⚡ 覺醒值', '打怪、受傷都會累積覺醒值（認真打怪大約 1 分鐘集滿），集滿按 G（手機按「覺醒」）啟動，畫面左上角看得到覺醒值。'],

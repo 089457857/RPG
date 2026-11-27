@@ -155,6 +155,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     return Math.abs(p.x - m.x) <= D.bossZone(m.t) && gy > sy - 50 && gy < sy + 20;
   }
   function bossAI(w, m, d) {
+    if (d.rival) { const p0 = [...w.players.values()][0]; if (p0) { m.aggro = 840; m.target = p0.uid; } }   // 試煉之影一開場就主動攻擊挑戰者
     // 打不到任何人時快速回血：沒有活著的玩家站在 Boss 這一層附近（例如全躲在高處平台上偷打）
     const sy = D.MAPS[m.mi].seg[m.seg].y;
     let reach = false; for (const p of w.players.values()) if (!p.dead && inZone(p, m)) { reach = true; break; }
@@ -163,7 +164,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (!m.regen) { m.regen = 1; ns.to(w.room).emit('sys', { t: `${d.name} 碰不到任何人，開始快速回血！快下來跟它正面對決！` }); }
       m.hp = Math.min(m.max, m.hp + m.max * .03 / 30);
     }
-    const rage = !d.trial && !d.rival && m.hp < m.max * .3;
+    const rage = !d.trial && m.hp < m.max * .3;   // 覺醒試煉的影子會暴怒
     if (rage && !m.rage) { m.rage = 1; ns.to(w.room).emit('sys', { t: `${d.name} 暴怒了！招式變得更快更兇！` }); }
     if (m.warn > 0) { m.vx = 0; if ((m.warn -= 1) <= 0) { if (m.pend === 'charge') m.dash = 12; else if (m.pend === 'leap') { m.leap = 12; m.vy = -4.2; m.hop = -.01; m.pend = null; } } return; }
     if (m.leap > 0) { m.leap--; m.x += (m.ltx - m.x) / Math.max(1, m.leap); m.vx = 0; return; }
@@ -202,7 +203,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     else if (k === 'laser') { ev.warn = 1000; ev.r = 240; m.warn = 46; }
     else if (k === 'orbit') { ev.warn = 700; ev.n = rage ? 4 : 3; ev.r = 85; ev.dur = 3200; m.warn = 40; }
     else if (k === 'split') { ev.warn = 700; ev.dist = 260; m.warn = 50; }
-    if (d.trial || d.rival) { ev.warn = Math.round((ev.warn || 0) * 1.4); m.warn = Math.round((m.warn || 0) * 1.4); ev.atk = Math.round(ev.atk * .75); ev.rage = 0; }
+    if (d.trial) { ev.warn = Math.round((ev.warn || 0) * 1.4); m.warn = Math.round((m.warn || 0) * 1.4); ev.atk = Math.round(ev.atk * .75); ev.rage = 0; }
     if (k !== 'charge' && k !== 'bounce') m.pend = null;
     ns.to(w.room).emit('bskill', ev);
   }
