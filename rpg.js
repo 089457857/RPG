@@ -71,20 +71,53 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       for (const [id, d] of w.drops) if (Date.now() > d.until) { w.drops.delete(id); ns.to(w.room).emit('dgone', { id }); }
     }
   }, TICK);
+  // ---------------- 控制與持續傷害 ----------------
+  // 一般怪：完整時間，硬控結束後 1 秒內不會再被硬控
+  // Boss：時間 60%，同一位施放者要等「控制結束 + 5 秒」才能再控牠；不同玩家可以輪流接控
+  const F60 = ms => Math.round(ms / 1000 * 60);   // 毫秒 → 60Hz 影格（怪物計時器的單位）
+  function applyEf(w, m, uid, code, dmg, now) {
+    const E = D.EF[code]; if (!E || m.dead || m.hp <= 0) return;
+    const boss = D.MON[m.t].boss;
+    if (E.dot) {   // 燒傷／中毒：不算控制，Boss 一樣全額；新的比較強就覆蓋，否則只延長時間
+      const per = Math.max(1, Math.round(dmg * E.dot / (E.t / 1000))), cur = m[code];
+      if (!cur || now > cur.until || per >= cur.per) m[code] = { per, until: now + E.t, by: uid, next: now + 1000 }; else cur.until = now + E.t;
+      ns.to(w.room).emit('mef', { i: m.i, k: code }); return;
+    }
+    let t = E.t;
+    if (boss) { m.ccImm ||= {}; if ((m.ccImm[uid] || 0) > now) return; t *= D.CC_RES; m.ccImm[uid] = now + t + D.CC_IMM; }
+    else if (E.hard && now < (m.hardImm || 0)) return;
+    if (E.hard) { m.frozen = F60(t); m.ccK = code; m.kx = 0; if (!boss) m.hardImm = now + t + 1000; }
+    else if (code === 'rt') m.root = F60(t);
+    else if (code === 'sl') m.slow = F60(t);
+    ns.to(w.room).emit('mef', { i: m.i, k: code, boss: boss ? 1 : 0 });
+  }
+  function tickDot(w, m, now) {
+    for (const code of ['bn', 'ps']) {
+      const o = m[code]; if (!o) continue;
+      if (now > o.until + 50 || m.dead || m.hp <= 0) { m[code] = null; continue; }
+      if (now < o.next) continue; o.next += 1000;
+      const dmg = Math.min(o.per, Math.ceil(m.hp)); m.hp -= dmg; m.dmgBy[o.by] = (m.dmgBy[o.by] || 0) + dmg; m.hurt = Math.max(m.hurt, 10);
+      ns.to(w.room).emit('hits', { by: o.by, h: [[m.i, dmg, 0, 0, code]] });
+      if (m.hp <= 0) { m[code] = null; kill(w, m, o.by); return; }
+    }
+  }
+  // 狀態旗標（廣播給瀏覽器畫特效）：1 凍結 2 麻痺 4 暈眩 8 束縛 16 緩速 32 燒傷 64 中毒
+  const monMask = (m, now) => (m.frozen > 0 ? ({ fz: 1, pz: 2, st: 4 }[m.ccK] || 1) : 0) | (m.root > 0 ? 8 : 0) | (m.slow > 0 ? 16 : 0) | (m.bn && now <= m.bn.until ? 32 : 0) | (m.ps && now <= m.ps.until ? 64 : 0);
   function stepMon(w, m) {
     const d = D.MON[m.t];
     if (m.dead) { if (d.trial) return; m.dead--; if (m.dead <= 0) { Object.assign(m, mkMon(m.sp, m.i, m.mi)); ns.to(w.room).emit('respawn', { i: m.i }); } return; }
     // 30Hz 模擬，速度 ×2 對齊瀏覽器的 60Hz
     if (m.hurt > 0) m.hurt -= 2; if (m.aggro > 0) m.aggro -= 2;
     const seg = D.MAPS[m.mi].seg[m.seg];
-    if (m.root > 0) m.root -= 2;
+    if (m.root > 0) m.root -= 2; if (m.slow > 0) m.slow -= 2;
+    if (m.bn || m.ps) { tickDot(w, m, Date.now()); if (m.dead) return; }
     if (m.frozen > 0) { m.frozen -= 2; m.kx = 0; }
     else if (m.kx) { m.x += m.kx * 1.6; m.kx *= .64; if (Math.abs(m.kx) < .1) m.kx = 0; }
     else if (m.hurt < 6 && !(m.warn > 0) && !(m.dash > 0) && !(m.root > 0)) {
       const tp = m.aggro && m.target ? w.players.get(m.target) : null;
       if (tp && !tp.dead && Math.abs(tp.y - seg.y) < 60) { m.f = tp.x < m.x ? -1 : 1; m.vx = d.spd * 1.5 * m.f; }
       else if ((m.think -= 2) <= 0) { m.think = ri(60, 180); const r = Math.random(); m.vx = r < .3 ? 0 : d.spd * (Math.random() < .5 ? -1 : 1); if (m.vx) m.f = Math.sign(m.vx); }
-      m.x += m.vx * 2;
+      m.x += m.vx * 2 * (m.slow > 0 ? .5 : 1);
     }
     const lo = Math.max(seg.x1 + m.w / 2, m.a), hi = Math.min(seg.x2 - m.w / 2, m.b);
     m.x = clamp(m.x, lo, hi); if ((m.x <= lo + .1 || m.x >= hi - .1) && m.vx) { m.vx = -m.vx; m.f = Math.sign(m.vx); }
@@ -92,7 +125,27 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (m.hop < 0 || m.vy) { for (let k = 0; k < 2; k++) { m.vy += G * .8; m.hop += m.vy; } if (m.hop >= 0) { m.hop = 0; m.vy = 0; if (m.stomping) { m.stomping = 0; ns.to(w.room).emit('stomp', { i: m.i, x: m.x, atk: Math.round(d.atk * 1.2) }); } } }
       else if (/slime|shroom/.test(m.t) && Math.random() < .016) { m.vy = -2.6; m.hop = -.01; }
     }
-    if (d.boss) bossAI(w, m, d);
+    if (d.boss && !(m.frozen > 0)) bossAI(w, m, d);   // 被凍結／麻痺／暈眩時 Boss 不會出招
+    else if (d.sp && !(m.frozen > 0)) mobAI(w, m, d);
+  }
+  // 小怪特殊攻擊：被打過（仇恨中）、目標在射程內而且站在同一層才出招；出招前原地蓄力，預警時間足夠閃開
+  function mobAI(w, m, d) {
+    if (m.warn > 0) { m.warn -= 2; m.vx = 0; return; }
+    if (!m.aggro || m.hop < 0) return;
+    if ((m.spT = (m.spT ?? ri(120, 240)) - 2) > 0) return;
+    const sp = d.sp, sy = D.MAPS[m.mi].seg[m.seg].y, tp = m.target && w.players.get(m.target);
+    const ty = tp ? (tp.rope || tp.gy == null ? tp.y : tp.gy) : 0;
+    if (!tp || tp.dead || Math.abs(tp.x - m.x) > sp.r || Math.abs(ty - sy) > 20) { m.spT = 30; return; }
+    m.spT = ri(260, 400); m.f = tp.x < m.x ? -1 : 1;
+    const ev = { i: m.i, k: sp.k, n: sp.n, x: Math.round(m.x), y: sy, f: m.f, atk: Math.round(d.atk * .9), mob: 1, warn: 800 };
+    if (sp.k === 'roll') ev.dist = sp.dist;
+    else if (sp.k === 'breath') ev.len = sp.len;
+    else if (sp.k === 'quake') { ev.r = sp.rad; ev.warn = 750; }
+    else if (sp.k === 'icering') { ev.r = sp.rad; ev.warn = 850; }
+    else if (sp.k === 'rain') { ev.xs = [Math.round(tp.x)]; if (sp.two) ev.xs.push(Math.round(clamp(tp.x + (Math.random() < .5 ? -36 : 36), 10, D.WW - 10))); ev.warn = 900; }
+    else if (sp.k === 'homing') { ev.tg = [tp.uid]; ev.warn = 600; }
+    m.warn = Math.round(ev.warn / 1000 * 60);
+    ns.to(w.room).emit('bskill', ev);
   }
   // ---------------- Boss 招式 ----------------
   // 伺服器決定 Boss 何時放什麼招、打哪裡；每位玩家的瀏覽器依預警範圍自行判定是否被打中。
@@ -155,14 +208,15 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   }
   // 10Hz 廣播
   setInterval(() => {
+    const now = Date.now();
     for (const w of allWorlds()) {
       if (!w.players.size) continue;
-      const m = w.mons.map(m => [m.i, Math.round(m.x * 10) / 10, Math.round(m.hop), m.f, Math.max(0, Math.round(m.hp)), m.dead ? 1 : 0, m.frozen > 0 ? 1 : 0, m.hurt > 8 ? 1 : 0]);
+      const m = w.mons.map(m => [m.i, Math.round(m.x * 10) / 10, Math.round(m.hop), m.f, Math.max(0, Math.round(m.hp)), m.dead ? 1 : 0, monMask(m, now), m.hurt > 8 ? 1 : 0]);
       const p = [...w.players.values()].map(pl => playerPub(pl));
       ns.to(w.room).emit('st', { m, p });
     }
   }, 100);
-  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0]; }
+  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now())]; }
 
   // ---------------- 擊殺與經驗 ----------------
   function kill(w, m, killer) {
@@ -186,10 +240,11 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     for (const [id, mt] of Object.entries(D.MOUNTS)) if (mt.drop === m.t && Math.random() < mt.rate) { add('mnt:' + id, 1, 14); ns.to(w.room).emit('sys', { t: `🐎 ${d.name} 掉落了坐騎「${mt.n}」！` }); }
     if (d.leg && Math.random() < d.leg) { add('leg', 1, -10); ns.to(w.room).emit('sys', { t: `✦ ${d.name} 掉落了傳說武器！快去撿！` }); }
     ns.to(w.room).emit('drop', news);
-    // 經驗：所有有出手、仍在這張地圖的玩家都分得到，一起打比較划算
-    const total = Object.values(m.dmgBy).reduce((a, b) => a + b, 0) || 1;
-    for (const [uid, dmg] of Object.entries(m.dmgBy)) {
-      const c = char(uid); if (!c || !w.players.has(uid)) continue;
+    // 經驗：有出手的人，加上他們在同一張地圖的隊友（沒出手也有基本份額），一起打比較划算
+    const total = Object.values(m.dmgBy).reduce((a, b) => a + b, 0) || 1, gain = new Set(Object.keys(m.dmgBy));
+    for (const u of [...gain]) for (const v of partyMates(u)) if (w.players.has(v)) gain.add(v);
+    for (const uid of gain) {
+      const dmg = m.dmgBy[uid] || 0, c = char(uid); if (!c || !w.players.has(uid)) continue;
       const share = Math.min(1, dmg / total + .3), ld = d.lv - c.lv, ef = ld < -10 ? .3 : ld < -5 ? .65 : 1;
       // 低等玩家跟打高等怪：照樣有經驗，但單次最多約 1.5 級，避免一隻王直接衝十幾級
       let e = Math.max(1, Math.round(d.exp * ef * share)); if (ld > 12) e = Math.min(e, Math.round(D.needExp(c.lv) * 1.5));
@@ -199,8 +254,33 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       pushMe(uid);
     }
     if (d.boss) ns.to(w.room).emit('sys', { t: `${D.MON[m.t].name} 被打倒了！最後一擊：${nameOf(killer)}` });
+    // 打倒虛空之主：最後一擊的玩家，和他在同一張地圖的隊友，等級上限變成 100
+    if (m.t === 'voidking') for (const u of new Set([killer, ...partyMates(killer)])) {
+      const c = char(u); if (!c || !w.players.has(u) || D.capOf(c) >= D.MAXLV2) continue;
+      c.cap = D.MAXLV2; pushMe(u);
+      ns.to('u:' + u).emit('notice', { t: `🌊 你突破了極限！等級上限提升到 ${D.MAXLV2}，可以到「潮聲港」找船長出海了` });
+      ns.emit('sys', { t: `🌊 ${nameOf(u)} 擊敗虛空之主，突破等級上限到 ${D.MAXLV2}！` });
+    }
     m.dmgBy = {}; save();
   }
+
+  // ---------------- 組隊（最多 6 人；隊伍只存在伺服器記憶體，離線就離開隊伍） ----------------
+  const PARTYMAX = 6, parties = new Map(), partyOf = new Map(), invites = new Map(); let partySeq = 1;
+  const partyMates = uid => { const p = parties.get(partyOf.get(uid)); return p ? p.members.filter(u => u !== uid) : []; };
+  function partyPub(p) {
+    return { id: p.id, leader: p.leader, members: p.members.map(u => { const c = char(u), k = ctl.get(u), mi = k ? k.wmi() : -1;
+      return { uid: u, name: nameOf(u), lv: c ? c.lv : 1, cls: c ? c.cls : '', job: c ? D.CL[c.cls].jobs[c.job] : '', mi, map: mi >= 0 ? D.MAPS[mi].name : '離線', hp: k ? (k.pl.dead ? 0 : k.pl.hpPct ?? 100) : 0 }; }) };
+  }
+  function pushParty(p) { const d = partyPub(p); for (const u of p.members) ns.to('u:' + u).emit('party', d); }
+  function leaveParty(uid, why) {
+    const p = parties.get(partyOf.get(uid)); partyOf.delete(uid); ns.to('u:' + uid).emit('party', null); if (!p) return;
+    p.members = p.members.filter(u => u !== uid);
+    if (p.members.length <= 1) { for (const u of p.members) { partyOf.delete(u); ns.to('u:' + u).emit('party', null); ns.to('u:' + u).emit('notice', { t: '隊伍解散了' }); } parties.delete(p.id); return; }
+    if (p.leader === uid) p.leader = p.members[0];
+    for (const u of p.members) ns.to('u:' + u).emit('sys', { t: `👥 ${nameOf(uid)} ${why || '離開了隊伍'}` });
+    pushParty(p);
+  }
+  setInterval(() => { for (const p of parties.values()) pushParty(p); }, 1000);
 
   // ---------------- 連線 ----------------
   ns.use((socket, next) => {
@@ -220,6 +300,33 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     if (now < (tpl.guardT || 0)) dmg *= .7; if (now < (tpl.shieldT || 0)) dmg *= .6; if (now < (tpl.wingT || 0)) dmg *= .5;
     return { dmg: Math.max(1, Math.round(dmg)), crit };
   }
+  // ---- PVP 擊倒（直接攻擊或燒傷／中毒都會走這裡） ----
+  function pvpKO(w, uid, tu) {
+    const o = w.players.get(tu), c = char(uid), tc = char(tu); if (!o || o.dead) return;
+    o.dead = 1; o.pdot = null; ns.to('u:' + tu).emit('pdie', { by: nameOf(uid) });
+    const kp = w.players.get(uid), du = kp && kp.duel && duels.get(kp.duel);
+    if (du) duelEnd(kp.duel, uid, '');
+    else if (D.MAPS[w.mi].pvp === 'arena' && c && tc) { const r1 = pvpRec(c), r2 = pvpRec(tc), pts = tc.lv >= c.lv - 15 ? 10 : 2; r1.pts += pts; r1.k++; r2.d++; r2.pts = Math.max(0, r2.pts - 3); save();
+      ns.to('u:' + uid).emit('notice', { t: `打倒了 ${nameOf(tu)}！競技場積分 +${pts}（目前 ${r1.pts}）` }); ns.to(w.room).emit('sys', { t: `⚔ ${nameOf(uid)} 打倒了 ${nameOf(tu)}`, quiet: 1 }); }
+  }
+  // ---- PVP 控制：時間 60%，同一位攻擊者要等「控制結束 + 5 秒」才能再控同一個人 ----
+  function applyPef(w, o, uid, code, dmg, now) {
+    const E = D.EF[code]; if (!E || !(o.php > 0)) return;
+    if (E.dot) { const per = Math.max(1, Math.round(dmg * E.dot / (E.t / 1000))); if (!o.pdot || now > o.pdot.until || per >= o.pdot.per) o.pdot = { k: code, per, until: now + E.t, by: uid, next: now + 1000 }; else o.pdot.until = now + E.t; }
+    else { o.pcImm ||= {}; if ((o.pcImm[uid] || 0) > now) return; const t = Math.round(E.t * D.CC_RES); o.pcImm[uid] = now + t + D.CC_IMM; o.pcc = { k: code, until: now + t }; ns.to('u:' + o.uid).emit('pctl', { k: code, ms: t, by: nameOf(uid) }); }
+    ns.to(w.room).emit('pef', { u: o.uid, k: code });
+  }
+  setInterval(() => {   // PVP 的燒傷／中毒（伺服器扣血）
+    const now = Date.now();
+    for (const mi of [6, 7]) { const w = worlds[mi]; for (const o of w.players.values()) {
+      const d = o.pdot; if (!d) continue; if (!(o.php > 0) || now > d.until + 50) { o.pdot = null; continue; } if (now < d.next) continue; d.next += 1000;
+      const dmg = Math.min(d.per, o.php); o.php -= dmg; o.hpPct = Math.round(o.php / o.pmax * 100);
+      ns.to(w.room).emit('phurt', { u: o.uid, by: d.by, dmg, crit: 0, s: 0, k: d.k }); ns.to('u:' + o.uid).emit('php', { hp: o.php, max: o.pmax, by: nameOf(d.by) });
+      if (o.php <= 0) pvpKO(w, d.by, o.uid);
+    } }
+  }, 200);
+  // 玩家身上的狀態旗標（給別人的畫面畫特效）
+  const plMask = (pl, now) => (pl.pcc && now < pl.pcc.until ? ({ fz: 1, pz: 2, st: 4, rt: 8, sl: 16 }[pl.pcc.k] || 0) : 0) | (pl.pdot && now <= pl.pdot.until ? (pl.pdot.k === 'bn' ? 32 : 64) : 0);
   function duelEnd(id, winner, why) {
     const du = duels.get(id); if (!du) return; duels.delete(id);
     const loser = winner === du.a ? du.b : du.a;
@@ -252,7 +359,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
 
     function enter(mi, x, world) {
       if (w) { w.players.delete(uid); socket.leave(w.room); ns.to(w.room).emit('pleave', { id: uid }); if (trials.get(uid) === w && world !== w) trials.delete(uid); }
-      w = world || worlds[mi]; pl.x = x ?? D.MAPS[mi].start; pl.y = D.GY; pl.gy = null; pl.dead = 0;
+      w = world || worlds[mi]; pl.x = x ?? D.MAPS[mi].start; pl.y = D.GY; pl.gy = null; pl.dead = 0; pl.pdot = null; pl.pcc = null;
       // 同一個帳號只留一個連線在世界裡
       for (const w2 of allWorlds()) w2.players.delete(uid);
       w.players.set(uid, pl); socket.join(w.room);
@@ -308,7 +415,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const used = Object.values(c.st).reduce((a, b) => a + b, 0); if (!used) return ack && ack({ ok: false, msg: '還沒有分配任何點數' });
       if (c.gold < D.APRESET) return ack && ack({ ok: false, msg: `重置需要 ${D.APRESET} 金幣` }); c.gold -= D.APRESET; c.ap += used; c.st = { str: 0, vit: 0, int: 0, dex: 0 }; save(); ack && ack({ ok: true, me: me(uid) });
     });
-    socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); if (D.MAPS[c.map || 0]?.pvp || D.MAPS[c.map || 0]?.trial) c.map = 0; enter(c.map || 0); ack && ack({ ok: true });
+    socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); if (D.MAPS[c.map || 0]?.pvp || D.MAPS[c.map || 0]?.trial) c.map = 0; if (c.map === 10 && D.capOf(c) < D.MAXLV2) c.map = 9; enter(c.map || 0); ack && ack({ ok: true });
+      if (D.VERSION && S.users[uid] && S.users[uid].seenVer !== D.VERSION) socket.emit('news', { v: D.VERSION, notes: D.NOTES });
       if (c.apComp) { delete c.apComp; save(); socket.emit('notice', { t: `能力值系統改版補償：獲得 ${D.APRESET.toLocaleString()} 金幣，可以到「能力」重新配點！` }); } });
     socket.on('pos', (p = {}) => {
       if (!w) return;
@@ -319,7 +427,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('hit', (list) => {
       const c = char(uid); if (!w || !c || !Array.isArray(list) || pl.dead || pl.mount) return;
       const now = Date.now(); if (now - rate.t > 1000) { rate = { t: now, n: 0 }; }
-      const st = D.stats(c), out = []; let dealt = 0;
+      const st = D.stats(c), out = [], efs = D.efOf(c.cls); let dealt = 0;
       for (const h of list.slice(0, 20)) {
         if (++rate.n > 60) break;
         const m = w.mons[h.m | 0]; if (!m || m.dead || m.hp <= 0) continue;
@@ -332,13 +440,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         // 靈魂收割：直接處決殘血的一般怪
         if (h.ex && !boss && m.hp - dmg < m.max * .15) dmg = Math.max(dmg, Math.ceil(m.hp));
         if (h.vu) m.vuln = now + 8000;
-        if (h.rt && !boss) m.root = 75;
         m.hp -= dmg; m.hurt = 28; m.aggro = 840; m.target = uid; m.dmgBy[uid] = (m.dmgBy[uid] || 0) + dmg;
         if (!boss && h.pl) m.kx = clamp((pl.x + (m.x < pl.x ? -20 : 20) - m.x) / 4.4, -40, 40);
         else if (!boss && h.kb) m.kx = clamp(+h.kb, 0, 4) * (m.x < pl.x ? -1 : 1);
-        // 冰凍：一般怪 1 秒、Boss 0.5 秒；被凍過之後有抗凍時間，避免一直被凍住
-        // 冰凍：Boss 免疫；凍結 0.75 秒，解凍後 3 秒內不會再被凍住
-        if (h.fz && !D.MON[m.t].boss && now > (m.fzImm || 0)) { m.frozen = 45; m.fzImm = now + 750 + 3000; }
+        if (typeof h.ef === 'string' && efs.has(h.ef)) applyEf(w, m, uid, h.ef, dmg, now);   // 控制／持續傷害（只接受這個職業會的效果）
         out.push([m.i, dmg, crit ? 1 : 0, h.s | 0]); dealt += dmg;
         if (m.hp <= 0) kill(w, m, uid);
       }
@@ -391,7 +496,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const c = char(uid); if (!c) return ack && ack({ ok: false });
       const no = msg => ack && ack({ ok: false, msg });
       if (k === 'pot' || k === 'eth' || k === 'pot10' || k === 'rest') {
-        if (!w || w.mi !== 0) return no('要在晨露村才能購買');
+        if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
         const price = D.SHOP[k]; if (c.gold < price) return no('金幣不足');
         c.gold -= price; if (k === 'pot') c.pot++; else if (k === 'eth') c.eth++; else if (k === 'pot10') c.pot += 10;
       } else if (k === 'wep') {
@@ -403,7 +508,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); if (c.gold < it[4]) return no('金幣不足');
         c.gold -= it[4]; c.arm = i | 0;
       } else if (k === 'mount') {
-        const mt = D.MOUNTS[i]; if (!w || w.mi !== 0) return no('要在晨露村才能購買');
+        const mt = D.MOUNTS[i]; if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
         if (!mt || !mt.price) return no('這個坐騎買不到，只能打 Boss 取得'); if (c.mounts.includes(i)) return no('已經擁有了');
         if (c.lv < mt.lv) return no(`需要 Lv ${mt.lv}`); if (c.gold < mt.price) return no('金幣不足');
         c.gold -= mt.price; c.mounts.push(i); c.mnt = i;
@@ -435,14 +540,14 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (!isGM(uid)) return no('只有 GM 帳號可以使用');
       if (!D.CL[cls]) return no('職業錯誤');
       if (w && (isPvp(w) || D.MAPS[w.mi].trial)) return no('請先離開決鬥場／競技場／試煉再切換');
-      lv = clamp(lv | 0 || D.MAXLV, 1, D.MAXLV); job = clamp(job | 0, 0, 4); while (job > 0 && D.JOBLV[job] > lv) job--;
+      lv = clamp(lv | 0 || D.MAXLV, 1, D.MAXLV2); job = clamp(job | 0, 0, 4); while (job > 0 && D.JOBLV[job] > lv) job--;
       const old = S.rpg[uid] || {}, c = D.newChar(cls), wl = D.WEAPONS[cls];
       let wep = 0; wl.forEach((it, i) => { if (!it[4] && it[2] <= lv) wep = i; }); if (lv >= wl[D.LEGI][2]) wep = D.LEGI;
       let arm = 0; D.ARMORS.forEach((it, i) => { if (it[3] <= lv) arm = i; });
       const mounts = Object.keys(D.MOUNTS).filter(k => (D.MOUNTS[k].lv || 0) <= lv); if (!mounts.length) mounts.push('horse');
       Object.assign(c, { gm: 1, lv, job, exp: 0, wep, arm, gold: 9999999, pot: 999, eth: 999, ap: (lv - 1) * D.APL, map: w ? w.mi : (old.map || 0), mounts,
         mnt: mounts.includes(old.mnt) ? old.mnt : mounts[mounts.length - 1], pet: lv >= D.PETLV && D.PETS[pet] ? pet : null });
-      if (old.nm) c.nm = old.nm; if (old.rnN) c.rnN = old.rnN;   // 保留角色名字
+      if (old.nm) c.nm = old.nm; if (old.rnN) c.rnN = old.rnN; if (lv > D.MAXLV || old.cap) c.cap = D.MAXLV2;   // 保留角色名字
       S.rpg[uid] = c; save();
       ack && ack({ ok: true, me: me(uid) });
       if (w) enter(w.mi, pl.x);
@@ -457,6 +562,53 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ack && ack({ ok: true, me: me(uid), cost });
       if (w) ns.to(w.room).emit('sys', { t: `${old} 改名為「${nameOf(uid)}」` });
     });
+    // ---- 組隊 ----
+    socket.on('pInfo', (_, ack) => {
+      const list = w ? [...w.players.values()].filter(o => o.uid !== uid && !partyOf.has(o.uid)).map(o => { const oc = char(o.uid) || {}; return { uid: o.uid, name: nameOf(o.uid), lv: oc.lv, job: D.CL[oc.cls]?.jobs[oc.job] || '' }; }) : [];
+      const p = parties.get(partyOf.get(uid)); ack && ack({ ok: true, party: p ? partyPub(p) : null, list });
+    });
+    socket.on('pInv', ({ to, name } = {}, ack) => {
+      const no = msg => ack && ack({ ok: false, msg });
+      if (name) { const k = String(name).trim().toLowerCase(); to = [...ctl.keys()].find(u => u !== uid && (nameOf(u).toLowerCase() === k || nameOf(u).replace('［GM］', '').toLowerCase() === k || String(S.users[u]?.name || '').toLowerCase() === k)); if (!to) return no('找不到這位線上玩家'); }
+      to = String(to || ''); if (!ctl.has(to) || to === uid) return no('對方不在線上');
+      if (partyOf.has(to)) return no('對方已經在別的隊伍裡了');
+      const p = parties.get(partyOf.get(uid)); if (p && p.members.length >= PARTYMAX) return no(`隊伍最多 ${PARTYMAX} 人`);
+      if (p && p.leader !== uid) return no('只有隊長可以邀請');
+      const iv = invites.get(to); if (iv && iv.until > Date.now() && iv.from === uid) return no('已經邀請過了，等對方回覆');
+      invites.set(to, { from: uid, until: Date.now() + 30000 }); ns.to('u:' + to).emit('pInvite', { from: uid, name: nameOf(uid) });
+      ack && ack({ ok: true, msg: `已邀請 ${nameOf(to)}` });
+    });
+    socket.on('pAns', ({ from, ok } = {}, ack) => {
+      const iv = invites.get(uid); invites.delete(uid);
+      if (!iv || iv.from !== String(from) || iv.until < Date.now()) return ack && ack({ ok: false, msg: '邀請已經過期了' });
+      if (!ok) { ns.to('u:' + iv.from).emit('notice', { t: `${nameOf(uid)} 拒絕了組隊邀請` }); return ack && ack({ ok: true }); }
+      if (partyOf.has(uid)) return ack && ack({ ok: false, msg: '你已經在隊伍裡了' });
+      if (!ctl.has(iv.from)) return ack && ack({ ok: false, msg: '對方已經離線了' });
+      let p = parties.get(partyOf.get(iv.from));
+      if (!p) { p = { id: partySeq++, leader: iv.from, members: [iv.from] }; parties.set(p.id, p); partyOf.set(iv.from, p.id); }
+      if (p.members.length >= PARTYMAX) return ack && ack({ ok: false, msg: '隊伍已經滿了' });
+      p.members.push(uid); partyOf.set(uid, p.id);
+      for (const u of p.members) ns.to('u:' + u).emit('sys', { t: `👥 ${nameOf(uid)} 加入了隊伍` });
+      pushParty(p); ack && ack({ ok: true });
+    });
+    socket.on('pLeave', (_, ack) => { leaveParty(uid); ack && ack({ ok: true }); });
+    socket.on('pKick', ({ u } = {}, ack) => {
+      const p = parties.get(partyOf.get(uid)); if (!p || p.leader !== uid || !p.members.includes(String(u)) || String(u) === uid) return ack && ack({ ok: false, msg: '只有隊長可以踢人' });
+      ns.to('u:' + u).emit('notice', { t: '你被請出了隊伍' }); leaveParty(String(u), '被請出了隊伍'); ack && ack({ ok: true });
+    });
+    socket.on('pLead', ({ u } = {}, ack) => {
+      const p = parties.get(partyOf.get(uid)); if (!p || p.leader !== uid || !p.members.includes(String(u))) return ack && ack({ ok: false });
+      p.leader = String(u); for (const v of p.members) ns.to('u:' + v).emit('sys', { t: `👥 ${nameOf(p.leader)} 成為新隊長` }); pushParty(p); ack && ack({ ok: true });
+    });
+    // ---- 潮聲港碼頭：搭船到深淵海溝（要先解鎖 100 等） ----
+    socket.on('sail', (_, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w || w.mi !== 9) return no('要在潮聲港的碼頭搭船');
+      const boat = D.MAPS[9].npcs.find(n => n.kind === 'boat'); if (Math.abs(pl.x - boat.x) > 90) return no('離船長太遠了');
+      if (D.capOf(c) < D.MAXLV2) return no(`要先打倒虛空之主、把等級上限突破到 ${D.MAXLV2} 才能出海`);
+      c.map = 10; save(); ack && ack({ ok: true }); enter(10, D.MAPS[10].start);
+    });
+    // ---- 更新公告：每個帳號每個版本只看一次 ----
+    socket.on('newsSeen', ({ v } = {}) => { const u = S.users[uid]; if (u && v === D.VERSION) { u.seenVer = D.VERSION; save(); } });
     // ---- 轉職試煉 ----
     socket.on('trial', (_, ack) => {
       const c = char(uid); if (!c) return ack && ack({ ok: false });
@@ -505,7 +657,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('phit', (list) => {
       const c = char(uid); if (!w || !c || !Array.isArray(list) || !isPvp(w) || !(pl.php > 0) || pl.mount) return;
       const now = Date.now(); if (now - rate.t > 1000) { rate = { t: now, n: 0 }; }
-      const du = pl.duel && duels.get(pl.duel), arena = D.MAPS[w.mi].pvp === 'arena';
+      const du = pl.duel && duels.get(pl.duel), arena = D.MAPS[w.mi].pvp === 'arena', efs = D.efOf(c.cls);
       if (!arena && !(du && now >= du.start)) return;
       for (const h of list.slice(0, 20)) {
         if (++rate.n > 40) break;
@@ -518,13 +670,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         ns.to('u:' + tu).emit('php', { hp: o.php, max: o.pmax, by: nameOf(uid) });
         if (c.pet === 'zhuque') pvpHp(pl.php + Math.min(dmg * .05, pl.pmax * .04));
         if (h.heal) pvpHp(pl.php + pl.pmax * Math.min(.04, +h.heal || 0));
-        if (o.php <= 0) {   // 打倒
-          o.dead = 1; ns.to('u:' + tu).emit('pdie', { by: nameOf(uid) });
-          if (du) duelEnd(pl.duel, uid, '');
-          else if (arena) { const r1 = pvpRec(c), r2 = pvpRec(tc), pts = tc.lv >= c.lv - 15 ? 10 : 2; r1.pts += pts; r1.k++; r2.d++; r2.pts = Math.max(0, r2.pts - 3); save();
-            socket.emit('notice', { t: `打倒了 ${nameOf(tu)}！競技場積分 +${pts}（目前 ${r1.pts}）` }); ns.to(w.room).emit('sys', { t: `⚔ ${nameOf(uid)} 打倒了 ${nameOf(tu)}`, quiet: 1 }); }
-          break;
-        }
+        if (typeof h.ef === 'string' && efs.has(h.ef)) applyPef(w, o, uid, h.ef, dmg, now);
+        if (o.php <= 0) { pvpKO(w, uid, tu); break; }
       }
     });
     socket.on('advance', (_, ack) => { return ack && ack({ ok: false, msg: '轉職要先通過轉職試煉喔' });
@@ -546,7 +693,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const c = char(uid); if (!c) return;
       if (w && D.MAPS[w.mi].pvp === 'arena') { ack && ack({ ok: true }); const m = D.MAPS[7]; enter(7, Math.round(rnd(m.lo, m.hi))); return; }   // 競技場：場內復活
       if (w && (D.MAPS[w.mi].pvp || D.MAPS[w.mi].trial)) { ack && ack({ ok: true }); if (D.MAPS[w.mi].trial) socket.emit('notice', { t: '試煉失敗了，沒關係！回轉職教官那裡隨時可以再挑戰（不會扣經驗）' }); goRet(); return; }
-      c.exp = Math.max(0, c.exp - Math.floor(D.needExp(c.lv) * .06)); c.map = 0; save(); pushMe(uid); ack && ack({ ok: true }); enter(0, D.MAPS[0].start);
+      const home = (w && D.MAPS[w.mi].home) || 0;   // 深淵海溝、潮聲港倒下 → 在潮聲港復活
+      c.exp = Math.max(0, c.exp - Math.floor(D.needExp(c.lv) * .06)); c.map = home; save(); pushMe(uid); ack && ack({ ok: true }); enter(home, D.MAPS[home].start);
     });
     socket.on('chat', ({ t } = {}) => {
       if (!w) return; const now = Date.now(); if (now - chatT < 800) return; chatT = now;
@@ -557,6 +705,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       // 同帳號若還有其他分頁連著，就不移除
       setTimeout(() => {
         const still = (ns.adapter.rooms.get('u:' + uid)?.size || 0) > 0;
+        if (!still) { leaveParty(uid, '離線了'); invites.delete(uid); }
         if (w && !still) { w.players.delete(uid); ns.to(w.room).emit('pleave', { id: uid }); if (trials.get(uid) === w) trials.delete(uid); if (pl.duel) { const du = duels.get(pl.duel); if (du) duelEnd(pl.duel, du.a === uid ? du.b : du.a, '對手離線'); } ctl.delete(uid); }
       }, 300);
     });

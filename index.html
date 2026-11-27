@@ -121,6 +121,8 @@ body.fs .t-mnt{left:calc(16px + var(--sl))!important;top:auto!important;bottom:c
 .btn.pri{background:linear-gradient(180deg,#ffe58a,var(--gold) 50%,#d39a12);color:#2a1a00;border-color:#fff0b0}
 .btn.sm{min-height:36px;font-size:14px;padding:0 12px}
 .nmrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:var(--dim)}.nmrow input{flex:1;min-width:180px}
+.hpb{width:min(180px,40vw);height:6px;background:#ffffff22;border-radius:3px;margin-top:4px;overflow:hidden}.hpb i{display:block;height:100%;background:#5ad65a}
+.news .item{align-items:flex-start}.news .ds{font-size:13px;line-height:1.6;color:#d9ddf0}
 .gmf{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:8px 12px;margin-top:10px}.gmf label{display:grid;gap:4px;font-size:14px;color:var(--dim)}
 .gmf select,.gmf input{font:600 15px "Noto Sans TC",sans-serif;color:var(--ink);background:#0f1328;border:1px solid #ffffff2e;border-radius:10px;min-height:40px;padding:0 10px}
 .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
@@ -163,6 +165,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
 <body>
 <div class="rot" id="rot" hidden><div><b>把手機轉成橫向</b><p>橫向會自動切換成全螢幕遊玩，畫面更大、輪盤更好操作。<br>（LINE 和 iPhone 的瀏覽器會留著網址列；想要真正全螢幕，可以用 Safari／Chrome 開啟後「加入主畫面」。）</p><button class="btn pri" id="rotOk" type="button">先用直向玩</button></div></div>
 <div class="afk" id="afk" hidden><div><b>已自動斷線</b><p>你已經 5 分鐘沒有動作，為了節省伺服器時數，已經自動斷線。</p><button class="btn pri" type="button" id="afkBack">重新連線</button></div></div>
+<div class="duelreq" id="ptReq" hidden style="top:auto;bottom:16px"><b id="ptTxt"></b><div class="row"><button class="btn pri sm" id="ptYes" type="button">加入</button><button class="btn sm" id="ptNo" type="button">拒絕</button></div></div>
 <div class="duelreq" id="duelReq" hidden><b id="drTxt"></b><div class="row"><button class="btn pri sm" id="drYes" type="button">接受</button><button class="btn sm" id="drNo" type="button">拒絕</button></div></div>
 <div class="wrap">
   <div class="top"><h1>屁眼王國大冒險</h1><span class="netinfo" id="net">連線中…</span></div>
@@ -212,7 +215,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
         <div class="b xp"><i id="uXp"></i><span id="uXpT"></span></div>
       </div>
       <button class="btn sm menub" id="menuBtn" type="button" aria-expanded="false" aria-label="選單">☰</button>
-      <div class="inv"><span class="g" id="uGold">0</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="btn sm" id="pvpBtn">PVP</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><button class="btn sm" id="gmBtn" style="display:none">GM</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
+      <div class="inv"><span class="g" id="uGold">0</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="btn sm" id="pvpBtn">PVP</button><button class="btn sm" id="ptBtn">隊伍</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><button class="btn sm" id="gmBtn" style="display:none">GM</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
     </div>
     <div class="chat" id="chat" hidden>
       <div class="log" id="log" aria-live="polite"></div>
@@ -240,9 +243,12 @@ const PAL={
   sky:{sky:['#4a8cf0','#bcdcff','#fff2d0'],h1:'#ffffff',h2:'#e6ecfb',trunk:'#ece6d4',l1:'#fffaf0',l2:'#ffd86a',top:'#fff8dc',dirt:'#d6d0ea',dirt2:'#b6aed2',speck:'#ffd86a',cloud:'#ffffffee',tree:'pillar',fx:'ember',fxc:['#ffe680','#ffffff']},
   void:{sky:['#010304','#04201f','#0b4a3e'],h1:'#06201c',h2:'#041512',trunk:'#0a2a24',l1:'#0f3a30',l2:'#1a5a48',top:'#2a7a62',dirt:'#0c1a18',dirt2:'#071110',speck:'#3affc8',cloud:'#3affc826',tree:'dead',fx:'ember',fxc:['#3affc8','#b46aff']},
   arena:{sky:['#3a2a1e','#8a5a3a','#d8a070'],h1:'#a07850',h2:'#7a5a3a',trunk:'#c8b090',l1:'#e0d0b0',l2:'#c8463a',top:'#c8a878',dirt:'#8a6a48',dirt2:'#6a4a30',speck:'#c8463a',cloud:'#ffffff30',tree:'pillar'},
+  harbor:{sky:['#ff9a5a','#ffd3a0','#8fd3f0'],h1:'#5ab0d8',h2:'#3a8ab8',trunk:'#8a5a2b',l1:'#3fa35a',l2:'#5cc46a',top:'#f0dca0',dirt:'#d8b878',dirt2:'#b8965a',speck:'#f4e8c0',cloud:'#fff4e0e0',tree:'round'},
+  abyss:{sky:['#02101e','#06304e','#0a5a7a'],h1:'#0a2a44',h2:'#061c30',trunk:'#0a3a4a',l1:'#0f5a5a',l2:'#ff6a8a',top:'#2a8a8a',dirt:'#0c2a3a',dirt2:'#071c28',speck:'#5af0ff',cloud:'#5af0ff20',tree:'dead',fx:'ember',fxc:['#bff6ff','#5af0ff']},
   trial:{sky:['#2a1a4a','#6a4a9a','#e8c8ff'],h1:'#5a3a8a',h2:'#3a2466',trunk:'#ffe9a8',l1:'#fff6d0',l2:'#ffd23f',top:'#d8c8ff',dirt:'#4a3a6a',dirt2:'#2e2048',speck:'#ffd23f',cloud:'#ffffff60',tree:'pillar',fx:'ember',fxc:['#ffd23f','#ffffff']},
 };
 const NPCS=[{x:188,kind:'shop',name:'商人 老陳'},{x:58,kind:'job',name:'轉職教官 艾倫'}];
+const npcsHere=()=>MAPS[MI].npcs||(MAPS[MI].town?NPCS:[]);
 
 // ================= 畫布 =================
 const cv=$('#cv'),ctx=cv.getContext('2d'),scr=$('#screen');
@@ -259,7 +265,7 @@ const others=new Map();let sock=null,myId=null,myName='',ready=false,hitQ=[],onl
 const K={};
 function applyMe(m){if(!m)return;SPD=SPD0*(m.pet==='baihu'?1.2:1);const keep=P?{hp:P.hp,mp:P.mp}:null;
   if(!P)P={x:MAPS[m.map||0].start,y:GY,vx:0,vy:0,f:1,ground:true,rope:null,inv:0,cd:{atk:0,s1:0,s2:0,s3:0,s4:0,s5:0,s6:0},act:0,actK:'',drop:0,walk:0,dead:0,clone:0,mount:0,bf:{rage:0,bless:0,wing:0,shield:0}};
-  for(const k of ['nm','rnN','gm','cls','lv','exp','gold','pot','eth','base','job','wep','arm','map','pet','ap','st','slots','mounts','mnt'])P[k]=m[k];
+  for(const k of ['cap','nm','rnN','gm','cls','lv','exp','gold','pot','eth','base','job','wep','arm','map','pet','ap','st','slots','mounts','mnt'])P[k]=m[k];
   $('#gmBtn').style.display=m.gmOk?'':'none';
   P.max=m.max||D.stats(P);P.hp=keep?Math.min(keep.hp,P.max.hp):P.max.hp;P.mp=keep?Math.min(keep.mp,P.max.mp):P.max.mp;ui()}
 
@@ -321,25 +327,26 @@ function landOn(prevY,ny,x,ignore){let best=null;for(let i=0;i<SEG.length;i++){i
 function segUnder(x,y){for(let i=0;i<SEG.length;i++){const s=SEG[i];if(Math.abs(s.y-y)<.5&&x>=s.x1&&x<=s.x2)return i}return -1}
 let reviving=false;
 function updHero(){const p=P;if(p.dead){p.dead--;if(p.dead<=0&&!reviving){reviving=true;sock.emit('revive',{},()=>{reviving=false;p.dead=0;p.hp=p.max.hp;p.mp=Math.round(p.max.mp*.5);p.inv=120})}return}
-  for(const k in p.bf)if(p.bf[k]>0)p.bf[k]--;if(p.slowT>0)p.slowT--;
+  for(const k in p.bf)if(p.bf[k]>0)p.bf[k]--;if(p.slowT>0)p.slowT--;if(p.ccT>0)p.ccT--;if(p.rootT>0)p.rootT--;if(p.dotT>0)p.dotT--;
+  const cc=p.ccT>0,rooted=cc||p.rootT>0;   // 凍結／麻痺／暈眩：完全不能動；束縛：不能移動和跳
   if(tap('mount')){if(p.mount){p.mount=0;toast('下坐騎')}else if(p.lv<D.MOUNTLV)toast(`Lv ${D.MOUNTLV} 才能騎坐騎`);else if(p.rope)toast('爬繩子時不能騎坐騎');else{p.mount=1;const mt=D.MOUNTS[p.mnt||'horse'];toast(`騎上${mt.n}！速度 ×${mt.spd}、受到傷害 -${Math.round(mt.dr*100)}%${mt.glide?'，按住跳躍可以滑翔':''}（騎乘中無法攻擊）`);fx.push({t:'poof',x:p.x,y:p.y-8,life:16})}}
   if(p.rope&&p.mount)p.mount=0;
   if(p.inv>0)p.inv--;if(p.clone>0)p.clone--;for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;if(p.act>0)p.act--;if(p.drop>0)p.drop--;
   if(tap('pot'))usePot('pot');if(tap('eth'))usePot('eth');
-  if(p.rope){const r=p.rope;p.vx=0;p.vy=0;if(K.up)p.y-=1.3;if(K.down)p.y+=1.3;p.walk+=(K.up||K.down)?1:0;
+  if(p.rope){const r=p.rope;p.vx=0;p.vy=0;if(!cc){if(K.up)p.y-=1.3;if(K.down)p.y+=1.3}p.walk+=(K.up||K.down)?1:0;
     if(p.y<=r.y1){p.y=r.y1;p.rope=null;p.ground=true}else if(p.y>=r.y2){p.y=r.y2;p.rope=null;p.ground=true}
     if(tap('jump')&&(K.left||K.right)){p.rope=null;p.vy=-3.2;p.vx=(K.left?-1:1)*SPD;p.f=K.left?-1:1;p.ground=false}
     return}
   const upTap=tap('up');
-  if((K.up||upTap)&&p.ground){
-    for(const n of (MAPS[MI].town?NPCS:[]))if(Math.abs(p.x-n.x)<16){K.up=false;n.kind==='shop'?openShop():openJob();return}
+  if((K.up||upTap)&&p.ground&&!cc){
+    for(const n of npcsHere())if(Math.abs(p.x-n.x)<16){K.up=false;n.kind==='shop'?openShop():n.kind==='boat'?openBoat():openJob();return}
     for(const pt of MAPS[MI].portals)if(Math.abs(p.x-pt.x)<18&&Math.abs(p.y-GY)<1){K.up=false;usePortal(pt);return}}
-  if(K.up||(K.down&&p.ground)){for(const r of ROPES){if(Math.abs(p.x-r.x)<10&&((K.up&&p.y>r.y1+2&&p.y<=r.y2+1)||(K.down&&Math.abs(p.y-r.y1)<1))){p.rope=r;p.x=r.x;if(K.down)p.y=r.y1+3;p.ground=false;return}}}
-  const busy=p.act>0&&p.ground;let ax=0;if(!busy){if(K.left){ax=-1;p.f=-1}if(K.right){ax=1;p.f=1}}
+  if(!rooted&&(K.up||(K.down&&p.ground))){for(const r of ROPES){if(Math.abs(p.x-r.x)<10&&((K.up&&p.y>r.y1+2&&p.y<=r.y2+1)||(K.down&&Math.abs(p.y-r.y1)<1))){p.rope=r;p.x=r.x;if(K.down)p.y=r.y1+3;p.ground=false;return}}}
+  const busy=(p.act>0&&p.ground)||rooted;let ax=0;if(!busy){if(K.left){ax=-1;p.f=-1}if(K.right){ax=1;p.f=1}}
   const MT=p.mount?D.MOUNTS[p.mnt||'horse']||D.MOUNTS.horse:null,sp=SPD*(MT?MT.spd:1)*(p.bf.rage>0?1.15:1)*(p.bf.haste>0?1.25:1)*(1+(p.max.spdB||0))*(p.slowT>0?.5:1);if(p.ground)p.vx=ax*sp;else p.vx+=(ax*sp-p.vx)*(p.dj?.02:.08);
   if(p.ground)p.dj=0;
   if(p.cls==='rogue'&&!p.ground&&!p.dj&&pressed.jump&&p.vy>-3.5){pressed.jump=false;p.dj=1;p.vy=-4.6;p.vx=p.f*3.4;fx.push({t:'dj',x:p.x,y:p.y,f:p.f,life:14});sock.emit('cast',{k:'dj',x:Math.round(p.x),y:Math.round(p.y),f:p.f})}
-  if(tap('jump')&&p.ground){if(K.down){const si=segUnder(p.x,p.y);if(si>0){p.drop=14;p.ignore=si;p.ground=false;p.vy=1}}else{p.vy=JUMP*(p.mount?Math.sqrt((D.MOUNTS[p.mnt]||D.MOUNTS.horse).jump):1);p.ground=false}}
+  if(tap('jump')&&p.ground&&!rooted){if(K.down){const si=segUnder(p.x,p.y);if(si>0){p.drop=14;p.ignore=si;p.ground=false;p.vy=1}}else{p.vy=JUMP*(p.mount?Math.sqrt((D.MOUNTS[p.mnt]||D.MOUNTS.horse).jump):1);p.ground=false}}
   if(!p.ground)p.vy=Math.min(MAXF,p.vy+G);
   if(p.mount&&!p.ground&&p.vy>1.1&&K.jump&&(D.MOUNTS[p.mnt]||{}).glide){p.vy=1.1;if(frame%5===0)fx.push({t:'dj',x:p.x,y:p.y,f:p.f,life:10})}
   const ny=p.y+p.vy,nx=clamp(p.x+p.vx,6,WW-6);
@@ -358,8 +365,9 @@ function usePortal(pt){if(pt.rec&&P.lv<pt.rec)toast(`${pt.label}建議 Lv ${pt.r
 // ================= 技能（自己出招會打到怪；別人出招只播特效） =================
 function buffMul(){const f=P&&P.bf||{};return (f.rage>0?1.3:1)*(f.bless>0?1.2:1)*(f.pow>0?1.25:1)}
 function hitMon(m,mult,o={}){if(m.dead||m.hp<=0)return;m.hurt=14;mult=Math.min(3.2,mult*buffMul());
-  if(m.isP){pvpQ.push({u:m.uid,mult:Math.round(mult*100)/100,cb:o.crit||0,sk:o.sk?1:0,heal:o.heal||0,s:o.stack||0});return}
-  hitQ.push({m:m.i,mult:Math.round(mult*100)/100,cb:o.crit||0,fz:o.freeze||0,kb:Math.min(4,(o.kb??1.5)*(1+(P.max.kbB||0))),sk:o.sk?1:0,s:o.stack||0,vu:o.vu?1:0,rt:o.rt?1:0,pl:o.pull?1:0,ex:o.ex?1:0});
+  const ef=(typeof o.sk==='string'&&SK[P.cls][o.sk]&&SK[P.cls][o.sk].ef)||0;   // 這招帶的控制／持續傷害效果
+  if(m.isP){pvpQ.push({u:m.uid,mult:Math.round(mult*100)/100,cb:o.crit||0,sk:o.sk?1:0,heal:o.heal||0,s:o.stack||0,ef});return}
+  hitQ.push({m:m.i,mult:Math.round(mult*100)/100,cb:o.crit||0,ef,kb:Math.min(4,(o.kb??1.5)*(1+(P.max.kbB||0))),sk:o.sk?1:0,s:o.stack||0,vu:o.vu?1:0,pl:o.pull?1:0,ex:o.ex?1:0});
   if(o.heal&&P&&!P.dead){const h=Math.round(P.max.hp*o.heal);P.hp=Math.min(P.max.hp,P.hp+h);if(Math.random()<.4)num(P.x+6,P.y-30,'+'+h,'heal')}
   if(P.clone>0&&!o.cl)setTimeout(()=>{if(m.hp>0&&!m.dead)hitMon(m,mult*.6,{...o,cl:1,stack:(o.stack||0)+1,kb:0})},90)}
 function inBox(m,x1,x2,y1,y2){return !m.dead&&m.hp>0&&m.x+m.w/2>=x1&&m.x-m.w/2<=x2&&m.y>=y1&&m.y-m.h<=y2}
@@ -372,9 +380,9 @@ function sklOk(k){return D.skillLock(P,k)}
 function slotK(key){const i=+key.slice(1)-1;return (P&&P.slots&&P.slots[i])||''}
 const BUFFN={pow:'攻擊 +25%（20 秒）',guard:'受到傷害 -30%（15 秒）',haste:'移動速度 +25%、技能冷卻縮短（20 秒）'};
 function doSkill(k,A){const local=A===P;if(k==='dj'){if(!local)fx.push({t:'dj',x:A.x,y:A.y,f:A.f,life:14});return}const s=SK[A.cls][k];if(!s)return;
-  if(local){if(P.dead||P.rope||P.cd[k]>0)return;if(P.mount){if(frame-(P.mtT||-99)>60){P.mtT=frame;toast('騎乘中無法攻擊，按 F 下坐騎')}return}const lock=sklOk(k);if(lock){if(k!=='atk')toast(`${s.n}：${s.job?`需要${['','一','二','三','四'][s.job]}轉`:'需要 Lv '+s.lv}`);return}
+  if(local){if(P.dead||P.rope||P.cd[k]>0)return;if(P.ccT>0){if(frame-(P.ccTip||-99)>40){P.ccTip=frame;toast(`${D.EF[P.ccK].n}中，無法攻擊`)}return}if(P.mount){if(frame-(P.mtT||-99)>60){P.mtT=frame;toast('騎乘中無法攻擊，按 F 下坐騎')}return}const lock=sklOk(k);if(lock){if(k!=='atk')toast(`${s.n}：${s.job?`需要${['','一','二','三','四'][s.job]}轉`:'需要 Lv '+s.lv}`);return}
     if(s.mp&&P.mp<s.mp){toast('MP 不足');return}if(s.mp)P.mp-=s.mp;P.cd[k]=Math.round(s.cd*(P.pet==='baihu'?.8:1)*(P.bf.haste>0?.75:1)*(k==='atk'?1:1-(P.max.cdr||0)));sock.emit('cast',{k,x:Math.round(P.x),y:Math.round(P.y),f:P.f})}
-  A.act=16;A.actK=k;const f=A.f,x=A.x,y=A.y,isSk=k!=='atk',H=local?(m,mu,o={})=>hitMon(m,mu,{...o,sk:isSk}):()=>{},cos=!local;
+  A.act=16;A.actK=k;const f=A.f,x=A.x,y=A.y,isSk=k!=='atk'?k:0,H=local?(m,mu,o={})=>hitMon(m,mu,{...o,sk:isSk}):()=>{},cos=!local;
   const box=(w,h,mult,max,o)=>{let n=0;const x1=f>0?x:x-w,x2=f>0?x+w:x;for(const m of live()){if(n>=max)break;if(inBox(m,x1,x2,y-h,y+2)){H(m,mult,o);n++}}return n};
   const near=(r,yr)=>live().filter(m=>Math.abs(m.x-x)<r&&Math.abs(m.y-y)<(yr||120));
   switch(A.cls+':'+k){
@@ -386,7 +394,7 @@ function doSkill(k,A){const local=A===P;if(k==='dj'){if(!local)fx.push({t:'dj',x
     case 'mage:atk':shots.push({sk:isSk,t:'orb',x:x+f*8,y:y-13,vx:f*4.2,life:42,mult:1,pierce:0,col:'#9fd6ff',cos});break;
     case 'mage:s1':{let tg=null,bd=150;for(const m of live()){const d=(m.x-x)*f;if(d>0&&d<bd&&Math.abs(m.y-y)<40){bd=d;tg=m}}const ex=tg?tg.x:x+f*70,ey=tg?tg.y-tg.h/2:y-12;fx.push({t:'boom',x:ex,y:ey,life:20});for(const m of live())if(Math.abs(m.x-ex)<38&&Math.abs(m.y-m.h/2-ey)<34)H(m,1.6,{kb:2.5});break}
     case 'mage:s2':{const ts=near(230).sort((a,c)=>Math.abs(a.x-x)-Math.abs(c.x-x)).slice(0,4);ts.forEach((m,i)=>{fx.push({t:'bolt',x:m.x,y:m.y-m.h/2,life:16,d:i*3});setTimeout(()=>H(m,1.55,{kb:1}),i*50)});if(!ts.length)fx.push({t:'bolt',x:x+f*60,y:y-10,life:16,d:0});break}
-    case 'mage:s3':{const cx=x+f*80;fx.push({t:'storm',x:cx,y:y,life:60});if(local)for(let w=0;w<4;w++)setTimeout(()=>{for(const m of live())if(Math.abs(m.x-cx)<75&&Math.abs(m.y-y)<60)H(m,.8,{kb:.3,stack:w,freeze:w===0?45:0})},w*140);break}
+    case 'mage:s3':{const cx=x+f*80;fx.push({t:'storm',x:cx,y:y,life:60});if(local)for(let w=0;w<4;w++)setTimeout(()=>{for(const m of live())if(Math.abs(m.x-cx)<75&&Math.abs(m.y-y)<60)H(m,.8,{kb:.3,stack:w})},w*140);break}
     case 'mage:s4':{const ts=live().filter(m=>Math.abs(m.x-x)<220&&Math.abs(m.y-y)<160);for(let w=0;w<5;w++){const tx=ts.length?ts[w%ts.length].x+rnd(-20,20):x+f*(40+w*30);setTimeout(()=>{fx.push({t:'meteor',x:tx,y:GY,life:30});setTimeout(()=>{fx.push({t:'boom',x:tx,y:(ts.length?ts[w%ts.length].y:GY)-10,life:22});if(local)for(const m of live())if(Math.abs(m.x-tx)<48)H(m,1.75,{kb:2,stack:w%3})},300)},w*160)}break}
     case 'rogue:atk':{fx.push({t:'stab',x:x+f*12,y:y-11,f,life:8});let tg=null,bd=30;for(const m of live()){const d=(m.x-x)*f;if(d>-4&&d<bd&&Math.abs(m.y-y)<22){bd=d;tg=m}}if(tg&&local){H(tg,.65);setTimeout(()=>{if(tg.hp>0)H(tg,.65,{stack:1})},90)}break}
     case 'rogue:s1':for(let i=0;i<3;i++)setTimeout(()=>{shots.push({sk:isSk,t:'star',x:A.x+A.f*8,y:A.y-12-i,vx:A.f*5,life:40,mult:.85,pierce:0,col:'#e6ecf5',spin:0,cos})},i*80);break;
@@ -454,20 +462,20 @@ function genSkill(g,A,local,H,box,near,cos,sk){const f=A.f,x=A.x,y=A.y,o={kb:g.k
     case 'dash':case 'blink':{const x1=clamp(x+f*g.dist,6,WW-6),lo=Math.min(x,x1)-10,hi=Math.max(x,x1)+10;if(local){P.x=x1;P.inv=Math.max(P.inv,24)}else A.x=x1;fx.push({t:'dash',x1:x,x2:x1,y:y-10,life:14,col:g.col||'#c9a6ff'});
       if(g.type==='dash'){const ts=live().filter(m=>inBox(m,lo,hi,y-30,y+2));for(let w=0;w<g.hits;w++)setTimeout(()=>{for(const m of ts)if(m.hp>0&&!m.dead)H(m,g.mult,{...o,stack:w%4,kb:1.5})},w*110)}break}
     case 'multi':{const ts=near(g.r).sort((a,c)=>Math.abs(a.x-x)-Math.abs(c.x-x)).slice(0,g.n);ts.forEach((m,i)=>setTimeout(()=>{fx.push({t:'glink',x:A.x,y:A.y-14,x2:m.x,y2:m.y-m.h/2,col:g.col,life:14});H(m,g.mult,o)},i*50));break}
-    case 'proj':{if(g.back&&local){P.vx=-f*3;P.vy=-3;P.ground=false}const n=g.spread?3:g.burst||1;for(let i=0;i<n;i++)setTimeout(()=>shots.push({sk:1,t:g.big?'big':'gproj',x:A.x+A.f*8,y:A.y-12,vx:A.f*g.spd,vy:g.spread?(i-1)*.7:0,life:55,mult:g.mult,pierce:g.pierce,col:g.col,boom:g.boom,cos}),g.burst?i*90:0);break}
+    case 'proj':{if(g.back&&local){P.vx=-f*3;P.vy=-3;P.ground=false}const n=g.spread?3:g.burst||1;for(let i=0;i<n;i++)setTimeout(()=>shots.push({sk,t:g.big?'big':'gproj',x:A.x+A.f*8,y:A.y-12,vx:A.f*g.spd,vy:g.spread?(i-1)*.7:0,life:55,mult:g.mult,pierce:g.pierce,col:g.col,boom:g.boom,cos}),g.burst?i*90:0);break}
     case 'buff':if(local){P.bf[g.buff]=g.buff==='guard'?900:1200;toast(BUFFN[g.buff])}fx.push({t:'ring',x,y:y-10,life:30,col:'#ffd23f'});break;
     case 'heal':if(local&&MAPS[MI].pvp)sock.emit('pheal',{k:sk});if(local){const h=Math.round(P.max.hp*g.pct*(1+(P.max.healB||0)));P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}fx.push({t:'ring',x,y:y-10,life:30,col:'#9affb0'});break;
     case 'mpheal':if(local){const h=Math.round(P.max.mp*g.pct);P.mp=Math.min(P.max.mp,P.mp+h);num(P.x,P.y-34,'+'+h,'mp')}fx.push({t:'ring',x,y:y-10,life:30,col:'#7fb8ff'});break;
   }}
 function updShots(){for(const s of shots){s.x+=s.vx;if(s.vy)s.y+=s.vy;s.life--;if(s.spin!==undefined)s.spin++;if(s.t==='boomer'&&s.life===s.turn){s.vx=-s.vx;s.hit=new Set()}
-  for(const m of live()){if(s.hit&&s.hit.has(m))continue;const hr=s.t==='wave'||s.t==='big'||s.t==='sword'||s.t==='net'?14:s.t==='boomer'?9:3;if(Math.abs(m.x-s.x)<m.w/2+hr&&s.y>m.y-m.h-6&&s.y<m.y+4){if(!s.cos)hitMon(m,s.mult,{kb:s.t==='boomer'?.6:1.2,crit:s.crit||0,rt:s.rt,sk:s.sk});if(s.boom){fx.push({t:'boom',x:m.x,y:m.y-m.h/2,life:20});if(!s.cos)for(const o of live())if(o!==m&&Math.abs(o.x-m.x)<40&&Math.abs(o.y-m.y)<30)hitMon(o,1.2,{kb:1.5,sk:1})}(s.hit=s.hit||new Set()).add(m);if(s.pierce>0)s.pierce--;else{s.life=0;fx.push({t:'spark',x:s.x,y:s.y,life:8,col:s.col})}break}}}
+  for(const m of live()){if(s.hit&&s.hit.has(m))continue;const hr=s.t==='wave'||s.t==='big'||s.t==='sword'||s.t==='net'?14:s.t==='boomer'?9:3;if(Math.abs(m.x-s.x)<m.w/2+hr&&s.y>m.y-m.h-6&&s.y<m.y+4){if(!s.cos)hitMon(m,s.mult,{kb:s.t==='boomer'?.6:1.2,crit:s.crit||0,sk:s.sk});if(s.boom){fx.push({t:'boom',x:m.x,y:m.y-m.h/2,life:20});if(!s.cos)for(const o of live())if(o!==m&&Math.abs(o.x-m.x)<40&&Math.abs(o.y-m.y)<30)hitMon(o,1.2,{kb:1.5,sk:s.sk||1})}(s.hit=s.hit||new Set()).add(m);if(s.pierce>0)s.pierce--;else{s.life=0;fx.push({t:'spark',x:s.x,y:s.y,life:8,col:s.col})}break}}}
   shots=shots.filter(s=>s.life>0)}
 
 // ================= 怪物（伺服器同步） =================
 function mkLocalMon(sp,i,st){const m=MON[sp.t],seg=SEG[sp.s];return{i,t:sp.t,sp,seg:sp.s,x:st.x,tx:st.x,y:seg.y,hop:st.hop||0,f:st.f||1,hp:st.hp,max:m.hp,dead:st.dead,hurt:0,frozen:0,w:m.w,h:m.h}}
-let haz=[];const HCOL=['#b8f07a','#bfe8ff','#ff7a2a','#b46aff','#ffe680','#3affc8'];
+let haz=[];const HCOL=['#b8f07a','#bfe8ff','#ff7a2a','#b46aff','#ffe680','#3affc8'];HCOL[10]='#ff9ad8';
 // Boss 招式：伺服器決定招式與位置，每位玩家的畫面依預警範圍自行判定有沒有被打中
-function addBoss(d){const m=mons[d.i],now=performance.now();if(m&&d.n&&P&&Math.abs(P.x-d.x)<560)toast(`${MON[m.t].name}：${d.n}！${d.rage?'（暴怒）':''}`);
+function addBoss(d){const m=mons[d.i],now=performance.now();if(d.mob){if(m&&P&&Math.abs(P.x-d.x)<400)num(m.x,m.y-m.h-12,d.n,'ef','#ffb34d')}else if(m&&d.n&&P&&Math.abs(P.x-d.x)<560)toast(`${MON[m.t].name}：${d.n}！${d.rage?'（暴怒）':''}`);
   const base={x:d.x,y:d.y,f:d.f,t0:now,warn:d.warn,atk:d.atk,mi:d.i};
   if(d.k==='rain')d.xs.forEach((x,j)=>haz.push({...base,k:'rain',x,warn:d.warn+j*70}));
   else if(d.k==='pillars')haz.push({...base,k:'pillars',xs:d.xs});
@@ -527,16 +535,16 @@ function updMons(){updHaz();const p=P;for(const m of mons){if(m.dead)continue;if
   if(p&&!p.dead&&p.inv<=0&&!m.frozen&&Math.abs(p.x-m.x)<(m.w/2+5)&&p.y>m.y-m.h+m.hop-2&&p.y-20<m.y+m.hop)hurtHero(MON[m.t].atk,m.x)}}
 function hurtHero(atk,fromX){const p=P;const dmg=Math.max(1,Math.round((atk*rnd(.9,1.1)-p.max.def*.7)*(CL[p.cls].dr||1)*(p.bf.shield>0?.6:1)*(p.bf.wing>0?.5:1)*(p.bf.guard>0?.7:1)*(p.mount?1-((D.MOUNTS[p.mnt]||{}).dr||.25):1)));p.hp-=dmg;p.inv=Math.round(70*(1+(p.max.invB||0)));num(p.x,p.y-30,dmg,'hurt');
   if(!p.rope){p.vy=-2.6;p.vx=(p.x<fromX?-1:1)*1.6;p.ground=false}
-  if(p.hp<=0){p.hp=0;p.dead=110;p.rope=null;toast('你倒下了……稍後在晨露村復活')}ui()}
+  if(p.hp<=0){p.hp=0;p.dead=110;p.rope=null;toast(`你倒下了……稍後在${MAPS[MAPS[MI].home??0].name==='蘑菇森林'?'晨露村':MAPS[MAPS[MI].home??0].name}復活`)}ui()}
 function updDrops(){const p=P;for(const d of drops){if(d.vy!==null){d.vy+=G*.7;d.y+=d.vy;if(d.vy>0&&d.y>=d.ty){d.y=d.ty;d.vy=null}}
   if(p&&!p.dead&&!d.pend&&Math.abs(p.x-d.x)<12&&Math.abs(p.y-d.y)<22){d.pend=true;sock.emit('pick',{id:d.id},r=>{d.pend=false;if(r&&r.ok){drops=drops.filter(x=>x.id!==d.id);if(r.t&&r.t.startsWith('mnt:')){if(r.leg&&r.leg.mnt){toast(`🐎 獲得坐騎「${D.MOUNTS[r.leg.mnt].n}」！到「角色 → 坐騎」換上`);fx.push({t:'lvup',x:P.x,y:P.y,life:90})}else toast(`已經有這個坐騎了，換成 30,000 金幣`)}else if(r.t==='leg'){if(r.leg&&r.leg.name){toast(`✦ 獲得傳說武器「${r.leg.name}」！已自動裝備`);fx.push({t:'lvup',x:P.x,y:P.y,life:90})}else toast(`你已經有傳說武器了，換成 ${D.LEGGOLD.toLocaleString()} 金幣`)}else num(d.x,d.y-14,r.t==='gold'?`+${r.v} 金`:r.t==='pot'?'紅藥水':'藍藥水',r.t==='gold'?'gold':'heal')}})}}}
 let immTip=0;
-function num(x,y,v,k){nums.push({x,y,v:String(v),k,life:56})}
+function num(x,y,v,k,col){nums.push({x,y,v:String(v),k,col,life:56})}
 function toast(m){msg=m;msgT=170}
 
 // ================= 其他玩家 =================
-function upsertOther(a){const [id,name,cls,job,wep,lv,x,y,f,act,rope,dead,hp,clone,pet,mount]=a;if(id===myId||!CL[cls])return;let o=others.get(id);
-  if(!o){o={id,x,y,walk:0,chat:'',chatT:0};others.set(id,o)}Object.assign(o,{name,cls,job,wep,lv,tx:x,ty:y,f,rope,dead,hp,clone,pet,mount});if(act&&!o.act)o.act=10}
+function upsertOther(a){const [id,name,cls,job,wep,lv,x,y,f,act,rope,dead,hp,clone,pet,mount,st]=a;if(id===myId||!CL[cls])return;let o=others.get(id);
+  if(!o){o={id,x,y,walk:0,chat:'',chatT:0};others.set(id,o)}Object.assign(o,{name,cls,job,wep,lv,tx:x,ty:y,f,rope,dead,hp,clone,pet,mount,st:st||0});if(act&&!o.act)o.act=10}
 function updOthers(){for(const o of others.values()){const dx=o.tx-o.x,dy=o.ty-o.y;if(Math.abs(dx)>80||Math.abs(dy)>80){o.x=o.tx;o.y=o.ty}else{o.x+=dx*.3;o.y+=dy*.3}
   o.ground=Math.abs(dy)<.5&&!o.rope;if(Math.abs(dx)>.3&&o.ground)o.walk++;if(o.act>0)o.act--;if(o.chatT>0)o.chatT--;if(o.lvT>0)o.lvT--}}
 function drawOthers(ox,oy){for(const o of others.values()){const fake={x:o.x,y:o.y,f:o.f,cls:o.cls,job:o.job,wep:o.wep,ground:o.ground,walk:o.walk,act:o.act||0,rope:o.rope?{}:null,dead:0};
@@ -566,7 +574,8 @@ function drawHero(p,ox,oy){if(p.pet&&!p.dead)drawPet(p,p.pet,ox,oy);if(p.mount&&
   if(p.bf&&!p.dead){const x=Math.round(p.x-ox),y=Math.round(p.y-oy);if(p.bf.shield>0){b.globalAlpha=.25+.1*Math.sin(frame/5);R(x-10,y-28,20,28,'#5af0ff');b.globalAlpha=1}if(p.bf.wing>0){R(x-13,y-22,5,10,'#ffffff');R(x+8,y-22,5,10,'#ffffff')}if(p.bf.rage>0){b.globalAlpha=.3;R(x-9,y-27,18,27,'#ff2a4a');b.globalAlpha=1}if(p.bf.bless>0&&frame%20<10)R(x-1,y-32,2,2,'#ffd23f');if(p.bf.pow>0){b.globalAlpha=.25;R(x-8,y-26,16,26,'#ffb34d');b.globalAlpha=1}if(p.bf.guard>0){R(x-9,y-28,18,1,'#c9ced9');R(x-9,y-1,18,1,'#c9ced9')}if(p.bf.haste>0&&frame%6<3)R(x-p.f*9,y-10,4,1,'#ffffff')}
   if(p.slowT>0&&!p.dead){const x=Math.round(p.x-ox),y=Math.round(p.y-oy);b.globalAlpha=.35;R(x-8,y-26,16,26,'#9ad8ff');b.globalAlpha=1;R(x-7,y-1,14,2,'#bfe8ff')}if(p.dead){b.globalAlpha=Math.max(0,p.dead/110);drawBody(p,ox,oy);b.globalAlpha=1;return}
   if(p.clone>0){b.globalAlpha=.4;drawBody({...p,x:p.x-p.f*12},ox,oy,'#1a1030');b.globalAlpha=1}
-  if(p.inv>0&&Math.floor(p.inv/4)%2&&!p.rope)return;drawBody(p,ox,oy)}
+  if(p.inv>0&&Math.floor(p.inv/4)%2&&!p.rope)return;drawBody(p,ox,oy);
+  const st=p===P?(p.ccT>0?({fz:1,pz:2,st:4}[p.ccK]||1):0)|(p.rootT>0?8:0)|(p.dotT>0?(p.dotK==='bn'?32:64):0):(p.st||0);if(st)drawSt(Math.round(p.x-ox),Math.round(p.y-oy),14,26,st)}
 function drawBody(p,ox,oy,tint){const c=CL[p.cls],x=Math.round(p.x-ox),y=Math.round(p.y-oy),f=p.f,job=p.job||0,T=col=>tint||col;
   R(x-6,y-1,12,2,'#0004');
   const step=p.ground&&!p.act?Math.floor(p.walk/6)%2:0,climb=!!p.rope;
@@ -602,6 +611,15 @@ function slimeArt(x,y,f,i,W,c1,c2){const sq=Math.sin(frame/8+i)*1.2;R(x-7,y-9+sq
 // Boss 危險區：地上的紅色範圍，站在裡面才打得到 Boss
 function drawZone(m,ox,oy){if(m.dead||!MON[m.t].boss)return;const z=D.bossZone(m.t),y=Math.round(m.y-oy),x1=Math.round(m.x-z-ox),x2=Math.round(m.x+z-ox);
   b.globalAlpha=.16+.06*Math.sin(frame/15);R(x1,y-26,x2-x1,26,'#ff3b3b');b.globalAlpha=.75;R(x1,y-2,x2-x1,3,'#ff3b3b');R(x1,y-30,2,30,'#ff6a5a');R(x2-2,y-30,2,30,'#ff6a5a');b.globalAlpha=1}
+// 狀態特效：1 凍結 2 麻痺 4 暈眩 8 束縛 16 緩速 32 燒傷 64 中毒（x,y 是腳底的畫面座標）
+function drawSt(x,y,w,h,st){if(!st)return;const hw=Math.round(w/2);
+  if(st&1){b.globalAlpha=.45;R(x-hw-1,y-h-1,w+2,h+1,'#9fe0ff');b.globalAlpha=1;R(x-hw-1,y-h-1,w+2,1,'#e8faff')}
+  if(st&2&&frame%8<5){for(let k=0;k<3;k++){const sx=x-hw+((k*17+frame*3)%(w+4)),sy=y-h+((k*11+frame*5)%h);R(sx,sy,2,4,'#ffe680');R(sx+2,sy+3,2,3,'#ffe680');R(sx,sy+5,2,3,'#ffffff')}}
+  if(st&4){for(let k=0;k<3;k++){const a=frame/9+k*2.09;R(Math.round(x+Math.cos(a)*(hw+3))-1,Math.round(y-h-5+Math.sin(a)*2)-1,3,3,'#ffd23f')}}
+  if(st&8){for(let k=-hw;k<hw;k+=4)R(x+k,y-3-((k+hw)%8?2:5),2,5+((k+hw)%8?0:3),'#5ad65a');R(x-hw-1,y-2,w+2,2,'#8aff7a')}
+  if(st&16){b.globalAlpha=.7;R(x-hw,y-1,w,2,'#b9a6ff');if(frame%30<15){R(x-3,y-h-8,6,2,'#b9a6ff');R(x-1,y-h-6,2,3,'#b9a6ff')}b.globalAlpha=1}
+  if(st&32){for(let k=0;k<4;k++){const fy=(frame*.6+k*7)%14;b.globalAlpha=1-fy/14;R(x-hw+3+((k*9)%Math.max(4,w-4)),Math.round(y-h-fy),3,4,k%2?'#ffd23f':'#ff7a2a')}b.globalAlpha=1}
+  if(st&64){for(let k=0;k<3;k++){const fy=(frame*.4+k*9)%16;b.globalAlpha=1-fy/16;R(x-hw+2+((k*11)%Math.max(4,w-3)),Math.round(y-h-fy),3,3,'#7aff7a')}b.globalAlpha=1}}
 function drawMon(m,ox,oy){if(m.dead)return;const d=MON[m.t],x=Math.round(m.x-ox),y=Math.round(m.y-oy+m.hop),f=m.f,W=m.hurt>8?'#ffffff':null,s=Math.sin(frame/12)*1;
   R(x-m.w/2,Math.round(m.y-oy)-1,m.w,2,'#0004');
   switch(m.t){
@@ -639,20 +657,44 @@ function drawMon(m,ox,oy){if(m.dead)return;const d=MON[m.t],x=Math.round(m.x-ox)
     case 'abyssmage':{const b2=Math.sin(frame/10)*2;R(x-7,y-20+b2,14,18,W||'#0a1f2a');R(x-7,y-20+b2,14,2,'#3affc8');for(let k=0;k<4;k++)R(x-7+k*4,y-3+b2+(k%2),3,3,'#0a1f2a');R(x-5,y-28+b2,10,9,W||'#0a1f2a');R(x-3+f,y-24+b2,2,2,'#3affc8');R(x+1+f,y-24+b2,2,2,'#3affc8');R(x+f*9-1,y-30+b2,2,28,'#4a3a5a');b.globalAlpha=.6+.3*Math.sin(frame/5);R(x+f*9-3,y-34+b2,6,6,'#b46aff');b.globalAlpha=1;break}
     case 'voidking':{const s2=Math.sin(frame/12)*2,gl=frame%40<20;b.globalAlpha=.25;R(x-40,y-70,80,70,'#3affc8');b.globalAlpha=1;R(x-18,y-12,12,12,'#0a0f14');R(x+6,y-12,12,12,'#0a0f14');R(x-24,y-48+s2,48,38,W||'#101a24');R(x-24,y-48+s2,48,4,'#3affc8');R(x-24,y-28+s2,48,2,'#b46aff');R(x-32,y-46+s2,9,28,W||'#101a24');R(x+23,y-46+s2,9,28,W||'#101a24');R(x-12,y-64+s2,24,17,W||'#16222e');
       R(x-8+f*2,y-58+s2,5,3,gl?'#3affc8':'#b46aff');R(x+3+f*2,y-58+s2,5,3,gl?'#3affc8':'#b46aff');for(let k=0;k<4;k++)R(x-12+k*7,y-70-(k%2)*5+s2,3,8,'#b46aff');R(x+f*34-2,y-66+s2,4,58,'#3affc8');b.globalAlpha=.7;R(x+f*34-6,y-70+s2,12,8,'#b46aff');b.globalAlpha=1;break}
+    // ===== 深淵海溝 =====
+    case 'siren':{const b2=Math.sin(frame/10)*2,tl=Math.floor(frame/8)%2;R(x-5,y-8+b2,10,7,W||'#2ab0a0');R(x-7+(tl?-1:1),y-3+b2,5,3,'#1a8a80');R(x+2-(tl?-1:1),y-3+b2,5,3,'#1a8a80');R(x-5,y-16+b2,10,8,W||'#ffd8c0');R(x-5,y-14+b2,10,2,'#ff7aa0');
+      R(x-6,y-24+b2,12,9,W||'#ffd8c0');R(x-7,y-25+b2,14,4,'#ff6a8a');R(x-8,y-22+b2,3,12,'#ff6a8a');R(x+5,y-22+b2,3,12,'#ff6a8a');R(x-3+f,y-20+b2,2,2,'#1a4a6a');R(x+1+f,y-20+b2,2,2,'#1a4a6a');if(frame%50<20){R(x+f*9,y-24+b2-(frame%50)/4,2,2,'#bff6ff')}break}
+    case 'crab':{const st=Math.floor(frame/6)%2,cl=Math.floor(frame/20)%2;for(let k=0;k<3;k++){R(x-11-k*2,y-4+(k+st)%2,3,4,'#8a2a1a');R(x+8+k*2,y-4+(k+st+1)%2,3,4,'#8a2a1a')}R(x-10,y-12,20,9,W||'#c8463a');R(x-10,y-12,20,2,'#ff7a5a');R(x-6,y-9,12,2,'#8a2a1a');
+      R(x-3,y-16,2,4,'#c8463a');R(x+1,y-16,2,4,'#c8463a');R(x-4,y-18,3,3,'#1a1a1a');R(x+1,y-18,3,3,'#1a1a1a');R(x+f*12-4,y-16-cl*2,8,7,W||'#d8543a');R(x+f*12-4+(f>0?6:-2),y-19-cl*2,4,4,'#d8543a');R(x-f*12-3,y-13,6,5,W||'#d8543a');break}
+    case 'pirate':{const st=Math.floor(frame/8)%2,b2=Math.sin(frame/14);b.globalAlpha=.85;R(x-5,y-6,3,6-st,'#2a3a4a');R(x+2,y-6,3,5+st,'#2a3a4a');R(x-6,y-18,12,12,W||'#3a2a4a');R(x-6,y-18,12,2,'#c8a04a');R(x-1,y-16,2,10,'#c8a04a');
+      R(x-5,y-26,10,8,W||'#d8e8e0');R(x-3+f,y-23,2,2,'#5af0ff');R(x+1+f,y-23,2,2,'#1a1a1a');R(x+1+f,y-24,3,1,'#1a1a1a');R(x-8,y-29,16,3,'#1a1a1a');R(x-5,y-32,10,3,'#1a1a1a');R(x-1,y-31,2,1,'#ffffff');
+      R(x+f*9-1,y-20+b2,2,12,'#c9ced9');R(x+f*9-3,y-9+b2,6,2,'#c8a04a');b.globalAlpha=1;break}
+    case 'kraken':{const s2=Math.sin(frame/14)*2,gl=frame%50<25;b.globalAlpha=.22;R(x-42,y-72,84,72,'#5af0ff');b.globalAlpha=1;
+      for(let k=0;k<6;k++){const tx=x-30+k*12,wv=Math.round(Math.sin(frame/10+k)*4);R(tx+wv,y-18,7,18,W||'#6a2a7a');R(tx+wv+1,y-14,2,2,'#ff9ad8');R(tx+wv+3,y-8,2,2,'#ff9ad8')}
+      R(x-26,y-60+s2,52,44,W||'#7a3a8a');R(x-26,y-60+s2,52,4,'#b46ad8');R(x-22,y-66+s2,44,7,W||'#7a3a8a');R(x-14,y-70+s2,28,5,W||'#7a3a8a');
+      R(x-16+f*3,y-46+s2,10,8,'#ffe680');R(x+6+f*3,y-46+s2,10,8,'#ffe680');R(x-13+f*4,y-44+s2,4,5,gl?'#1a0a2a':'#c8463a');R(x+9+f*4,y-44+s2,4,5,gl?'#1a0a2a':'#c8463a');R(x-10,y-32+s2,20,3,'#3a0a3a');
+      for(let k=0;k<5;k++)R(x-12+k*6,y-76+s2-(k%2)*4,4,7,'#ffd23f');R(x-14,y-74+s2,28,3,'#ffd23f');
+      const ta=Math.sin(frame/12)*6;R(x+f*30-3,y-50+ta,7,40,W||'#6a2a7a');R(x+f*30-5,y-54+ta,11,6,'#b46ad8');R(x-f*34-3,y-40-ta,7,32,W||'#6a2a7a');break}
     case 'titan':{const st=Math.floor(frame/9)%2,gl=frame%60<30;R(x-16,y-10,10,10-st,'#c8bfa0');R(x+6,y-10,10,9+st,'#c8bfa0');R(x-22,y-44,44,35,W||'#ece6d4');R(x-22,y-44,44,4,'#ffd86a');R(x-22,y-24,44,3,'#c8a04a');R(x-30,y-42,9,26,W||'#ece6d4');R(x+21,y-42,9,26,W||'#ece6d4');R(x-11,y-60,22,17,W||'#f6f0e0');
       R(x-7+f*2,y-54,4,3,gl?'#5af0ff':'#2ac0e0');R(x+3+f*2,y-54,4,3,gl?'#5af0ff':'#2ac0e0');for(let k=0;k<5;k++)R(x-10+k*5,y-64-(k%2)*3,3,5,'#ffd23f');R(x+f*30-2,y-58,4,50,'#ffd86a');R(x+f*30-5,y-60,10,5,'#fff6c0');break}
     case 'balrog':{const fl=Math.floor(frame/6)%2;R(x-38,y-52+(fl?-3:0),18,26,'#3a0a12');R(x+20,y-52+(fl?-3:0),18,26,'#3a0a12');R(x-18,y-44,36,40,W||'#7a1a14');R(x-18,y-44,36,3,'#b0301a');R(x-12,y-4,10,4,'#3a0a0a');R(x+2,y-4,10,4,'#3a0a0a');
       R(x-16,y-56,5,12,'#2a1a1a');R(x+11,y-56,5,12,'#2a1a1a');R(x-10+f*2,y-36,6,4,'#ffd23f');R(x+4+f*2,y-36,6,4,'#ffd23f');R(x-7,y-24,14,3,'#2a0a0a');R(x-5,y-23,2,2,'#fff');R(x+3,y-23,2,2,'#fff');
       for(let k=0;k<6;k++)R(x-16+k*6,y-50-((frame/3+k*3)%8),3,4,k%2?'#ffd23f':'#ff6a2a');R(x+f*22,y-30,4,26,'#3a2a2a');R(x+f*22-4,y-34,12,6,'#ff6a2a');break}
   }
-  if(m.frozen){b.globalAlpha=.45;R(x-m.w/2-1,y-m.h-1,m.w+2,m.h+1,'#9fe0ff');b.globalAlpha=1}
+  drawSt(x,y,m.w,m.h,m.st||0);
   if(m.hp<m.max){const bw=d.boss?60:18;const by=y-m.h-6-(d.boss?16:0);R(x-bw/2,by,bw,3,'#000a');R(x-bw/2,by,Math.max(1,Math.round(bw*m.hp/m.max)),3,'#ff4d5e')}}
 
 
+const hasBoss=()=>MAPS[MI].spawns.some(sp=>MON[sp.t]&&MON[sp.t].boss);
+// 潮聲港：漁村小屋、碼頭棧橋、海面與停泊的船
+function drawHarbor(ox,oy,gy){const dk=MAPS[MI].dock;
+  for(const hx0 of [380,760,1180,1620,1980]){const hx=Math.round(hx0-ox);if(hx<-80||hx>IW+20)continue;const c=hx0%3?'#e8d4a8':'#cfe0f0',rf=hx0%2?'#3a7ab8':'#c8463a';
+    R(hx,gy-36,50,36,c);R(hx-5,gy-48,60,13,rf);R(hx-2,gy-52,54,5,rf);R(hx+20,gy-20,11,20,'#6b4423');R(hx+6,gy-30,9,9,'#8fd3ff');R(hx+36,gy-30,9,9,'#8fd3ff')}
+  for(const nx0 of [600,1350,1850]){const nx=Math.round(nx0-ox);if(nx<-30||nx>IW+30)continue;R(nx,gy-14,2,14,'#8a5a2b');R(nx+18,gy-14,2,14,'#8a5a2b');for(let k=0;k<5;k++)R(nx+1+k*4,gy-13+k%2*2,2,2,'#2a4a5a')}
+  const x1=Math.round(dk-ox);if(x1<IW){b.globalAlpha=.9;R(Math.max(0,x1),gy+4,IW,IH-gy,'#2a7ab8');b.globalAlpha=1;for(let wx=(x1>0?x1:-((ox|0)%14));wx<IW;wx+=14)R(wx+((frame/6|0)%7),gy+8+((wx/14|0)%3)*7,6,1,'#bfe8ff');
+    R(Math.max(0,x1),gy,IW,4,'#a87a45');for(let px=x1;px<IW;px+=10)R(px,gy,1,4,'#6b4423');for(let px=x1+6;px<IW;px+=48)R(px,gy+4,4,22,'#6b4423');
+    const sx=Math.round(2470-ox),bob=Math.round(Math.sin(frame/20)*1.5);if(sx<IW+80&&sx>-120){R(sx-60,gy+bob-6,120,14,'#5a3a1a');R(sx-66,gy+bob-10,132,6,'#7a4a22');R(sx-52,gy+bob+8,104,6,'#4a2a12');R(sx-2,gy+bob-82,4,76,'#4a2a12');R(sx-34,gy+bob-76,30,40,'#f4ecd8');R(sx+4,gy+bob-70,26,34,'#f4ecd8');R(sx-30,gy+bob-58,22,3,'#c8463a');R(sx-2,gy+bob-90,14,8,'#c8463a')}}}
 function drawNPC(n,ox,oy){const x=Math.round(n.x-ox),y=Math.round(GY-oy);if(x<-30||x>IW+30)return;const job=n.kind==='job';
   R(x-6,y-1,12,2,'#0004');R(x-5,y-12,10,12,job?'#7a3a2a':'#3a7fd0');R(x-5,y-12,10,2,job?'#a85a3a':'#5a9ff0');R(x-6,y-22,12,10,'#f4c79c');
   if(job){R(x-7,y-25,14,4,'#c9ced9');R(x-1,y-28,2,3,'#ffd23f');R(x-6,y-12,12,2,'#ffd23f')}else{R(x-7,y-25,14,4,'#e8e8e8');R(x-4,y-14,8,2,'#eee')}
   R(x-2,y-18,2,2,'#1a1a1a');R(x+2,y-18,2,2,'#1a1a1a');
+  if(n.kind==='boat'){R(x-5,y-12,10,12,'#f4f4f4');for(let k=0;k<3;k++)R(x-5,y-11+k*4,10,2,'#2a5ab8');R(x-7,y-25,14,4,'#1a2a4a');R(x-4,y-27,8,2,'#ffd23f');R(x-6,y-15,12,2,'#e8e8e8')}
   const by=y-38+Math.sin(frame/12+n.x)*1.5;R(x-10,by,20,10,'#fff');R(x-1,by+10,2,2,'#fff')}
 function drawPortal(pt,ox,oy){const x=Math.round(pt.x-ox),y=Math.round(GY-oy);if(x<-30||x>IW+30)return;const lock=pt.req&&P&&P.lv<pt.req;
   for(let k=0;k<6;k++){const a=frame/10+k*1.05,r=10+Math.sin(frame/8+k)*2;R(x+Math.cos(a)*r*.6-1,y-16+Math.sin(a)*r-1,3,3,lock?'#888':k%2?'#7fd3ff':'#c9a6ff')}
@@ -670,11 +712,12 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
   const gy=Math.round(GY-oy);R(0,gy,IW,IH-gy,pal.dirt);for(let x=-((ox|0)%16);x<IW;x+=16){R(x,gy,16,4,pal.top);R(x+3,gy+4,2,2,pal.top);R(x+10,gy+8,3,2,pal.dirt2);R(x+5,gy+14,2,2,pal.speck)}
   if(MI===0&&ox<300){const hx=Math.round(30-ox);R(hx,gy-40,56,40,'#f0dcb0');R(hx-6,gy-54,68,16,'#c8463a');R(hx-2,gy-58,60,5,'#d85a4a');R(hx+22,gy-22,12,22,'#6b4423');R(hx+6,gy-32,10,10,'#8fd3ff');R(hx+40,gy-32,10,10,'#8fd3ff');
     const sx=Math.round(232-ox);R(sx,gy-30,3,30,'#6b4423');R(sx-12,gy-34,28,12,'#a87a45')}
-  {const ax=Math.round(2110-ox);if(ax>-20&&ax<IW+20){R(ax,gy-26,3,26,'#4a2a1a');R(ax-12,gy-32,28,10,'#5a2a6a')}}
+  if(hasBoss()){const ax=Math.round(2110-ox);if(ax>-20&&ax<IW+20){R(ax,gy-26,3,26,'#4a2a1a');R(ax-12,gy-32,28,10,'#5a2a6a')}}
+  if(MAPS[MI].dock)drawHarbor(ox,oy,gy);
   for(let i=1;i<SEG.length;i++){const s=SEG[i],x1=Math.round(s.x1-ox),x2=Math.round(s.x2-ox),y=Math.round(s.y-oy);if(x2<0||x1>IW)continue;
     R(x1,y,x2-x1,9,pal.dirt);R(x1,y,x2-x1,3,pal.top);R(x1+2,y+9,x2-x1-4,2,pal.dirt2);for(let x=x1;x<x2;x+=12){R(x+4,y+5,3,2,pal.speck);R(x+2,y+3,2,1,pal.top)}}
   for(const r of ROPES){const x=Math.round(r.x-ox),y1=Math.round(r.y1-oy),y2=Math.round(r.y2-oy);if(x<-4||x>IW+4)continue;R(x-1,y1,3,y2-y1,'#c8a06a');for(let y=y1+2;y<y2;y+=5)R(x-1,y,3,1,'#8a6a3a')}
-  if(MAPS[MI].town)for(const n of NPCS)drawNPC(n,ox,oy);
+  for(const n of npcsHere())drawNPC(n,ox,oy);
   for(const pt of MAPS[MI].portals)drawPortal(pt,ox,oy);
   for(const d of drops){const x=Math.round(d.x-ox),y=Math.round(d.y-oy)-(d.vy===null?Math.round(Math.abs(Math.sin(frame/10+d.x))*2):0);if(d.t.startsWith('mnt:')){b.globalAlpha=.35+.3*Math.sin(frame/6);R(x-9,y-18,18,18,'#7affc8');b.globalAlpha=1;R(x-5,y-10,10,3,'#c8463a');R(x-6,y-12,3,4,'#8a5a2b');R(x+3,y-12,3,4,'#8a5a2b');R(x-4,y-7,2,5,'#ffd23f');R(x+2,y-7,2,5,'#ffd23f');R(x-4,y-3,8,2,'#ffd23f')}else if(d.t==='leg'){b.globalAlpha=.4+.3*Math.sin(frame/6);R(x-8,y-22,16,22,'#ff4fd8');b.globalAlpha=1;R(x-1,y-16,2,12,'#ffe680');R(x-4,y-6,8,2,'#ff4fd8');R(x-1,y-4,2,3,'#8a4a2a');R(x-2,y-18,4,2,'#ffffff')}else if(d.t==='gold'){R(x-3,y-6,6,6,'#ffd23f');R(x-2,y-5,2,2,'#fff6c0');R(x-3,y-1,6,1,'#c8921c')}else{R(x-2,y-8,4,2,'#ddd');R(x-3,y-6,6,6,d.t==='pot'?'#ff4d5e':'#3d8bff');R(x-2,y-5,2,2,'#ffffffa0')}}
   for(const m of mons)drawZone(m,ox,oy);
@@ -753,17 +796,21 @@ function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
   const ox=cam.x,oy=cam.y;ctx.textAlign='center';
   const label=(wx,wy,t,fg,bg)=>{const x=(wx-ox)*S,y=(wy-oy)*S;if(x<-80||x>SW+80)return;ctx.font='700 11px "Noto Sans TC",sans-serif';const w=ctx.measureText(t).width+10;ctx.fillStyle=bg||'#000b';ctx.fillRect(x-w/2,y,w,15);ctx.fillStyle=fg||'#fff';ctx.fillText(t,x,y+11.5)};
   const bubble=(wx,wy,t)=>{const x=(wx-ox)*S,y=(wy-oy)*S;if(x<-120||x>SW+120)return;ctx.font='700 12px "Noto Sans TC",sans-serif';const w=Math.min(220,ctx.measureText(t).width+16);ctx.fillStyle='#fffffff0';ctx.fillRect(x-w/2,y-22,w,20);ctx.fillRect(x-3,y-2,6,4);ctx.fillStyle='#222';ctx.save();ctx.beginPath();ctx.rect(x-w/2+4,y-22,w-8,20);ctx.clip();ctx.fillText(t,x,y-8);ctx.restore()};
-  if(MAPS[MI].town){for(const n of NPCS){label(n.x,GY+3,n.name,'#ffd23f');const x=(n.x-ox)*S,y=(GY-38-oy+Math.sin(frame/12+n.x)*1.5+8)*S;ctx.font='900 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#333';if(x>-40&&x<SW+40)ctx.fillText(n.kind==='shop'?'商店':'轉職',x,y)}
-    ctx.font='900 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#2a1a0a';const sx=(234-ox)*S;if(sx>-60&&sx<SW+60)ctx.fillText('往東 →',sx,(GY-25-oy)*S)}
-  {const x=(2112-ox)*S;if(x>-60&&x<SW+60){ctx.font='900 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#fff';ctx.fillText('危險',x,(GY-24-oy)*S)}}
+  for(const n of npcsHere()){label(n.x,GY+3,n.name,'#ffd23f');const x=(n.x-ox)*S,y=(GY-38-oy+Math.sin(frame/12+n.x)*1.5+8)*S;ctx.font='900 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#333';if(x>-40&&x<SW+40)ctx.fillText({shop:'商店',boat:'出航'}[n.kind]||'轉職',x,y)}
+  if(MI===0){ctx.font='900 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#2a1a0a';const sx=(234-ox)*S;if(sx>-60&&sx<SW+60)ctx.fillText('往東 →',sx,(GY-25-oy)*S)}
+  if(hasBoss()){const x=(2112-ox)*S;if(x>-60&&x<SW+60){ctx.font='900 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#fff';ctx.fillText('危險',x,(GY-24-oy)*S)}}
   for(const pt of MAPS[MI].portals)label(pt.x,GY-44,pt.label+(pt.rec?` 建議Lv${pt.rec}`:''),pt.rec&&P&&P.lv<pt.rec?'#ffb34d':'#7fd3ff');
   for(const n of nums){const a=Math.min(1,n.life/20),x=(n.x-ox)*S,y=(n.y-oy)*S-(56-n.life)*1.1;ctx.globalAlpha=a;
-    const sz=n.k==='crit'?22:n.k==='dmg'||n.k==='hurt'?18:n.k==='odmg'?15:13;ctx.font=`900 ${sz}px "Noto Sans TC",sans-serif`;ctx.lineWidth=4;ctx.strokeStyle='#000';ctx.strokeText(n.v,x,y);
-    ctx.fillStyle={dmg:'#ffb13b',crit:'#ff4dd2',odmg:'#d8d8e8',ocrit:'#c9a6ff',hurt:'#c084ff',heal:'#7dff9a',mp:'#8ab8ff',gold:'#ffd23f',exp:'#fff27a'}[n.k];ctx.fillText(n.v,x,y)}ctx.globalAlpha=1;
+    const sz=n.k==='crit'?22:n.k==='dmg'||n.k==='hurt'?18:n.k==='odmg'||n.k==='ef'?15:13;ctx.font=`900 ${sz}px "Noto Sans TC",sans-serif`;ctx.lineWidth=4;ctx.strokeStyle='#000';ctx.strokeText(n.v,x,y);
+    ctx.fillStyle=n.col||{dmg:'#ffb13b',crit:'#ff4dd2',odmg:'#d8d8e8',ocrit:'#c9a6ff',hurt:'#c084ff',heal:'#7dff9a',mp:'#8ab8ff',gold:'#ffd23f',exp:'#fff27a'}[n.k];ctx.fillText(n.v,x,y)}ctx.globalAlpha=1;
   for(const m of mons){if(m.dead||!MON[m.t].boss)continue;label(m.x,m.y+6,`Lv${MON[m.t].lv} ${MON[m.t].name}`,'#ffd23f')}
-  for(const o of others.values()){label(o.x,o.y+3,`${o.name}　Lv${o.lv} ${CL[o.cls].jobs[o.job]}`,'#9fe0ff');if(o.chatT>0)bubble(o.x,o.y-34,o.chat)}
+  for(const o of others.values()){label(o.x,o.y+3,`${inParty(o.id)?'👥':''}${o.name}　Lv${o.lv} ${CL[o.cls].jobs[o.job]}`,inParty(o.id)?'#7dff9a':'#9fe0ff');if(o.chatT>0)bubble(o.x,o.y-34,o.chat)}
   if(P){label(P.x,P.y+3,`${P.nm||myName}${P.gm?'［GM］':''}　${CL[P.cls].jobs[P.job]}`,'#fff');if(P.chatT>0)bubble(P.x,P.y-34,P.chat)}
   ctx.textAlign='left';ctx.font='700 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';const nt=`此地圖 ${others.size+1} 人`,ntw=ctx.measureText(nt).width+14,nx=TOUCH&&document.body.classList.contains('fs')?SW-ntw-8:8;ctx.fillRect(nx,8,ntw,20);ctx.fillStyle='#7dff9a';ctx.fillText(nt,nx+7,22);
+  if(party){const ms=party.members.filter(m=>m.uid!==myId),pw=150,px=TOUCH&&document.body.classList.contains('fs')?SW-pw-8:8;let py=32;ctx.font='700 11px "Noto Sans TC",sans-serif';
+    for(const m of ms){const here=m.mi===MI;ctx.fillStyle='#000a';ctx.fillRect(px,py,pw,24);ctx.fillStyle=here?'#ffffff':'#9aa3c0';const nm=(m.uid===party.leader?'👑':'')+m.name;ctx.fillText((nm.length>9?nm.slice(0,9)+'…':nm)+` Lv${m.lv}`,px+5,py+11);
+      if(!here){ctx.fillStyle='#9aa3c0';ctx.textAlign='right';ctx.fillText(m.map,px+pw-5,py+11);ctx.textAlign='left'}
+      ctx.fillStyle='#ffffff22';ctx.fillRect(px+5,py+15,pw-10,5);ctx.fillStyle=m.hp>30?'#5ad65a':'#ff4d5e';ctx.fillRect(px+5,py+15,Math.round((pw-10)*Math.max(0,Math.min(100,m.hp))/100),5);py+=27}}
   if(MAPS[MI].pvp==='duel'&&duel){const now=Date.now();ctx.textAlign='center';let big='',small='';
     if(duel.over){big=duel.over;small='即將回到原本的位置…'}else if(now<duel.go){big=String(Math.ceil((duel.go-now)/1000));small=`決鬥：你 vs ${duel.name}`}else{const left=Math.max(0,duel.end-now),mm=Math.floor(left/60000),ss=Math.floor(left%60000/1000);small=`決鬥中 vs ${duel.name}　剩 ${mm}:${String(ss).padStart(2,'0')}`;if(now-duel.go<900)big='開始！'}
     if(big){ctx.font='900 64px "Noto Serif TC",serif';ctx.lineWidth=6;ctx.strokeStyle='#000a';ctx.strokeText(big,SW/2,SH*.42);ctx.fillStyle='#ffd23f';ctx.fillText(big,SW/2,SH*.42)}
@@ -782,7 +829,7 @@ function step(){frame++;if(P&&ready){updHero();updMons();updOthers();updShots();
   if(hitQ.length){sock.emit('hit',hitQ.splice(0,20))}
   if(pvpQ.length){sock.emit('phit',pvpQ.splice(0,20))}
   if(++posT>=6){posT=0;sock.emit('pos',{x:P.x,y:P.y,f:P.f,act:P.act>0,rope:!!P.rope,dead:!!P.dead,hp:P.hp/P.max.hp*100,clone:P.clone>0,mount:!!P.mount,gy:P.ground||P.rope?Math.round(P.y):undefined})}
-  if(frame%60===0&&!P.dead){P.mp=Math.min(P.max.mp,P.mp+2+Math.floor(P.lv/3));if(MAPS[MI].town&&P.x<260)P.hp=Math.min(P.max.hp,P.hp+Math.ceil(P.max.hp*.05));ui()}
+  if(frame%60===0&&!P.dead){P.mp=Math.min(P.max.mp,P.mp+2+Math.floor(P.lv/3));if(MAPS[MI].town&&(MAPS[MI].safe||P.x<260))P.hp=Math.min(P.max.hp,P.hp+Math.ceil(P.max.hp*.05));ui()}
   const z=MAPS[MI].zones.find(z=>P.x<z[0])[1];if(z!==zoneName){zoneName=z;zoneT=150}
   const tx=clamp(P.x-IW/2+P.f*20,0,WW-IW),ty=clamp(P.y-IH*.62,-60,WH-IH);cam.x+=(tx-cam.x)*.1;cam.y+=(ty-cam.y)*.1}
   for(const e of fx)e.life--;fx=fx.filter(e=>e.life>0);for(const n of nums)n.life--;nums=nums.filter(n=>n.life>0);if(msgT>0)msgT--;if(zoneT>0)zoneT--}
@@ -793,13 +840,13 @@ requestAnimationFrame(loop);
 function ui(){if(!P)return;$('#ui').hidden=false;$('#chat').hidden=false;$('#uLv').textContent=P.lv;$('#uCls').textContent=CL[P.cls].jobs[P.job];
   $('#uStat').textContent=`攻擊 ${P.max.atk} · 防禦 ${P.max.def} · ${MAPS[MI].name}`;
   $('#uHp').style.width=(P.hp/P.max.hp*100)+'%';$('#uHpT').textContent=`HP ${Math.ceil(P.hp)} / ${P.max.hp}`;$('#uMp').style.width=(P.mp/P.max.mp*100)+'%';$('#uMpT').textContent=`MP ${Math.floor(P.mp)} / ${P.max.mp}`;
-  if(P.lv>=MAXLV){$('#uXp').style.width='100%';$('#uXpT').textContent='EXP MAX（滿等）'}else{const ne=needExp(P.lv);$('#uXp').style.width=(P.exp/ne*100)+'%';$('#uXpT').textContent=`EXP ${P.exp} / ${ne}（${(P.exp/ne*100).toFixed(1)}%）`}
+  if(P.lv>=D.capOf(P)){$('#uXp').style.width='100%';$('#uXpT').textContent='EXP MAX（滿等）'}else{const ne=needExp(P.lv);$('#uXp').style.width=(P.exp/ne*100)+'%';$('#uXpT').textContent=`EXP ${P.exp} / ${ne}（${(P.exp/ne*100).toFixed(1)}%）`}
   $('#uGold').textContent=`${P.gold.toLocaleString()} 金幣`;$('#uPot').textContent=P.pot;$('#uEth').textContent=P.eth;
   {const bd=$('#apBadge');if(bd&&P){bd.hidden=!(P.ap>0);bd.textContent=P.ap>99?'99+':P.ap}}
   ['#tX','#tC','#tV','#tB','#tN','#tM'].forEach((id,i)=>{const k=(P.slots||[])[i],el=$(id);el.classList.toggle('lock',!k||!!sklOk(k));const lb=k?SK[P.cls][k].n.slice(0,2):'—';if(el.dataset.lb!==lb){el.dataset.lb=lb;el.firstChild&&el.firstChild.nodeType===3?el.firstChild.textContent=lb:el.prepend(document.createTextNode(lb));for(const n of [...el.childNodes].slice(1))if(n.nodeType===3)n.remove()}})}
 let popHandler=null;
 function openPop(html,handler){paused=true;$('#popBody').innerHTML=html;if(html.includes('data-mnt='))setTimeout(paintMounts,0);popHandler=handler;$('#pop').hidden=false;$('#popBody').querySelector('button')?.focus()}
-function closePop(){$('#pop').hidden=true;paused=false;popHandler=null;for(const k in K)K[k]=false;ui()}
+function closePop(){$('#pop').hidden=true;paused=false;popHandler=null;for(const k in K)K[k]=false;ui();if(newsQ)setTimeout(()=>{if(newsQ&&$('#pop').hidden)showNews(newsQ)},300)}
 $('#pop').addEventListener('click',e=>{const bt=e.target.closest('button');if(!bt||bt.disabled)return;if(bt.dataset.close)return closePop();popHandler&&popHandler(bt)});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#pop').hidden)closePop()});
 let shopTab='use';
@@ -890,11 +937,40 @@ function openPvp(){sock.emit('pvpInfo',{},r=>{if(!r||!r.ok)return;const inArena=
     if(idle>300000){$('#afk').hidden=false;sock.disconnect()}},5000);
   $('#afkBack').onclick=()=>{last=Date.now();warned=false;$('#afk').hidden=true;$('#net').textContent='重新連線中…';if(sock)sock.connect()}}
 $('#pvpBtn').onclick=()=>{if(P&&$('#pop').hidden)openPvp()};
+// ---------- 組隊 ----------
+let party=null,ptFrom=null,ptReqT=0;const inParty=id=>!!(party&&party.members.some(m=>m.uid===id));
+function openParty(){sock.emit('pInfo',{},r=>{if(!r||!r.ok)return;party=r.party;const lead=party&&party.leader===myId,full=party&&party.members.length>=6;
+  const mem=party?party.members.map(m=>`<div class="item"><div><div class="nm">${m.uid===party.leader?'👑 ':''}${esc(m.name)}${m.uid===myId?'（你）':''}</div><div class="ds">Lv ${m.lv} · ${esc(m.job)} · ${esc(m.map)}</div><div class="hpb"><i style="width:${m.hp}%"></i></div></div>${lead&&m.uid!==myId?`<div class="row" style="margin:0;gap:6px"><button class="btn sm" data-plead="${esc(m.uid)}">設為隊長</button><button class="btn sm red" data-pkick="${esc(m.uid)}">踢出</button></div>`:''}</div>`).join(''):'';
+  const canInv=!party||lead;
+  openPop(`<h2>隊伍</h2><p class="sub" style="margin:0">最多 6 人。<b>同一張地圖</b>的隊友打怪時都分得到經驗，就算沒出手也有份；畫面左上角看得到隊友的血量。打倒虛空之主時，同地圖的隊友會一起突破到 100 等。</p>
+    ${party?`<h3>隊員（${party.members.length}/6）</h3><div class="list">${mem}</div>`:'<p class="sub">你還沒有隊伍，邀請一位玩家就會自動成立隊伍，你是隊長。</p>'}
+    ${canInv&&!full?`<h3>邀請同地圖的玩家</h3><div class="list">${r.list.length?r.list.map(o=>`<div class="item"><div><div class="nm">${esc(o.name)}</div><div class="ds">Lv ${o.lv} · ${esc(o.job)}</div></div><button class="btn sm pri" data-pinv="${esc(o.uid)}">邀請</button></div>`).join(''):'<div class="ds">這張地圖沒有可以邀請的玩家。</div>'}</div>
+    <div class="nmrow" style="margin-top:8px;display:flex;gap:8px"><input id="ptName" maxlength="20" placeholder="或輸入線上玩家的名字" aria-label="玩家名字" style="flex:1"><button class="btn sm pri" data-pinvn="1">邀請</button></div>`:party&&!lead?'<p class="keys">只有隊長可以邀請新隊員。</p>':''}
+    <div class="row">${party?'<button class="btn red" data-pleave="1">離開隊伍</button>':'<span></span>'}<button class="btn pri" data-close="1">關閉</button></div>`,bt=>{
+    const done=r2=>{if(r2&&r2.msg)toast(r2.msg);setTimeout(()=>{if(!$('#pop').hidden&&$('#popBody').querySelector('[data-pleave],[data-pinvn],[data-pinv]'))openParty()},250)};
+    if(bt.dataset.pinv){bt.disabled=true;sock.emit('pInv',{to:bt.dataset.pinv},done)}
+    if(bt.dataset.pinvn){const n=$('#ptName').value.trim();if(!n)return toast('請輸入玩家名字');sock.emit('pInv',{name:n},done)}
+    if(bt.dataset.pkick)sock.emit('pKick',{u:bt.dataset.pkick},done);
+    if(bt.dataset.plead)sock.emit('pLead',{u:bt.dataset.plead},done);
+    if(bt.dataset.pleave)sock.emit('pLeave',{},()=>{party=null;closePop();toast('已離開隊伍')})})})}
+$('#ptBtn').onclick=()=>{if(P&&$('#pop').hidden)openParty()};
+$('#ptYes').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:true},r=>{if(r&&!r.ok)toast(r.msg||'無法加入')});ptFrom=null;$('#ptReq').hidden=true};
+$('#ptNo').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:false});ptFrom=null;$('#ptReq').hidden=true};
+// ---------- 潮聲港碼頭 ----------
+function openBoat(){const ok=D.capOf(P)>=D.MAXLV2;
+  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，要出海到「深淵海溝」嗎？那裡的怪物都是 Lv 101～105，最深處住著深淵海皇・克拉肯。記得找隊友一起去！':`深淵海溝太危險了，只有突破極限的冒險者才能去。<br>打倒<b>虛空之主</b>（最後一擊的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
+    <div class="row"><button class="btn" data-close="1">下次再說</button><button class="btn pri" data-sail="1" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div>`,bt=>{
+    if(bt.dataset.sail){bt.disabled=true;sock.emit('sail',{},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出海');bt.disabled=false;return}closePop()})}})}
+// ---------- 更新公告（每個帳號每個版本一次） ----------
+let newsQ=null;
+function showNews(d){if(!$('#pop').hidden){newsQ=d;return}newsQ=null;
+  openPop(`<h2>📢 更新公告</h2><p class="sub" style="margin:0">版本 ${esc(d.v)}，這次更新了這些內容：</p><div class="list news">${d.notes.map(([t,x])=>`<div class="item"><div><div class="nm">${esc(t)}</div><div class="ds">${esc(x)}</div></div></div>`).join('')}</div>
+    <div class="row"><span class="keys" style="margin:0">這則公告只會出現一次</span><button class="btn pri" data-newsok="1">知道了，開始冒險！</button></div>`,bt=>{if(bt.dataset.newsok){sock.emit('newsSeen',{v:d.v});closePop()}})}
 // GM 測試面板：只有伺服器設定為 GM 的帳號才看得到
 function openGM(){const sel=(id,opts,v)=>`<select id="${id}">${opts.map(([k,n])=>`<option value="${k}"${String(k)===String(v)?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
   const render=(cls,job,lv,pet)=>{const c=CL[cls];openPop(`<h2>GM 測試角色</h2><p class="sub" style="margin:0">把目前這個角色直接變成指定的職業、轉數和等級，裝備自動換成該等級最好的（Lv 80 給傳說武器），附上所有可用坐騎、999 瓶藥水和 999 萬金幣（可以無限重置能力點）。GM 角色<b>不會出現在任何排行榜</b>，名字後面會顯示［GM］。</p>
     <div class="gmf"><label>職業 ${sel('gmCls',Object.keys(CL).map(k=>[k,CL[k].jobs[0]]),cls)}</label><label>轉數 ${sel('gmJob',c.jobs.map((j,i)=>[i,['初始','一轉','二轉','三轉','四轉'][i]+'　'+j]),job)}</label>
-    <label>等級 <input id="gmLv" type="number" min="1" max="${D.MAXLV}" value="${lv}"></label><label>寵物 ${sel('gmPet',[['','（無）'],...Object.entries(D.PETS).map(([k,p])=>[k,p.n])],pet)}</label></div>
+    <label>等級 <input id="gmLv" type="number" min="1" max="${D.MAXLV2}" value="${lv}"></label><label>寵物 ${sel('gmPet',[['','（無）'],...Object.entries(D.PETS).map(([k,p])=>[k,p.n])],pet)}</label></div>
     <p class="keys" style="margin:6px 0 0">轉數會依等級自動調整（一轉 15、二轉 30、三轉 45、四轉 60）；寵物需要 Lv ${D.PETLV}。能力點會全部退回，請到「能力」自己配點。</p>
     <div class="row"><button class="btn" data-close="1">關閉</button><button class="btn pri" data-gmgo="1">套用</button></div>`,bt=>{
     if(bt.dataset.gmgo){bt.disabled=true;sock.emit('gm',{cls:$('#gmCls').value,job:+$('#gmJob').value,lv:+$('#gmLv').value,pet:$('#gmPet').value},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法套用');bt.disabled=false;return}applyMe(r.me);P.hp=P.max.hp;P.mp=P.max.mp;ui();closePop();toast(`已切換為 ${CL[P.cls].jobs[P.job]} Lv ${P.lv}`)})}});
@@ -943,10 +1019,14 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
     if(P){P.x=d.x;P.y=GY;P.vx=0;P.vy=0;P.ground=true;P.rope=null;P.inv=90;P.map=MI;cam.x=clamp(P.x-IW/2,0,WW-IW);cam.y=clamp(P.y-IH*.62,-60,WH-IH);fx.push({t:'poof',x:P.x,y:P.y-12,life:20,big:1})}
     if(P){if(d.pvp){P.hp=d.php;P.dead=0}else if(prevMI!=null&&MAPS[prevMI]&&(MAPS[prevMI].pvp||MAPS[prevMI].trial)){P.hp=P.max.hp;P.mp=P.max.mp;P.dead=0}}
     ready=true;ui()});
-  sock.on('st',d=>{for(const a of d.m){const m=mons[a[0]];if(!m)continue;m.tx=a[1];m.hop=a[2];m.f=a[3];m.hp=a[4];if(a[5]&&!m.dead){m.dead=1}else if(!a[5]&&m.dead){m.dead=0;m.x=m.tx}m.frozen=a[6];if(a[7])m.hurt=Math.max(m.hurt,9)}
+  sock.on('st',d=>{for(const a of d.m){const m=mons[a[0]];if(!m)continue;m.tx=a[1];m.hop=a[2];m.f=a[3];m.hp=a[4];if(a[5]&&!m.dead){m.dead=1}else if(!a[5]&&m.dead){m.dead=0;m.x=m.tx}m.st=a[6];m.frozen=a[6]&7;if(a[7])m.hurt=Math.max(m.hurt,9)}
     const seen=new Set();for(const a of d.p){if(a[0]===myId)continue;seen.add(a[0]);upsertOther(a)}for(const id of [...others.keys()])if(!seen.has(id))others.delete(id)});
   sock.on('bimm',d=>{const m=mons[d.i];if(!m)return;num(m.x,m.y-m.h-6,'免疫','odmg');if(!immTip){immTip=1;toast('站進 Boss 腳下的紅色危險區才打得到牠！')}});
-  sock.on('hits',d=>{const mine=d.by===myId;for(const [i,v,c,s] of d.h){const m=mons[i];if(!m)continue;m.hurt=14;num(m.x,m.y-m.h-6-(s||0)*11,v,mine?(c?'crit':'dmg'):(c?'ocrit':'odmg'))}});
+  sock.on('hits',d=>{const mine=d.by===myId;for(const [i,v,c,s,dk] of d.h){const m=mons[i];if(!m)continue;m.hurt=14;if(dk){num(m.x+rnd(-6,6),m.y-m.h-4,v,'dot',D.EF[dk].col);continue}num(m.x,m.y-m.h-6-(s||0)*11,v,mine?(c?'crit':'dmg'):(c?'ocrit':'odmg'))}});
+  sock.on('mef',d=>{const m=mons[d.i];if(!m||m.dead)return;const E=D.EF[d.k];if(E)num(m.x,m.y-m.h-28,E.n+(d.boss?'（60%）':''),'ef',E.col)});
+  // PVP：被控制
+  sock.on('pctl',d=>{if(!P||P.dead)return;const E=D.EF[d.k];if(!E)return;const fr=Math.round(d.ms/1000*60);if(E.hard){P.ccT=fr;P.ccK=d.k;P.vx=0}else if(d.k==='rt')P.rootT=fr;else if(d.k==='sl')P.slowT=Math.max(P.slowT||0,fr);toast(`被 ${d.by} ${E.n}了！（${(d.ms/1000).toFixed(1)} 秒）`)});
+  sock.on('pef',d=>{const t=d.u===myId?P:others.get(d.u),E=D.EF[d.k];if(!t||!E)return;num(t.x,t.y-46,E.n,'ef',E.col);if(d.u===myId&&E.dot){P.dotT=Math.round(E.t/1000*60);P.dotK=d.k}});
   sock.on('bskill',addBoss);
   sock.on('kill',d=>{const m=mons[d.i];if(m){m.dead=1;m.hp=0;fx.push({t:'poof',x:m.x,y:m.y-m.h/2,life:20,big:MON[m.t].boss})}});
   sock.on('respawn',d=>{const m=mons[d.i];if(m){m.dead=0;m.hp=m.max;fx.push({t:'poof',x:m.x,y:m.y-m.h/2,life:14})}});
@@ -961,17 +1041,20 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
     else if(d.k==='s6'){if(P.dead){P.dead=0;P.hp=Math.round(P.max.hp*.5);P.inv=120;toast(`${d.name} 讓你復活了！`)}else{const h=Math.round(P.max.hp*.5*hb);P.hp=Math.min(P.max.hp,P.hp+h);num(P.x,P.y-34,'+'+h,'heal')}}
     fx.push({t:'ring',x:P.x,y:P.y-10,life:24,col:'#fff6c8'});ui()});
   sock.on('notice',d=>{toast(d.t);chatLog(`<span class="sys">${esc(d.t)}</span>`)});
+  sock.on('party',d=>{party=d});
+  sock.on('pInvite',d=>{ptFrom=d.from;$('#ptTxt').textContent=`${d.name} 邀請你加入隊伍！`;$('#ptReq').hidden=false;clearTimeout(ptReqT);ptReqT=setTimeout(()=>{$('#ptReq').hidden=true;ptFrom=null},28000)});
+  sock.on('news',showNews);
   sock.on('duelReq',d=>{duelFrom=d.from;$('#drTxt').textContent=`${d.name}（Lv ${d.lv} ${d.job}）邀請你決鬥！`;$('#duelReq').hidden=false;clearTimeout(duelReqT);duelReqT=setTimeout(()=>{$('#duelReq').hidden=true;duelFrom=null},18000)});
   sock.on('duelStart',d=>{duel={opp:d.opp,name:d.oppName,go:Date.now()+3500,end:Date.now()+3500+180000}});
   sock.on('duelGo',()=>{if(duel)duel.go=Math.min(duel.go,Date.now())});
   sock.on('duelEnd',d=>{toast(d.msg);if(duel)duel.over=d.win?'勝利！':d.draw?'平手':'落敗';if(d.win&&P)fx.push({t:'lvup',x:P.x,y:P.y,life:90})});
   sock.on('php',d=>{if(!P)return;P.hp=d.hp;if(d.hp<=0&&!P.dead){P.dead=110;P.rope=null}ui()});
   sock.on('pdie',d=>{if(!P)return;P.hp=0;if(!P.dead)P.dead=110;P.rope=null;toast(`被 ${d.by} 打倒了！`);ui()});
-  sock.on('phurt',d=>{const t=d.u===myId?P:others.get(d.u);if(!t)return;num(t.x,t.y-34-(d.s||0)*11,d.dmg,d.u===myId?'hurt':d.by===myId?(d.crit?'crit':'dmg'):(d.crit?'ocrit':'odmg'));if(d.u===myId&&P&&!P.rope){P.vy=-1.6;P.vx=(P.x<(others.get(d.by)||P).x?-1:1)*1.2;P.ground=false}});
+  sock.on('phurt',d=>{const t=d.u===myId?P:others.get(d.u);if(!t)return;if(d.k){num(t.x+rnd(-6,6),t.y-30,d.dmg,'dot',D.EF[d.k].col);return}num(t.x,t.y-34-(d.s||0)*11,d.dmg,d.u===myId?'hurt':d.by===myId?(d.crit?'crit':'dmg'):(d.crit?'ocrit':'odmg'));if(d.u===myId&&P&&!P.rope){P.vy=-1.6;P.vx=(P.x<(others.get(d.by)||P).x?-1:1)*1.2;P.ground=false}});
   sock.on('trialDone',d=>{if(P){fx.push({t:'lvup',x:P.x,y:P.y,life:120});P.hp=P.max.hp}toast(`🎉 試煉通過！轉職成為「${d.name}」，獲得 ${d.gold.toLocaleString()} 金幣。按「技能」設定新技能，稍後自動回到晨露村`)});
   sock.on('heal',d=>{if(!P||P.dead)return;P.hp=Math.min(P.max.hp,P.hp+d.hp);if(Math.random()<.35)num(P.x+8,P.y-30,'+'+d.hp,'heal');ui()});
   sock.on('gain',d=>{if(!P)return;num(P.x,P.y-42,`經驗 +${d.exp}`,'exp');if(d.up){fx.push({t:'lvup',x:P.x,y:P.y,life:90});
-    if(d.lv>=MAXLV)toast(`恭喜達到滿等 Lv ${MAXLV}！`);else if(d.lv>=D.PETLV&&d.lv-d.up<D.PETLV)toast(`Lv ${D.PETLV}！寵物系統解鎖，點「寵物」挑一隻夥伴`);else if(d.newJob)toast(`Lv ${d.lv}！可以轉職了，回晨露村找轉職教官`);else if(d.lv===3)toast(`學會了新技能「${SK[P.cls].s2.n}」！按 C 使用`);else toast(`升級！Lv ${d.lv}　獲得 ${D.APL*d.up} 能力點數（按「能力」分配）`)}});
+    if(d.lv>=D.capOf(P))toast(D.capOf(P)>=D.MAXLV2?`恭喜達到滿等 Lv ${D.MAXLV2}！`:`恭喜達到 Lv ${MAXLV}！打倒虛空之主可以突破到 Lv ${D.MAXLV2}`);else if(d.lv>=D.PETLV&&d.lv-d.up<D.PETLV)toast(`Lv ${D.PETLV}！寵物系統解鎖，點「寵物」挑一隻夥伴`);else if(d.newJob)toast(`Lv ${d.lv}！可以轉職了，回晨露村找轉職教官`);else if(d.lv===3)toast(`學會了新技能「${SK[P.cls].s2.n}」！按 C 使用`);else toast(`升級！Lv ${d.lv}　獲得 ${D.APL*d.up} 能力點數（按「能力」分配）`)}});
   sock.on('me',m=>{const up=P&&m&&m.lv>P.lv;applyMe(m);if(up){P.hp=P.max.hp;P.mp=P.max.mp;ui()}});
   sock.on('lvup',d=>{const o=others.get(d.id);if(o)fx.push({t:'lvup',who:o,x:o.x,y:o.y,life:90})});
   sock.on('cast',d=>{const o=others.get(d.id);if(!o)return;o.x=d.x;o.y=d.y;o.f=d.f;doSkill(d.k,o)});

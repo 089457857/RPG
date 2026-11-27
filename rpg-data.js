@@ -1,6 +1,7 @@
 // 屁眼王國大冒險 — 伺服器與瀏覽器共用的遊戲資料
 (function (root) {
-  const MAXLV = 80;
+  const MAXLV = 80, MAXLV2 = 100;   // 擊敗虛空之主後等級上限變成 100
+  const capOf = c => (c && c.cap) || MAXLV;
   const MAXSLOT = 6; // 每個帳號最多 6 個角色
   const CL = {
     warrior: { name: '戰士', col: '#d8433a', col2: '#8c2a24', desc: '近戰揮砍，血厚耐打，一刀打一排。', base: { hp: 100, mp: 30, atk: 12, def: 6, crit: 5 }, grow: { hp: 22, mp: 4, atk: 2.9, def: 1.7 }, dr: .75,
@@ -39,6 +40,34 @@
   Object.assign(SK.mech, { a0: { n: '火焰噴射', mp: 6, cd: 45, lv: 8, d: '噴出短距離火焰，連燒 3 次', g: {'type': 'line', 'len': 80, 'hits': 3, 'mult': 0.75, 'col': '#ff7a2a'} }, b1: { n: '超頻', mp: 16, cd: 600, job: 1, d: '20 秒內移動速度 +25%、技能冷卻縮短', g: {'type': 'buff', 'buff': 'haste'} }, c1: { n: '電磁脈衝', mp: 16, cd: 80, job: 1, d: '釋放電磁脈衝，打中周圍所有敵人', g: {'type': 'around', 'r': 80, 'hits': 1, 'mult': 1.55, 'col': '#5af0ff'} }, b2: { n: '修復奈米', mp: 20, cd: 600, job: 2, d: '立刻回復 25% HP', g: {'type': 'heal', 'pct': 0.25} }, c2: { n: '加特林', mp: 24, cd: 80, job: 2, d: '連射 5 發子彈', g: {'type': 'proj', 'mult': 0.6, 'pierce': 0, 'col': '#ffe680', 'spd': 7, 'burst': 5} }, b3: { n: '噴射推進', mp: 34, cd: 90, job: 3, d: '噴射往前衝，撞飛沿路的敵人', g: {'type': 'dash', 'dist': 140, 'hits': 1, 'mult': 1.6, 'col': '#5af0ff'} }, c3: { n: '集束炸彈', mp: 38, cd: 110, job: 3, d: '炸彈落在最近的敵人身邊，連炸 3 次', g: {'type': 'target', 'r': 220, 'rad': 70, 'hits': 3, 'mult': 1.15, 'col': '#ff7a2a'} }, b4: { n: '機甲覺醒', mp: 60, cd: 600, job: 4, d: '20 秒內攻擊 +25%', g: {'type': 'buff', 'buff': 'pow'} }, c4: { n: '粒子加農', mp: 70, cd: 180, job: 4, d: '超長距離粒子砲，連打 3 次', g: {'type': 'line', 'len': 300, 'hits': 3, 'mult': 1.9, 'col': '#5af0ff'} } });
   Object.assign(SK.demon, { a0: { n: '血之印記', mp: 5, cd: 40, lv: 8, d: '在最近的敵人身上引爆血印並吸血', g: {'type': 'target', 'r': 150, 'rad': 30, 'hits': 1, 'mult': 1.6, 'col': '#ff2a4a', 'heal': 0.03} }, b1: { n: '血怒', mp: 16, cd: 600, job: 1, d: '20 秒內攻擊 +25%', g: {'type': 'buff', 'buff': 'pow'} }, c1: { n: '夢魘爪擊', mp: 14, cd: 60, job: 1, d: '撕裂前方 3 隻並吸血', g: {'type': 'melee', 'w': 44, 'h': 28, 'mult': 1.7, 'max': 3, 'kb': 1, 'col': '#8a1a2a', 'heal': 0.02} }, b2: { n: '黑暗屏障', mp: 22, cd: 600, job: 2, d: '15 秒內受到傷害 -30%', g: {'type': 'buff', 'buff': 'guard'} }, c2: { n: '吸魂', mp: 26, cd: 90, job: 2, d: '同時吸取最近 4 隻敵人的靈魂', g: {'type': 'multi', 'n': 4, 'r': 200, 'mult': 1.45, 'col': '#b46aff', 'heal': 0.03} }, b3: { n: '煉獄火焰', mp: 36, cd: 100, job: 3, d: '直線噴出煉獄之火，連燒 3 次', g: {'type': 'line', 'len': 160, 'hits': 3, 'mult': 1.15, 'col': '#ff4a2a'} }, c3: { n: '噬血狂潮', mp: 38, cd: 110, job: 3, d: '血潮捲過周圍，連打 3 次並吸血', g: {'type': 'around', 'r': 80, 'hits': 3, 'mult': 1.0, 'col': '#ff2a4a', 'heal': 0.02} }, b4: { n: '魔王之翼', mp: 70, cd: 180, job: 4, d: '展翼往前猛衝，撕裂沿路敵人兩次', g: {'type': 'dash', 'dist': 150, 'hits': 2, 'mult': 2.2, 'col': '#5a0a2a'} }, c4: { n: '末日黑炎', mp: 70, cd: 180, job: 4, d: '黑炎吞沒最近的敵人周圍，連燒 3 次', g: {'type': 'target', 'r': 240, 'rad': 100, 'hits': 3, 'mult': 1.8, 'col': '#5a0a2a'} } });
   Object.assign(SK.angel, { a0: { n: '聖光術', mp: 5, cd: 40, lv: 8, d: '在最近的敵人身上降下聖光', g: {'type': 'target', 'r': 170, 'rad': 40, 'hits': 1, 'mult': 1.55, 'col': '#fff6c8'} }, b1: { n: '聖光之盾', mp: 16, cd: 600, job: 1, d: '15 秒內受到傷害 -30%', g: {'type': 'buff', 'buff': 'guard'} }, c1: { n: '光之鎖鏈', mp: 14, cd: 70, job: 1, d: '光鏈同時打向最近 3 隻敵人', g: {'type': 'multi', 'n': 3, 'r': 200, 'mult': 1.45, 'col': '#fff6c8'} }, b2: { n: '天堂之光', mp: 20, cd: 600, job: 2, d: '立刻回復 30% HP', g: {'type': 'heal', 'pct': 0.3} }, c2: { n: '光輪', mp: 24, cd: 90, job: 2, d: '身邊展開光輪，連打 3 次', g: {'type': 'around', 'r': 70, 'hits': 3, 'mult': 0.95, 'col': '#ffe680'} }, b3: { n: '天使之歌', mp: 30, cd: 600, job: 3, d: '20 秒內移動速度 +25%、技能冷卻縮短', g: {'type': 'buff', 'buff': 'haste'} }, c3: { n: '聖光爆裂', mp: 38, cd: 100, job: 3, d: '在最近的敵人身邊引爆聖光，連爆兩次', g: {'type': 'target', 'r': 220, 'rad': 70, 'hits': 2, 'mult': 1.75, 'col': '#fff6c8'} }, b4: { n: '神之恩典', mp: 60, cd: 600, job: 4, d: '立刻回復 50% HP', g: {'type': 'heal', 'pct': 0.5} }, c4: { n: '天罰', mp: 70, cd: 180, job: 4, d: '天罰光束貫穿前方，連打 3 次', g: {'type': 'line', 'len': 260, 'hits': 3, 'mult': 1.85, 'col': '#ffe680'} } });
+  // ---- 控制與持續傷害效果 ----
+  // hard：完全不能動也不能攻擊；dot：持續傷害（造成這一擊傷害的 dot 倍，分 t 毫秒扣完）
+  // Boss 與 PVP：控制時間只有 60%，而且同一個施放者要等「控制結束 + 5 秒」才能再控同一個目標（不同玩家可以輪流接控）
+  const EF = {
+    fz: { n: '凍結', t: 1000, hard: 1, col: '#9fe0ff' },
+    pz: { n: '麻痺', t: 800, hard: 1, col: '#ffe680' },
+    st: { n: '暈眩', t: 1000, hard: 1, col: '#ffd23f' },
+    rt: { n: '束縛', t: 2500, col: '#8aff7a' },
+    sl: { n: '緩速', t: 3000, col: '#b9a6ff' },
+    bn: { n: '燒傷', t: 3000, dot: .6, col: '#ff7a2a' },
+    ps: { n: '中毒', t: 5000, dot: .75, col: '#7aff7a' },
+  };
+  const CC_RES = .6, CC_IMM = 5000;
+  const EFSK = {
+    warrior: { a0: 'st', c2: 'st' },
+    mage: { s1: 'bn', s2: 'pz', s3: 'fz', a0: 'sl', c1: 'bn', c2: 'fz', b3: 'pz' },
+    rogue: { a0: 'ps', c3: 'ps' },
+    archer: { s4: 'rt', b3: 'sl', c2: 'bn', c3: 'pz' },
+    brawler: { s2: 'st', s5: 'st', c2: 'sl' },
+    mech: { a0: 'bn', c1: 'pz', s4: 'st' },
+    demon: { s2: 'rt', s4: 'ps', b3: 'bn', c4: 'bn' },
+    angel: { c1: 'rt', c3: 'st' },
+  };
+  const efText = k => { const e = EF[k]; return e.dot ? `${e.n} ${e.t / 1000} 秒` : `${e.n} ${e.t / 1000} 秒`; };
+  for (const [cls, m] of Object.entries(EFSK)) for (const [k, e] of Object.entries(m)) {
+    const s = SK[cls][k]; s.ef = e; s.d = s.d.replace(/，?凍結敵人 0\.75 秒（Boss 免疫）|，命中的敵人 2\.5 秒無法移動（Boss 免疫）/, '') + `（${efText(e)}）`;
+  }
+  const efOf = cls => new Set(Object.values(EFSK[cls] || {}));
   // 技能欄位：X C V B N M 六格可以自由配置
   const SLOTN = 6, DEFSLOTS = ['s1', 's2', 's3', 's4', 's5', 's6'];
   const JOBLV = [0, 15, 30, 45, 60], JOBATK = [1, 1.15, 1.32, 1.5, 1.7], JOBHP = [1, 1.1, 1.22, 1.36, 1.5];
@@ -84,6 +113,12 @@
     chaosknight: { name: '混沌騎士', lv: 90, hp: 48000, atk: 1050, exp: 5200, gold: [1800, 2400], w: 18, h: 26, spd: .5, leg: .006 },
     abyssmage: { name: '深淵魔導師', lv: 94, hp: 62000, atk: 1150, exp: 6400, gold: [2200, 2800], w: 16, h: 24, spd: .45, leg: .008 },
     voidking: { name: '虛空之主', lv: 100, hp: 1200000, atk: 1300, exp: 250000, gold: [80000, 100000], w: 64, h: 62, spd: .45, boss: true, leg: .35, sk: ['homing', 'orbit', 'split'], skn: { homing: '混沌追蹤（一直移動甩掉）', orbit: '虛空環繞（別貼在它身邊）', split: '虛空分裂（低的跳過、高的別跳）' } },
+    // ---- 深淵海溝（第 8 張地圖，Lv 101～105，要先解鎖 100 等） ----
+    siren: { name: '深海人魚', lv: 101, hp: 82000, atk: 1320, exp: 9500, gold: [3000, 3800], w: 16, h: 20, spd: .75, leg: .01 },
+    crab: { name: '鐵甲巨蟹', lv: 103, hp: 105000, atk: 1420, exp: 11500, gold: [3400, 4200], w: 24, h: 16, spd: .4, leg: .012 },
+    pirate: { name: '幽靈海盜', lv: 104, hp: 120000, atk: 1520, exp: 13000, gold: [3800, 4600], w: 16, h: 26, spd: .6, leg: .014 },
+    kraken: { name: '深淵海皇・克拉肯', lv: 105, hp: 2000000, atk: 1650, exp: 500000, gold: [150000, 180000], w: 68, h: 60, spd: .4, boss: true, leg: .5,
+      sk: ['pillars', 'pull', 'split', 'homing'], skn: { pillars: '觸手破地（站在空隙）', pull: '深海漩渦（往外跑）', split: '雙層潮汐（低的跳過、高的蹲在地上）', homing: '追蹤墨彈（一直移動甩掉）' } },
     // 轉職試煉官：每個玩家獨立挑戰；招式預警比一般 Boss 長、傷害較低，一轉 1 招～四轉 4 招
     trial1: { name: '見習試煉官', lv: 15, hp: 6500, atk: 29, exp: 0, gold: [300, 300], w: 40, h: 40, spd: .4, boss: true, trial: 1, sk: ['slam'], skn: { slam: '試煉重壓（跳起來躲）' } },
     trial2: { name: '精英試煉官', lv: 30, hp: 15000, atk: 70, exp: 0, gold: [1500, 1500], w: 44, h: 44, spd: .42, boss: true, trial: 2, sk: ['slam', 'roll'], skn: { slam: '試煉重壓（跳起來躲）', roll: '試煉滾球（跳過去）' } },
@@ -91,6 +126,18 @@
     trial4: { name: '傳說試煉官', lv: 60, hp: 42000, atk: 235, exp: 0, gold: [12000, 12000], w: 52, h: 52, spd: .46, boss: true, trial: 4, sk: ['slam', 'roll', 'pillars', 'icering'], skn: { slam: '試煉重壓（跳起來躲）', roll: '試煉滾球（跳過去）', pillars: '試煉光柱（站在空隙）', icering: '試煉光環（離開它身邊）' } },
     titan: { name: '天穹泰坦', lv: 80, hp: 240000, atk: 600, exp: 60000, gold: [30000, 40000], w: 62, h: 60, spd: .4, boss: true, sk: ['quake', 'laser', 'safe'], skn: { quake: '天崩地裂（跳過震波）', laser: '天罰橫掃（站在地上別跳）', safe: '神之審判（站進綠色安全區）' } },
   };
+  // ---- 小怪特殊攻擊：每種小怪除了碰撞普攻，再一招有預警、躲得掉的短距離招式 ----
+  // r：目標要在這個距離內（而且站在同一層）才會出招；len／rad／dist 是招式範圍，都和 r 差不多，不會隔很遠打人
+  const MSP = {
+    slime: { k: 'roll', r: 70, dist: 70, n: '彈跳衝撞' }, shroom: { k: 'rain', r: 90, n: '孢子炸彈' }, stump: { k: 'quake', r: 60, rad: 60, n: '樹根震擊' },
+    snowslime: { k: 'roll', r: 80, dist: 80, n: '雪球滾撞' }, icewolf: { k: 'breath', r: 70, len: 70, n: '冰牙撲咬' }, yeti: { k: 'icering', r: 60, rad: 60, n: '冰霜怒吼' },
+    fireslime: { k: 'rain', r: 90, n: '熔岩噴濺' }, imp: { k: 'homing', r: 110, n: '小火球' }, golem: { k: 'quake', r: 80, rad: 80, n: '岩漿震地' },
+    knight: { k: 'breath', r: 80, len: 80, n: '暗影斬' }, gargoyle: { k: 'rain', r: 100, n: '石塊墜落', two: 1 }, reaper: { k: 'icering', r: 70, rad: 70, n: '死神鐮舞' },
+    seraph: { k: 'homing', r: 110, n: '墮天之羽' }, stargolem: { k: 'quake', r: 90, rad: 90, n: '星辰重踏' }, phoenix: { k: 'breath', r: 90, len: 90, n: '烈焰吐息' },
+    voidling: { k: 'roll', r: 100, dist: 100, n: '虛空突進' }, chaosknight: { k: 'breath', r: 90, len: 90, n: '混沌斬' }, abyssmage: { k: 'homing', r: 110, n: '深淵飛彈' },
+    siren: { k: 'homing', r: 110, n: '海妖之歌' }, crab: { k: 'quake', r: 90, rad: 90, n: '巨鉗砸地' }, pirate: { k: 'rain', r: 110, n: '幽靈砲擊', two: 1 },
+  };
+  for (const [t, sp] of Object.entries(MSP)) MON[t].sp = sp;
   // Boss 危險區：以牠最遠的招式射程為半徑（至少 200），站在這個範圍外或上方平台攻擊 Boss，Boss 不會受傷
   const BREACH = { slam: 85, roll: 240, bounce: 240, pillars: 240, frostbreath: 140, icering: 75, rain: 240, pull: 200, firefloor: 230, breath: 150, charge: 150, tail: 95, homing: 280, orbit: 85, split: 260, quake: 180, laser: 240, safe: 260 };
   function bossZone(t) { const m = MON[t]; if (!m || !m.boss) return 0; return Math.round(Math.max(200, ...(m.sk || []).map(k => BREACH[k] || 0)) + m.w / 2 + 20); }
@@ -117,7 +164,7 @@
     { name: '天空聖域', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 440, y: 260 }, { x1: 460, x2: 600, y: 220 }, { x1: 700, x2: 820, y: 260 }, { x1: 840, x2: 960, y: 220 }, { x1: 980, x2: 1160, y: 180 }, { x1: 1240, x2: 1360, y: 260 }, { x1: 1380, x2: 1500, y: 220 }, { x1: 1520, x2: 1660, y: 180 }, { x1: 1680, x2: 1800, y: 140 }, { x1: 1820, x2: 2000, y: 100 }]], ropes: [{ x: 1150, y1: 180, y2: GY }, { x: 1980, y1: 100, y2: GY }], pal: 'sky', spawns: layout('seraph', 'stargolem', 'phoenix', 'titan'), zones: [[260, '雲端階梯'], [700, '天使庭園'], [1200, '星辰廣場'], [2100, '不死鳥之巢'], [9e9, '天穹泰坦的王座']],
       portals: [{ x: 60, to: 3, tx: 2490, label: '← 暗黑神殿' }, { x: 2560, to: 5, tx: 150, rec: 80, label: '虛空裂隙' }], start: 150 },
     { name: '虛空裂隙', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 300, x2: 520, y: 200 }, { x1: 500, x2: 700, y: 250 }, { x1: 720, x2: 900, y: 180 }, { x1: 900, x2: 1060, y: 240 }, { x1: 1060, x2: 1180, y: 150 }, { x1: 1220, x2: 1420, y: 210 }, { x1: 1420, x2: 1600, y: 250 }, { x1: 1600, x2: 1780, y: 160 }, { x1: 1820, x2: 2060, y: 230 }]], ropes: [{ x: 320, y1: 200, y2: GY }, { x: 680, y1: 250, y2: GY }, { x: 740, y1: 180, y2: GY }, { x: 1040, y1: 240, y2: GY }, { x: 1080, y1: 150, y2: GY }, { x: 1240, y1: 210, y2: GY }, { x: 1580, y1: 250, y2: GY }, { x: 1620, y1: 160, y2: GY }, { x: 1840, y1: 230, y2: GY }], pal: 'void', spawns: layout('voidling', 'chaosknight', 'abyssmage', 'voidking'), zones: [[260, '裂隙邊緣'], [700, '虛空荒原'], [1200, '混沌要塞'], [2100, '深淵回廊'], [9e9, '虛空之主的王座']],
-      portals: [{ x: 60, to: 4, tx: 2490, label: '← 天空聖域' }], start: 150 },
+      portals: [{ x: 60, to: 4, tx: 2490, label: '← 天空聖域' }, { x: 2560, to: 9, tx: 150, label: '潮聲港' }], start: 150 },
     // ---- 特殊地圖（不會出現在一般傳送門的路線上） ----
     { name: '決鬥場', pal: 'arena', pvp: 'duel', spawns: [], seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 860, x2: 1040, y: 240 }, { x1: 1160, x2: 1340, y: 240 }], ropes: [{ x: 880, y1: 240, y2: GY }, { x: 1320, y1: 240, y2: GY }],
       zones: [[9e9, '決鬥場']], portals: [], start: 1100, lo: 700, hi: 1500 },
@@ -126,6 +173,17 @@
       zones: [[9e9, '競技場']], portals: [{ x: 60, to: -1, ret: 1, label: '離開競技場' }], start: 1200, lo: 300, hi: 2100 },
     { name: '轉職試煉之地', pal: 'trial', trial: 1, spawns: [], seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 500, x2: 700, y: 240 }, { x1: 1500, x2: 1700, y: 240 }],
       ropes: [{ x: 520, y1: 240, y2: GY }, { x: 1680, y1: 240, y2: GY }], zones: [[9e9, '轉職試煉之地']], portals: [{ x: 60, to: -1, ret: 1, label: '放棄試煉' }], start: 300 },
+    // ---- 第 7 張地圖：潮聲港（村落；碼頭搭船前往深淵海溝）----
+    { name: '潮聲港', pal: 'harbor', town: true, safe: true, spawns: [], home: 9,
+      seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 420, x2: 600, y: 250 }, { x1: 900, x2: 1100, y: 240 }, { x1: 1400, x2: 1560, y: 250 }],
+      ropes: [{ x: 440, y1: 250, y2: GY }, { x: 1080, y1: 240, y2: GY }, { x: 1420, y1: 250, y2: GY }],
+      npcs: [{ x: 300, kind: 'shop', name: '雜貨商 阿珠' }, { x: 2330, kind: 'boat', name: '船長 老海' }], dock: 2240,
+      zones: [[700, '港口入口'], [1800, '漁村市集'], [9e9, '碼頭']], portals: [{ x: 60, to: 5, tx: 2490, label: '← 虛空裂隙' }], start: 150 },
+    // ---- 第 8 張地圖：深淵海溝（Lv 101～105）----
+    { name: '深淵海溝', pal: 'abyss', home: 9, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 500, y: 236 }, { x1: 520, x2: 680, y: 176 }, { x1: 720, x2: 880, y: 246 }, { x1: 900, x2: 1040, y: 186 }, { x1: 1060, x2: 1200, y: 126 }, { x1: 1240, x2: 1400, y: 236 }, { x1: 1420, x2: 1580, y: 176 }, { x1: 1600, x2: 1760, y: 120 }, { x1: 1800, x2: 2060, y: 206 }]],
+      ropes: [{ x: 340, y1: 236, y2: GY }, { x: 540, y1: 176, y2: 236 }, { x: 740, y1: 246, y2: GY }, { x: 920, y1: 186, y2: GY }, { x: 1080, y1: 126, y2: 186 }, { x: 1260, y1: 236, y2: GY }, { x: 1440, y1: 176, y2: 236 }, { x: 1620, y1: 120, y2: 176 }, { x: 1820, y1: 206, y2: GY }],
+      spawns: layout('siren', 'crab', 'pirate', 'kraken'), zones: [[260, '沉船淺灘'], [700, '珊瑚礁'], [1200, '海盜船骸'], [2100, '深淵斷崖'], [9e9, '海皇的巢穴']],
+      portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }], start: 150 },
   ];
   // 升級經驗：前期和以前差不多，後期大幅變難（滿等總經驗約為舊版的 4 倍）
   const needExp = lv => Math.round(12 * Math.pow(lv, 1.8));
@@ -170,14 +228,15 @@
   }
   // 升級（會修改角色），回傳升了幾級
   function addExp(c, e) {
-    if (c.lv >= MAXLV) { c.exp = 0; return 0; }
+    const cap = capOf(c);
+    if (c.lv >= cap) { c.exp = 0; return 0; }
     c.exp += e; let n = 0;
-    while (c.lv < MAXLV && c.exp >= needExp(c.lv)) {
+    while (c.lv < cap && c.exp >= needExp(c.lv)) {
       c.exp -= needExp(c.lv); c.lv++; n++; if (c.st) c.ap = (c.ap || 0) + APL;
       const g = CL[c.cls].grow;
       c.base.hp += g.hp; c.base.mp += g.mp; c.base.atk = Math.round((c.base.atk + g.atk) * 10) / 10; c.base.def = Math.round((c.base.def + g.def) * 10) / 10;
     }
-    if (c.lv >= MAXLV) c.exp = 0;
+    if (c.lv >= cap) c.exp = 0;
     return n;
   }
   function skillLock(c, k) { const s = SK[c.cls][k]; if (!s) return '無此技能'; if (s.lv && c.lv < s.lv) return `Lv ${s.lv}`; if (s.job && c.job < s.job) return ['', '一轉', '二轉', '三轉', '四轉'][s.job]; return ''; }
@@ -193,6 +252,16 @@
     void: { dr: 0.4, n: '虛空戰獸', lv: 75, price: 0, drop: 'voidking', rate: .12, spd: 3.45, jump: 1.45, glide: 1, d: '虛空之主掉落（12%）。最快的坐騎' },
   };
   for (const m of MAPS) { if (!m.seg) m.seg = SEG; if (!m.ropes) m.ropes = ROPES; }
-  const D = { bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  // ---- 更新公告：改版時改 VERSION 並寫上 NOTES，每個帳號登入後會看到一次 ----
+  const VERSION = '2026-11-27';
+  const NOTES = [
+    ['🧊 控制技能', '冰系有凍結、雷系有麻痺、火系有燒傷、毒系有中毒，另外還有暈眩、束縛、緩速。技能說明裡都有標示效果。'],
+    ['👑 Boss 也吃控制', '控制對 Boss 有效，但時間只有 60%；同一個人控完要等 5 秒才能再控同一隻，隊友輪流接控就能把牠壓住。'],
+    ['⚔️ PVP 控制', '決鬥場和競技場裡控制技能也會打在玩家身上，一樣只有 60% 時間，並有 5 秒的免疫時間。'],
+    ['👥 組隊', '按下方「隊伍」邀請玩家，最多 6 人。同地圖的隊友就算沒出手也分得到經驗，畫面左上角看得到隊友血量。'],
+    ['🌊 突破 100 等', '打倒虛空之主時，最後一擊的玩家和同地圖的隊友，等級上限會提升到 100。'],
+    ['⚓ 新地圖', '虛空裂隙最右邊可以通往村莊「潮聲港」，突破 100 等後找碼頭的船長出海，挑戰 Lv 101～105 的「深淵海溝」與 Boss 深淵海皇・克拉肯。'],
+  ];
+  const D = { VERSION, NOTES, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
