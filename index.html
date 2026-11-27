@@ -120,6 +120,8 @@ body.fs .t-mnt{left:calc(16px + var(--sl))!important;top:auto!important;bottom:c
 .btn:hover:not(:disabled){filter:brightness(1.15)}.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn.pri{background:linear-gradient(180deg,#ffe58a,var(--gold) 50%,#d39a12);color:#2a1a00;border-color:#fff0b0}
 .btn.sm{min-height:36px;font-size:14px;padding:0 12px}
+.gmf{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:8px 12px;margin-top:10px}.gmf label{display:grid;gap:4px;font-size:14px;color:var(--dim)}
+.gmf select,.gmf input{font:600 15px "Noto Sans TC",sans-serif;color:var(--ink);background:#0f1328;border:1px solid #ffffff2e;border-radius:10px;min-height:40px;padding:0 10px}
 .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:12px}
 .keys{font-size:13px;color:var(--dim);margin-top:10px;line-height:1.8}
@@ -208,7 +210,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
         <div class="b xp"><i id="uXp"></i><span id="uXpT"></span></div>
       </div>
       <button class="btn sm menub" id="menuBtn" type="button" aria-expanded="false" aria-label="選單">☰</button>
-      <div class="inv"><span class="g" id="uGold">0</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="btn sm" id="pvpBtn">PVP</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
+      <div class="inv"><span class="g" id="uGold">0</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="btn sm" id="pvpBtn">PVP</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><button class="btn sm" id="gmBtn" style="display:none">GM</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
     </div>
     <div class="chat" id="chat" hidden>
       <div class="log" id="log" aria-live="polite"></div>
@@ -256,6 +258,7 @@ const K={};
 function applyMe(m){if(!m)return;SPD=SPD0*(m.pet==='baihu'?1.2:1);const keep=P?{hp:P.hp,mp:P.mp}:null;
   if(!P)P={x:MAPS[m.map||0].start,y:GY,vx:0,vy:0,f:1,ground:true,rope:null,inv:0,cd:{atk:0,s1:0,s2:0,s3:0,s4:0,s5:0,s6:0},act:0,actK:'',drop:0,walk:0,dead:0,clone:0,mount:0,bf:{rage:0,bless:0,wing:0,shield:0}};
   for(const k of ['cls','lv','exp','gold','pot','eth','base','job','wep','arm','map','pet','ap','st','slots','mounts','mnt'])P[k]=m[k];
+  $('#gmBtn').style.display=m.gmOk?'':'none';
   P.max=m.max||D.stats(P);P.hp=keep?Math.min(keep.hp,P.max.hp):P.max.hp;P.mp=keep?Math.min(keep.mp,P.max.mp):P.max.mp;ui()}
 
 // ================= 輸入 =================
@@ -525,6 +528,7 @@ function hurtHero(atk,fromX){const p=P;const dmg=Math.max(1,Math.round((atk*rnd(
   if(p.hp<=0){p.hp=0;p.dead=110;p.rope=null;toast('你倒下了……稍後在晨露村復活')}ui()}
 function updDrops(){const p=P;for(const d of drops){if(d.vy!==null){d.vy+=G*.7;d.y+=d.vy;if(d.vy>0&&d.y>=d.ty){d.y=d.ty;d.vy=null}}
   if(p&&!p.dead&&!d.pend&&Math.abs(p.x-d.x)<12&&Math.abs(p.y-d.y)<22){d.pend=true;sock.emit('pick',{id:d.id},r=>{d.pend=false;if(r&&r.ok){drops=drops.filter(x=>x.id!==d.id);if(r.t&&r.t.startsWith('mnt:')){if(r.leg&&r.leg.mnt){toast(`🐎 獲得坐騎「${D.MOUNTS[r.leg.mnt].n}」！到「角色 → 坐騎」換上`);fx.push({t:'lvup',x:P.x,y:P.y,life:90})}else toast(`已經有這個坐騎了，換成 30,000 金幣`)}else if(r.t==='leg'){if(r.leg&&r.leg.name){toast(`✦ 獲得傳說武器「${r.leg.name}」！已自動裝備`);fx.push({t:'lvup',x:P.x,y:P.y,life:90})}else toast(`你已經有傳說武器了，換成 ${D.LEGGOLD.toLocaleString()} 金幣`)}else num(d.x,d.y-14,r.t==='gold'?`+${r.v} 金`:r.t==='pot'?'紅藥水':'藍藥水',r.t==='gold'?'gold':'heal')}})}}}
+let immTip=0;
 function num(x,y,v,k){nums.push({x,y,v:String(v),k,life:56})}
 function toast(m){msg=m;msgT=170}
 
@@ -593,6 +597,9 @@ function drawBody(p,ox,oy,tint){const c=CL[p.cls],x=Math.round(p.x-ox),y=Math.ro
 
 // ================= 繪圖：怪物 =================
 function slimeArt(x,y,f,i,W,c1,c2){const sq=Math.sin(frame/8+i)*1.2;R(x-7,y-9+sq,14,9-sq,W||c1);R(x-5,y-11+sq,10,2,W||c1);R(x-4,y-9+sq,3,2,'#ffffffa0');R(x-3+f,y-6,2,2,c2);R(x+2+f,y-6,2,2,c2)}
+// Boss 危險區：地上的紅色範圍，站在裡面才打得到 Boss
+function drawZone(m,ox,oy){if(m.dead||!MON[m.t].boss)return;const z=D.bossZone(m.t),y=Math.round(m.y-oy),x1=Math.round(m.x-z-ox),x2=Math.round(m.x+z-ox);
+  b.globalAlpha=.16+.06*Math.sin(frame/15);R(x1,y-26,x2-x1,26,'#ff3b3b');b.globalAlpha=.75;R(x1,y-2,x2-x1,3,'#ff3b3b');R(x1,y-30,2,30,'#ff6a5a');R(x2-2,y-30,2,30,'#ff6a5a');b.globalAlpha=1}
 function drawMon(m,ox,oy){if(m.dead)return;const d=MON[m.t],x=Math.round(m.x-ox),y=Math.round(m.y-oy+m.hop),f=m.f,W=m.hurt>8?'#ffffff':null,s=Math.sin(frame/12)*1;
   R(x-m.w/2,Math.round(m.y-oy)-1,m.w,2,'#0004');
   switch(m.t){
@@ -668,6 +675,7 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
   if(MAPS[MI].town)for(const n of NPCS)drawNPC(n,ox,oy);
   for(const pt of MAPS[MI].portals)drawPortal(pt,ox,oy);
   for(const d of drops){const x=Math.round(d.x-ox),y=Math.round(d.y-oy)-(d.vy===null?Math.round(Math.abs(Math.sin(frame/10+d.x))*2):0);if(d.t.startsWith('mnt:')){b.globalAlpha=.35+.3*Math.sin(frame/6);R(x-9,y-18,18,18,'#7affc8');b.globalAlpha=1;R(x-5,y-10,10,3,'#c8463a');R(x-6,y-12,3,4,'#8a5a2b');R(x+3,y-12,3,4,'#8a5a2b');R(x-4,y-7,2,5,'#ffd23f');R(x+2,y-7,2,5,'#ffd23f');R(x-4,y-3,8,2,'#ffd23f')}else if(d.t==='leg'){b.globalAlpha=.4+.3*Math.sin(frame/6);R(x-8,y-22,16,22,'#ff4fd8');b.globalAlpha=1;R(x-1,y-16,2,12,'#ffe680');R(x-4,y-6,8,2,'#ff4fd8');R(x-1,y-4,2,3,'#8a4a2a');R(x-2,y-18,4,2,'#ffffff')}else if(d.t==='gold'){R(x-3,y-6,6,6,'#ffd23f');R(x-2,y-5,2,2,'#fff6c0');R(x-3,y-1,6,1,'#c8921c')}else{R(x-2,y-8,4,2,'#ddd');R(x-3,y-6,6,6,d.t==='pot'?'#ff4d5e':'#3d8bff');R(x-2,y-5,2,2,'#ffffffa0')}}
+  for(const m of mons)drawZone(m,ox,oy);
   for(const m of mons)drawMon(m,ox,oy);
   drawHaz(ox,oy);
   drawOthers(ox,oy);
@@ -771,7 +779,7 @@ let last=performance.now(),acc=0,posT=0;
 function step(){frame++;if(P&&ready){updHero();updMons();updOthers();updShots();updDrops();if(P.chatT>0)P.chatT--;
   if(hitQ.length){sock.emit('hit',hitQ.splice(0,20))}
   if(pvpQ.length){sock.emit('phit',pvpQ.splice(0,20))}
-  if(++posT>=6){posT=0;sock.emit('pos',{x:P.x,y:P.y,f:P.f,act:P.act>0,rope:!!P.rope,dead:!!P.dead,hp:P.hp/P.max.hp*100,clone:P.clone>0,mount:!!P.mount})}
+  if(++posT>=6){posT=0;sock.emit('pos',{x:P.x,y:P.y,f:P.f,act:P.act>0,rope:!!P.rope,dead:!!P.dead,hp:P.hp/P.max.hp*100,clone:P.clone>0,mount:!!P.mount,gy:P.ground||P.rope?Math.round(P.y):undefined})}
   if(frame%60===0&&!P.dead){P.mp=Math.min(P.max.mp,P.mp+2+Math.floor(P.lv/3));if(MAPS[MI].town&&P.x<260)P.hp=Math.min(P.max.hp,P.hp+Math.ceil(P.max.hp*.05));ui()}
   const z=MAPS[MI].zones.find(z=>P.x<z[0])[1];if(z!==zoneName){zoneName=z;zoneT=150}
   const tx=clamp(P.x-IW/2+P.f*20,0,WW-IW),ty=clamp(P.y-IH*.62,-60,WH-IH);cam.x+=(tx-cam.x)*.1;cam.y+=(ty-cam.y)*.1}
@@ -872,6 +880,17 @@ function openPvp(){sock.emit('pvpInfo',{},r=>{if(!r||!r.ok)return;const inArena=
     if(idle>300000){$('#afk').hidden=false;sock.disconnect()}},5000);
   $('#afkBack').onclick=()=>{last=Date.now();warned=false;$('#afk').hidden=true;$('#net').textContent='重新連線中…';if(sock)sock.connect()}}
 $('#pvpBtn').onclick=()=>{if(P&&$('#pop').hidden)openPvp()};
+// GM 測試面板：只有伺服器設定為 GM 的帳號才看得到
+function openGM(){const sel=(id,opts,v)=>`<select id="${id}">${opts.map(([k,n])=>`<option value="${k}"${String(k)===String(v)?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
+  const render=(cls,job,lv,pet)=>{const c=CL[cls];openPop(`<h2>GM 測試角色</h2><p class="sub" style="margin:0">把目前這個角色直接變成指定的職業、轉數和等級，裝備自動換成該等級最好的（Lv 80 給傳說武器），附上所有可用坐騎、999 瓶藥水和 999 萬金幣（可以無限重置能力點）。GM 角色<b>不會出現在任何排行榜</b>，名字後面會顯示［GM］。</p>
+    <div class="gmf"><label>職業 ${sel('gmCls',Object.keys(CL).map(k=>[k,CL[k].jobs[0]]),cls)}</label><label>轉數 ${sel('gmJob',c.jobs.map((j,i)=>[i,['初始','一轉','二轉','三轉','四轉'][i]+'　'+j]),job)}</label>
+    <label>等級 <input id="gmLv" type="number" min="1" max="${D.MAXLV}" value="${lv}"></label><label>寵物 ${sel('gmPet',[['','（無）'],...Object.entries(D.PETS).map(([k,p])=>[k,p.n])],pet)}</label></div>
+    <p class="keys" style="margin:6px 0 0">轉數會依等級自動調整（一轉 15、二轉 30、三轉 45、四轉 60）；寵物需要 Lv ${D.PETLV}。能力點會全部退回，請到「能力」自己配點。</p>
+    <div class="row"><button class="btn" data-close="1">關閉</button><button class="btn pri" data-gmgo="1">套用</button></div>`,bt=>{
+    if(bt.dataset.gmgo){bt.disabled=true;sock.emit('gm',{cls:$('#gmCls').value,job:+$('#gmJob').value,lv:+$('#gmLv').value,pet:$('#gmPet').value},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法套用');bt.disabled=false;return}applyMe(r.me);P.hp=P.max.hp;P.mp=P.max.mp;ui();closePop();toast(`已切換為 ${CL[P.cls].jobs[P.job]} Lv ${P.lv}`)})}});
+    $('#gmCls').onchange=()=>render($('#gmCls').value,+$('#gmJob').value,+$('#gmLv').value,$('#gmPet').value)};
+  render(P.cls,P.job,P.lv,P.pet||'')}
+$('#gmBtn').onclick=()=>{if(P&&$('#pop').hidden)openGM()};
 $('#skBtn').onclick=()=>{if(P&&$('#pop').hidden)openSkills()};
 $('#apBtn').onclick=()=>{if(P&&$('#pop').hidden)openAP()};
 $('#petBtn').onclick=()=>{if(P&&$('#pop').hidden)openPet()};
@@ -916,6 +935,7 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
     ready=true;ui()});
   sock.on('st',d=>{for(const a of d.m){const m=mons[a[0]];if(!m)continue;m.tx=a[1];m.hop=a[2];m.f=a[3];m.hp=a[4];if(a[5]&&!m.dead){m.dead=1}else if(!a[5]&&m.dead){m.dead=0;m.x=m.tx}m.frozen=a[6];if(a[7])m.hurt=Math.max(m.hurt,9)}
     const seen=new Set();for(const a of d.p){if(a[0]===myId)continue;seen.add(a[0]);upsertOther(a)}for(const id of [...others.keys()])if(!seen.has(id))others.delete(id)});
+  sock.on('bimm',d=>{const m=mons[d.i];if(!m)return;num(m.x,m.y-m.h-6,'免疫','odmg');if(!immTip){immTip=1;toast('站進 Boss 腳下的紅色危險區才打得到牠！')}});
   sock.on('hits',d=>{const mine=d.by===myId;for(const [i,v,c,s] of d.h){const m=mons[i];if(!m)continue;m.hurt=14;num(m.x,m.y-m.h-6-(s||0)*11,v,mine?(c?'crit':'dmg'):(c?'ocrit':'odmg'))}});
   sock.on('bskill',addBoss);
   sock.on('kill',d=>{const m=mons[d.i];if(m){m.dead=1;m.hp=0;fx.push({t:'poof',x:m.x,y:m.y-m.h/2,life:20,big:MON[m.t].boss})}});

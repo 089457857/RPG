@@ -91,6 +91,9 @@
     trial4: { name: '傳說試煉官', lv: 60, hp: 42000, atk: 235, exp: 0, gold: [12000, 12000], w: 52, h: 52, spd: .46, boss: true, trial: 4, sk: ['slam', 'roll', 'pillars', 'icering'], skn: { slam: '試煉重壓（跳起來躲）', roll: '試煉滾球（跳過去）', pillars: '試煉光柱（站在空隙）', icering: '試煉光環（離開它身邊）' } },
     titan: { name: '天穹泰坦', lv: 80, hp: 240000, atk: 600, exp: 60000, gold: [30000, 40000], w: 62, h: 60, spd: .4, boss: true, sk: ['quake', 'laser', 'safe'], skn: { quake: '天崩地裂（跳過震波）', laser: '天罰橫掃（站在地上別跳）', safe: '神之審判（站進綠色安全區）' } },
   };
+  // Boss 危險區：以牠最遠的招式射程為半徑（至少 200），站在這個範圍外或上方平台攻擊 Boss，Boss 不會受傷
+  const BREACH = { slam: 85, roll: 240, bounce: 240, pillars: 240, frostbreath: 140, icering: 75, rain: 240, pull: 200, firefloor: 230, breath: 150, charge: 150, tail: 95, homing: 280, orbit: 85, split: 260, quake: 180, laser: 240, safe: 260 };
+  function bossZone(t) { const m = MON[t]; if (!m || !m.boss) return 0; return Math.round(Math.max(200, ...(m.sk || []).map(k => BREACH[k] || 0)) + m.w / 2 + 20); }
   const GY = 300, WH = 340, WW = 2600;
   const SEG = [{ x1: 0, x2: WW, y: GY, g: 1 },
     { x1: 330, x2: 520, y: 240 }, { x1: 420, x2: 620, y: 180 }, { x1: 700, x2: 900, y: 240 }, { x1: 860, x2: 1060, y: 180 }, { x1: 980, x2: 1160, y: 120 },
@@ -190,6 +193,6 @@
     void: { dr: 0.4, n: '虛空戰獸', lv: 75, price: 0, drop: 'voidking', rate: .12, spd: 3.45, jump: 1.45, glide: 1, d: '虛空之主掉落（12%）。最快的坐騎' },
   };
   for (const m of MAPS) { if (!m.seg) m.seg = SEG; if (!m.ropes) m.ropes = ROPES; }
-  const D = { MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
