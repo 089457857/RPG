@@ -91,12 +91,56 @@
   };
   // 傳說專屬武器：商店不賣，只會從「虛空裂隙」的怪物身上隨機掉落（第 5 個欄位 1 = 傳說）
   const LEGEND = { warrior: '軒轅劍', mage: '太初法典', rogue: '月影雙刃・朧', archer: '后羿射日弓', brawler: '盤古神拳', mech: '創世機神砲', demon: '路西法之鐮', angel: '米迦勒之劍' };
-  for (const k in WEAPONS) WEAPONS[k].push([LEGEND[k], 230, 80, 0, 1]);
+  for (const k in WEAPONS) WEAPONS[k].push([LEGEND[k], 230, 80, 0, 1, { crit: 3 }, { c1: '#ff4fd8', c2: '#ffe680', fx: 'star' }]);
   const LEGI = 8, LEGGOLD = 50000;
+  // ===== 100 等裝備擴充 =====
+  // 武器格式：[名稱, 攻擊, 需求等級, 價格, 等級（0 商店／1 傳說／2 神話）, 額外能力, 外觀]
+  // 索引：0～7 商店、8 舊傳說、9～10 商店（Lv90／100）、11～15 傳說、16～18 神話
+  const WNEW = {
+    warrior: [['破軍戰刃', '霸王神劍'], ['赤霄神劍', '湛盧', '干將', '莫邪', '屠神之刃'], ['誅仙劍', '戮仙劍', '絕仙劍']],
+    mage: [['大魔導杖', '永恆星杖'], ['神農百草杖', '伏羲八卦杖', '女媧補天石', '崑崙仙杖', '玄冥寒杖'], ['鴻蒙紫氣杖', '混沌源杖', '太極陰陽杖']],
+    rogue: [['月蝕雙刃', '無影刺'], ['魚腸劍', '純鈞', '勝邪', '巨闕', '影武者之刃'], ['刑天之刃', '九幽冥刃', '天罰影刺']],
+    archer: [['破空長弓', '穿雲神弓'], ['震天弓', '乾坤弓', '落日弓', '追星弓', '月神之弓'], ['金烏射日弓', '穿楊天弓', '鴻鵠神弓']],
+    brawler: [['鬼神拳套', '天王拳套'], ['金剛伏魔拳', '如來神掌', '降龍拳套', '伏虎拳套', '羅漢拳套'], ['大日如來拳', '須彌山拳', '混元一氣拳']],
+    mech: [['電磁砲', '等離子殲滅者'], ['雷神之錘砲', '天穹軌道砲', '零式光束砲', '超新星發射器', '黑洞引擎砲'], ['創世紀元砲', '神之杖', '永恆核心砲']],
+    demon: [['血月魔鐮', '冥王鐮刀'], ['撒旦之鐮', '別西卜之鐮', '阿撒茲勒之鐮', '莉莉絲之鐮', '貝利亞之鐮'], ['混沌魔神鐮', '終焉之鐮', '原初黑暗鐮']],
+    angel: [['聖光權杖', '天啟權杖'], ['加百列號角杖', '拉斐爾治癒杖', '烏列爾之劍杖', '梅塔特隆聖杖', '聖杯權杖'], ['天父之光', '創世之羽杖', '永恆聖約杖']],
+  };
+  const WSHOP2 = [[270, 90, 220000], [320, 100, 420000]];
+  const WLEG = [[330, 85, { crit: 5 }, { c1: '#ff3b3b', c2: '#ffd23f', fx: 'flame' }], [360, 88, { critD: .25 }, { c1: '#7fd3ff', c2: '#ffffff', fx: 'frost' }],
+    [390, 92, { skillB: .12 }, { c1: '#ffd23f', c2: '#fff6c0', fx: 'holy' }], [420, 96, { cdr: .08 }, { c1: '#3affc8', c2: '#b46aff', fx: 'void' }], [450, 100, { atkP: .08 }, { c1: '#ff4fd8', c2: '#ffe680', fx: 'star' }]];
+  const WMYTH = [[520, 100, { crit: 8, critD: .3 }, { c1: '#ffffff', c2: '#ff2a6a', fx: 'chaos' }], [560, 100, { skillB: .18, cdr: .08 }, { c1: '#ffe680', c2: '#7a2aff', fx: 'cosmos' }],
+    [600, 100, { atkP: .12, spdB: .08 }, { c1: '#00ffd5', c2: '#ff6a2a', fx: 'prism' }]];
+  for (const k in WEAPONS) { const n = WNEW[k];
+    WSHOP2.forEach(([a, l, p], j) => WEAPONS[k].push([n[0][j], a, l, p, 0]));
+    WLEG.forEach(([a, l, b, lk], j) => WEAPONS[k].push([n[1][j], a, l, 0, 1, b, lk]));
+    WMYTH.forEach(([a, l, b, lk], j) => WEAPONS[k].push([n[2][j], a, l, 0, 2, b, lk])); }
+  const SHOPW = [0, 1, 2, 3, 4, 5, 6, 7, 9, 10];   // 商店武器的升級順序
+  const TIERN = ['', '傳說', '神話'];
+  const BONUSN = { crit: v => `爆擊率 +${v}%`, critD: v => `爆擊傷害 +${Math.round(v * 100)}%`, skillB: v => `技能傷害 +${Math.round(v * 100)}%`, cdr: v => `冷卻縮短 ${Math.round(v * 100)}%`,
+    atkP: v => `攻擊力 +${Math.round(v * 100)}%`, spdB: v => `移動速度 +${Math.round(v * 100)}%`, hpP: v => `HP 上限 +${Math.round(v * 100)}%`, defP: v => `防禦 +${Math.round(v * 100)}%` };
+  const bonusText = b => Object.entries(b || {}).map(([k, v]) => BONUSN[k] ? BONUSN[k](v) : '').filter(Boolean).join('、');
   // [名稱, 防禦, HP, 等級, 價格]
   const ARMORS = [['布衣', 0, 0, 1, 0], ['皮甲', 4, 30, 8, 250], ['鎖子甲', 10, 90, 16, 1400], ['秘銀鎧', 18, 180, 24, 4600], ['龍鱗甲', 30, 340, 32, 12000], ['神聖鎧甲', 44, 560, 40, 26000], ['暗黑龍甲', 60, 820, 50, 56000], ['天穹戰衣', 80, 1150, 60, 105000]];
+  // 防具格式：[名稱, 防禦, HP, 需求等級, 價格, 等級（0 商店／1 傳說／2 神話）, 額外能力, 外觀]；全職業共用
+  // 索引：0～7 商店、8～9 商店（Lv90／100）、10～13 傳說、14～15 神話
+  ARMORS.push(['天罡神鎧', 115, 1650, 90, 300000, 0], ['神威聖鎧', 140, 2050, 100, 480000, 0],
+    ['青龍鱗甲', 160, 2300, 85, 0, 1, { hpP: .08 }, { c1: '#2ec48a', c2: '#bfffe0', fx: 'jade' }], ['白虎戰鎧', 170, 2400, 88, 0, 1, { critD: .2 }, { c1: '#f4f4f4', c2: '#3a3a4a', fx: 'frost' }],
+    ['朱雀羽衣', 175, 2500, 92, 0, 1, { cdr: .08, spdB: .06 }, { c1: '#ff4a2a', c2: '#ffd23f', fx: 'flame' }], ['玄武龜甲', 195, 2800, 96, 0, 1, { defP: .12 }, { c1: '#2a4a5a', c2: '#7fd3ff', fx: 'void' }],
+    ['鴻蒙仙衣', 240, 3400, 100, 0, 2, { hpP: .12, skillB: .1 }, { c1: '#ffffff', c2: '#ffd23f', fx: 'cosmos' }], ['混沌戰甲', 260, 3600, 100, 0, 2, { defP: .15, atkP: .06 }, { c1: '#1a0a2a', c2: '#ff2a6a', fx: 'chaos' }]);
+  const SHOPA = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  // 掉落：傳說 0.5%（Lv55 以上的 Boss）、神話 0.1%（深淵海溝以後的 Boss，以及所有暗黑版 Boss）；暗黑版機率 ×5
+  const LOOT = { leg: .005, myth: .001, legLv: 55, mythMap: 10, darkMul: 5 };
+  // 每位玩家擁有的傳說／神話裝備：c.own = { w: [武器索引], a: [防具索引] }；商店買到的最好裝備：c.shopW / c.shopA；外觀：c.lookW / c.lookA
+  function gearOk(c) { if (!c) return c; if (!c.own) { c.own = { w: [], a: [] }; if (c.wep === LEGI) c.own.w.push(LEGI); c.shopW = c.wep === LEGI ? 7 : (c.wep || 0); c.shopA = c.arm || 0; }
+    if (c.shopW == null) c.shopW = 0; if (c.shopA == null) c.shopA = 0; return c; }
+  function legPool(c, tier) { gearOk(c); const ws = WEAPONS[c.cls].map((w, i) => w[4] === tier ? i : -1).filter(i => i >= 0 && !c.own.w.includes(i)).map(i => ({ k: 'w', i }));
+    const as = ARMORS.map((a, i) => a[5] === tier ? i : -1).filter(i => i >= 0 && !c.own.a.includes(i)).map(i => ({ k: 'a', i }));
+    const ms = Object.keys(MOUNTS).filter(id => MOUNTS[id].tier === tier && !(c.mounts || []).includes(id)).map(id => ({ k: 'm', id }));
+    return [...ws, ...as, ...ms]; }
   const SHOP = { pot: 25, eth: 30, pot10: 240, rest: 15 };
   // 藥水依角色等級漲價（紅藥水；藍藥水再貴 20%；10 瓶裝打 96 折；完全休息和紅藥水同價）
+  const POTMAX = 100;   // 紅、藍藥水各自最多攜帶 100 瓶（已經超過的保留，用到 100 以下才能補）
   const POTCD = 1500; // 紅、藍藥水各自的冷卻（毫秒）
   function shopPrice(k, lv) { const red = lv >= 80 ? 2500 : lv >= 60 ? 1000 : lv >= 30 ? 250 : 30;
     return k === 'pot' || k === 'rest' ? red : k === 'eth' ? Math.round(red * 1.2) : k === 'pot10' ? Math.round(red * 10 * .96) : 0; }
@@ -228,7 +272,7 @@
   function mainAtk(cls, s) { const m = MAIN[cls] || ['str']; const k = m.length > 1 ? .75 : 1; return m.reduce((a, x) => a + eff(s[x]) * 1.3 * k, 0); }
   function newChar(cls) { return { slots: [...DEFSLOTS], cls, lv: 1, exp: 0, gold: 20, pot: 5, eth: 3, base: { ...CL[cls].base }, job: 0, wep: 0, arm: 0, map: 0, ap: 0, apv: 2, xv: 2, st: { str: 0, vit: 0, int: 0, dex: 0 } }; }
   // 舊存檔補上能力值（依目前等級補發點數）
-  function fix(c) { if (c && c.xv !== 2) { c.xv = 2; if (c.exp > 0 && c.lv < capOf(c)) c.exp = Math.min(needExp(c.lv) - 1, Math.floor(c.exp / needExpOld(c.lv) * needExp(c.lv))); } if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
+  function fix(c) { gearOk(c); if (c && c.xv !== 2) { c.xv = 2; if (c.exp > 0 && c.lv < capOf(c)) c.exp = Math.min(needExp(c.lv) - 1, Math.floor(c.exp / needExpOld(c.lv) * needExp(c.lv))); } if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
   // 寵物：65 等解鎖，四選一；之後可花金幣更換
   const PETLV = 65, PETSWAP = 30000;
   const PETS = {
@@ -238,17 +282,18 @@
     zhuque: { n: '朱雀', d: '攻擊吸血：造成傷害的 5% 回復成 HP', col: '#ff4a2a' },
   };
   function stats(c) {
-    const w = WEAPONS[c.cls][c.wep] || WEAPONS[c.cls][0], a = ARMORS[c.arm], pt = c.pet, s = c.st || {};
+    const w = WEAPONS[c.cls][c.wep] || WEAPONS[c.cls][0], a = ARMORS[c.arm] || ARMORS[0], pt = c.pet, s = c.st || {}, B = {};
+    for (const o of [w[5], a[6]]) if (o) for (const k in o) B[k] = (B[k] || 0) + o[k];
     const E = { str: eff(s.str), vit: eff(s.vit), int: eff(s.int), dex: eff(s.dex) }, main = MAIN[c.cls] || ['str'];
-    const hp = Math.round((c.base.hp * JOBHP[c.job] + a[2] + E.vit * 8) * (pt === 'xuanwu' ? 1.1 : 1));
+    const hp = Math.round((c.base.hp * JOBHP[c.job] + a[2] + E.vit * 8) * (pt === 'xuanwu' ? 1.1 : 1) * (1 + (B.hpP || 0)));
     const atkStat = mainAtk(c.cls, s) + (main.includes('str') ? 0 : E.str * .3);
-    const atk = Math.round(((c.base.atk + w[1]) * JOBATK[c.job] + atkStat) * (pt === 'qinglong' ? 1.15 : 1));
-    const def = Math.round((c.base.def + a[1] + E.vit * .4) * (pt === 'xuanwu' ? 1.4 : 1));
+    const atk = Math.round(((c.base.atk + w[1]) * JOBATK[c.job] + atkStat) * (pt === 'qinglong' ? 1.15 : 1) * (1 + (B.atkP || 0)));
+    const def = Math.round((c.base.def + a[1] + E.vit * .4) * (pt === 'xuanwu' ? 1.4 : 1) * (1 + (B.defP || 0)));
     const mp = Math.round(c.base.mp * JOBHP[c.job] + E.int * 6);
     const r = v => Math.round(v * 1000) / 1000;
-    return { hp, mp, atk, def, crit: Math.min(75, Math.round((c.base.crit + c.job * 3 + E.dex * .1) * 10) / 10),
-      critD: r(1.7 + E.dex * .0025), skillB: r(E.int * .0012), cdr: r(Math.min(.25, E.int * .001)), potB: r(E.int * .002), healB: r(E.int * .002),
-      spdB: r(Math.min(.2, E.dex * .0008)), kbB: r(E.str * .002), invB: r(E.vit * .003) };
+    return { hp, mp, atk, def, crit: Math.min(80, Math.round((c.base.crit + c.job * 3 + E.dex * .1 + (B.crit || 0)) * 10) / 10),
+      critD: r(1.7 + E.dex * .0025 + (B.critD || 0)), skillB: r(E.int * .0012 + (B.skillB || 0)), cdr: r(Math.min(.35, E.int * .001 + (B.cdr || 0))), potB: r(E.int * .002), healB: r(E.int * .002),
+      spdB: r(Math.min(.3, E.dex * .0008 + (B.spdB || 0))), kbB: r(E.str * .002), invB: r(E.vit * .003) };
   }
   // 升級（會修改角色），回傳升了幾級
   function addExp(c, e) {
@@ -273,6 +318,10 @@
     moto: { dr: 0.3, n: '重型機車', lv: 50, price: 80000, spd: 2.95, jump: 1, d: '直線速度很快，但跳不高' },
     dragon: { dr: 0.36, n: '黑龍', lv: 55, price: 0, drop: 'dragon', rate: .08, spd: 3.1, jump: 1.4, glide: 1, d: '黑龍王掉落（8%）。按住跳躍可以滑翔' },
     cloud: { dr: 0.38, n: '筋斗雲', lv: 65, price: 0, drop: 'titan', rate: .06, spd: 3.25, jump: 1.55, glide: 1, d: '天穹泰坦掉落（6%）。跳得最高，可以滑翔' },
+    qilin: { dr: 0.42, n: '麒麟', lv: 85, price: 0, tier: 1, spd: 3.5, jump: 1.5, d: '傳說坐騎（Boss 掉落）。踏著祥雲奔跑的瑞獸' },
+    phoenix: { dr: 0.42, n: '火鳳凰', lv: 90, price: 0, tier: 1, spd: 3.55, jump: 1.6, glide: 1, d: '傳說坐騎（Boss 掉落）。可以滑翔，身後拖著火焰' },
+    kunpeng: { dr: 0.44, n: '鯤鵬', lv: 95, price: 0, tier: 1, spd: 3.6, jump: 1.55, glide: 1, d: '傳說坐騎（Boss 掉落）。北冥之魚化身的巨鳥，可以滑翔' },
+    chaosdragon: { dr: 0.48, n: '混沌魔龍', lv: 100, price: 0, tier: 2, spd: 3.8, jump: 1.7, glide: 1, d: '神話坐騎（Boss 掉落）。最快、最強的坐騎' },
     void: { dr: 0.4, n: '虛空戰獸', lv: 75, price: 0, drop: 'voidking', rate: .12, spd: 3.45, jump: 1.45, glide: 1, d: '虛空之主掉落（12%）。最快的坐騎' },
   };
   for (const m of MAPS) { if (!m.seg) m.seg = SEG; if (!m.ropes) m.ropes = ROPES; }
@@ -289,6 +338,9 @@
     demon: { n: '深淵魔像', fin: '深淵吞噬', gdm: 2, fdm: 1.333, d: '黑紅骨甲巨像，普攻變成吸血魔爪', fd: '深淵巨口吞掉周圍敵人並大量吸血', col: '#ff2a4a', ready: 1 },
     angel: { n: '熾天聖鎧', fin: '聖域', gdm: 2, fdm: 2, d: '六翼光之巨人，普攻變成聖光長槍', fd: '展開聖域：同地圖隊友回復 60% HP 並獲得護盾，同時重創周圍敵人', col: '#fff6c8', ready: 1, finSup: { heal: .6, shield: 1 } },
   };
+  const BOSSRESPAWN = 180;   // Boss 被打倒後固定 3 分鐘重生（秒）
+  const DARK = { rate: .2, hp: 3, atk: 1.6, dur: 10 * 60000 };   // 暗黑版 Boss
+  const FIGHT_MS = 10 * 60000;   // Boss 戰時間上限
   const BOSSREGEN = { every: 5000, pct: .2 };   // Boss 偵測不到可攻擊的玩家時：每 5 秒回 20%
   const AWSKLV = 90, AWSK_MULT = 1.3;
   const AWSK = {
@@ -311,6 +363,15 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-28a', notes: [
+      ['⚔️ Boss 戰改成「對話開戰」', '走到 Boss 旁邊按 ↑（手機搖桿往上）對話，發起挑戰後你和同地圖的隊友會被傳送到戰場，四周升起空氣牆，打倒牠之前離不開（限時 10 分鐘）。沒有發起挑戰的人打不到 Boss，Boss 也打不到他。全員倒地或時間到就算失敗，Boss 血量回滿。'],
+      ['☠️ 暗黑版 Boss', 'Boss 被打倒後固定 3 分鐘重生，有 20% 機率變成暗黑版：血量 ×3、傷害 ×1.6，掉落率 ×5。10 分鐘內沒人打倒就會變回一般版。'],
+      ['✦ 100 等裝備大擴充', '商店新增 Lv90、Lv100 武器與防具；每個職業新增 5 把傳說武器、3 把神話武器，全職業共用的傳說／神話防具，以及 4 隻新坐騎（麒麟、火鳳凰、鯤鵬、混沌魔龍）。每件都有不同外觀和額外能力。'],
+      ['🎒 裝備欄＋外觀', '「角色 → 裝備欄」可以換上擁有的任何武器、防具，還能選一件傳說以上的裝備當外觀。'],
+      ['💎 掉落機率', '傳說裝備 0.5%（Lv55 以上的 Boss）、神話裝備 0.1%（深淵海溝以後的 Boss 與所有暗黑版 Boss），只在打倒 Boss 時掉落；暗黑版 ×5。原本的傳說武器保留在你的裝備欄裡。'],
+      ['🧪 藥水上限', '紅藥水、藍藥水各最多帶 100 瓶。已經超過的保留，用到 100 以下才能再買或撿。'],
+      ['🔧 覺醒修正', '覺醒中重新整理網頁或斷線重連，覺醒不會再消失；換角色時覺醒狀態不會再帶到另一個角色身上。手機的覺醒按鈕也比較不吃效能了。'],
+    ] },
     { v: '2026-11-27i', notes: [
       ['👻 守護靈大家都看得到了', '以前覺醒時只有自己看得到身後的守護靈，現在同地圖的其他玩家也看得到。'],
       ['🌊 突破 100 等更容易', '打倒虛空之主時，只要有出手的玩家都能突破等級上限，同地圖的隊友也一起突破，不再只限最後一擊的那一隊。'],
@@ -366,6 +427,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
