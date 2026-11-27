@@ -21,7 +21,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   if (!S.rpgAlt) S.rpgAlt = {};
   const MAXSLOT = D.MAXSLOT || 6;
   const alt = uid => { const a = (S.rpgAlt[uid] ||= { slots: [], act: 0 }); while (a.slots.length < MAXSLOT) a.slots.push(null); return a; };
-  const slotList = uid => { const a = alt(uid); return a.slots.map((c, i) => { const x = i === a.act ? S.rpg[uid] : c; return x ? { cls: x.cls, lv: x.lv, job: x.job, jobName: D.CL[x.cls].jobs[x.job], map: D.MAPS[x.map || 0].name } : null; }); };
+  const slotList = uid => { const a = alt(uid); return a.slots.map((c, i) => { const x = i === a.act ? S.rpg[uid] : c; return x ? { nm: x.nm || '', cls: x.cls, lv: x.lv, job: x.job, jobName: D.CL[x.cls].jobs[x.job], map: D.MAPS[x.map || 0].name } : null; }); };
 
   const ns = io.of('/rpg');
   const rnd = (a, b) => a + Math.random() * (b - a), ri = (a, b) => Math.floor(rnd(a, b + 1)), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -45,7 +45,20 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   const gmFile = (() => { try { return fs.readFileSync(path.join(dir, 'gm.txt'), 'utf8'); } catch (e) { return ''; } })();
   const GMS = new Set((String(process.env.RPG_GM || '') + '\n' + gmFile).split(/[,，\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean));
   const isGM = uid => GMS.size > 0 && GMS.has(String(S.users[uid]?.name || '').toLowerCase());
-  const nameOf = uid => (S.users[uid]?.name || '玩家') + (S.rpg[uid]?.gm ? '［GM］' : '');
+  // 角色名字：每個角色可以有自己的名字，沒取名就用帳號暱稱
+  const charName = (uid, c) => ((c && c.nm) || S.users[uid]?.name || '玩家') + (c && c.gm ? '［GM］' : '');
+  const nameOf = uid => charName(uid, S.rpg[uid]);
+  const allChars = () => [...Object.entries(S.rpg), ...Object.entries(S.rpgAlt).flatMap(([u, a]) => a.slots.filter(Boolean).map(c => [u, c]))];
+  const RENAME_GOLD = 50000;
+  // 檢查名字：格式同帳號暱稱；不能和別人的帳號或任何其他角色撞名（自己帳號的暱稱可以用）
+  function nameErr(uid, nm, self) {
+    if (!/^[\p{L}\p{N}_\-]{2,16}$/u.test(nm)) return '名字需 2～16 個字，只能用文字、數字、底線或減號';
+    const k = nm.toLowerCase();
+    if (/gm/i.test(nm) && !isGM(uid)) return '名字不能包含 GM';
+    if (Object.entries(S.users).some(([u, x]) => u !== uid && String(x.name).toLowerCase() === k)) return '這個名字已經有人用了';
+    if (allChars().some(([, c]) => c !== self && c.nm && c.nm.toLowerCase() === k)) return '這個名字已經有人用了';
+    return '';
+  }
   function me(uid) { const c = char(uid); return c ? { ...c, max: D.stats(c), gmOk: isGM(uid) } : null; }
   const pushMe = uid => ns.to('u:' + uid).emit('me', me(uid));
 
@@ -227,7 +240,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     }
   }, 300);
   const pvpTop = () => [...Object.entries(S.rpg), ...Object.entries(S.rpgAlt).flatMap(([uid, a]) => a.slots.filter(Boolean).map(c => [uid, c]))]
-    .filter(([, c]) => !c.gm && c.pvp && (c.pvp.pts || c.pvp.w)).map(([uid, c]) => ({ name: nameOf(uid), cls: D.CL[c.cls]?.jobs[c.job] || '', lv: c.lv, ...c.pvp }))
+    .filter(([, c]) => !c.gm && c.pvp && (c.pvp.pts || c.pvp.w)).map(([uid, c]) => ({ name: charName(uid, c), cls: D.CL[c.cls]?.jobs[c.job] || '', lv: c.lv, ...c.pvp }))
     .sort((a, b) => b.pts - a.pts || b.w - a.w).slice(0, 10);
 
   ns.on('connection', socket => {
@@ -260,7 +273,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     ctl.set(uid, { pl, goRet, wmi: () => w ? w.mi : -1, inTrial: () => !!(w && trials.get(uid) === w), enter: (mi, x) => { saveRet(); enter(mi, x); } });
     function pvpHp(v) { pl.php = clamp(Math.round(v), 0, pl.pmax); pl.hpPct = Math.round(pl.php / pl.pmax * 100); socket.emit('php', { hp: pl.php, max: pl.pmax }); }
 
-    socket.emit('hello', { me: me(uid), name: nameOf(uid), id: uid, list: slotList(uid), act: alt(uid).act });
+    socket.emit('hello', { me: me(uid), name: S.users[uid]?.name || '玩家', id: uid, list: slotList(uid), act: alt(uid).act });
     function leaveWorld() { if (pl.duel) { const du = duels.get(pl.duel); if (du) duelEnd(pl.duel, du.a === uid ? du.b : du.a, '對手離開'); } if (w) { w.players.delete(uid); ns.to(w.room).emit('pleave', { id: uid }); socket.leave(w.room); if (trials.get(uid) === w) trials.delete(uid); w = null; } ret = null; }
     // 切換到第 i 格（使用中的角色收回自己的格子）
     function swapTo(i) { const a = alt(uid); if (i === a.act) return; a.slots[a.act] = S.rpg[uid] || null; S.rpg[uid] = a.slots[i]; a.slots[i] = null; a.act = i; if (!S.rpg[uid]) delete S.rpg[uid]; }
@@ -270,11 +283,12 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const a = alt(uid), c = i === a.act ? S.rpg[uid] : a.slots[i]; if (!c) return ack && ack({ ok: false, msg: '這一格沒有角色' });
       leaveWorld(); swapTo(i); save(); ack && ack({ ok: true, me: me(uid) });
     });
-    socket.on('create', ({ cls, slot } = {}, ack) => {
+    socket.on('create', ({ cls, slot, nm } = {}, ack) => {
       if (!D.CL[cls]) return ack && ack({ ok: false });
+      nm = String(nm || '').trim(); if (nm) { const er = nameErr(uid, nm, null); if (er) return ack && ack({ ok: false, msg: er }); }
       const a = alt(uid); slot = slot == null ? a.act : slot | 0; if (slot < 0 || slot >= MAXSLOT) return ack && ack({ ok: false });
       if ((slot === a.act ? S.rpg[uid] : a.slots[slot])) return ack && ack({ ok: false, msg: '這一格已經有角色了' });
-      leaveWorld(); swapTo(slot); S.rpg[uid] = D.newChar(cls); save(); ack && ack({ ok: true, me: me(uid) });
+      leaveWorld(); swapTo(slot); S.rpg[uid] = D.newChar(cls); if (nm) S.rpg[uid].nm = nm; save(); ack && ack({ ok: true, me: me(uid) });
     });
     socket.on('delSlot', ({ i } = {}, ack) => {
       i = i | 0; const a = alt(uid); if (i < 0 || i >= MAXSLOT) return ack && ack({ ok: false });
@@ -428,9 +442,20 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const mounts = Object.keys(D.MOUNTS).filter(k => (D.MOUNTS[k].lv || 0) <= lv); if (!mounts.length) mounts.push('horse');
       Object.assign(c, { gm: 1, lv, job, exp: 0, wep, arm, gold: 9999999, pot: 999, eth: 999, ap: (lv - 1) * D.APL, map: w ? w.mi : (old.map || 0), mounts,
         mnt: mounts.includes(old.mnt) ? old.mnt : mounts[mounts.length - 1], pet: lv >= D.PETLV && D.PETS[pet] ? pet : null });
+      if (old.nm) c.nm = old.nm; if (old.rnN) c.rnN = old.rnN;   // 保留角色名字
       S.rpg[uid] = c; save();
       ack && ack({ ok: true, me: me(uid) });
       if (w) enter(w.mi, pl.x);
+    });
+    // ---- 角色改名：第一次免費，之後每次 50,000 金幣（GM 角色免費） ----
+    socket.on('rename', ({ nm } = {}, ack) => {
+      const c = char(uid); if (!c) return ack && ack({ ok: false });
+      nm = String(nm || '').trim(); if (nm === (c.nm || '')) return ack && ack({ ok: false, msg: '名字沒有變' });
+      const er = nameErr(uid, nm, c); if (er) return ack && ack({ ok: false, msg: er });
+      const cost = c.gm || !c.rnN ? 0 : RENAME_GOLD; if (c.gold < cost) return ack && ack({ ok: false, msg: `改名需要 ${RENAME_GOLD.toLocaleString()} 金幣` });
+      const old = nameOf(uid); c.gold -= cost; c.nm = nm; c.rnN = (c.rnN || 0) + 1; save();
+      ack && ack({ ok: true, me: me(uid), cost });
+      if (w) ns.to(w.room).emit('sys', { t: `${old} 改名為「${nameOf(uid)}」` });
     });
     // ---- 轉職試煉 ----
     socket.on('trial', (_, ack) => {
@@ -540,6 +565,6 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   // 給大廳顯示的線上人數與排行
   return {
     online: () => worlds.reduce((a, w) => a + w.players.size, 0),
-    top: () => [...Object.entries(S.rpg), ...Object.entries(S.rpgAlt).flatMap(([uid, a]) => a.slots.filter(Boolean).map(c => [uid, c]))].filter(([, c]) => !c.gm).map(([uid, c]) => ({ name: nameOf(uid), lv: c.lv, job: D.CL[c.cls]?.jobs[c.job] || '' })).sort((a, b) => b.lv - a.lv).slice(0, 10),
+    top: () => [...Object.entries(S.rpg), ...Object.entries(S.rpgAlt).flatMap(([uid, a]) => a.slots.filter(Boolean).map(c => [uid, c]))].filter(([, c]) => !c.gm).map(([uid, c]) => ({ name: charName(uid, c), lv: c.lv, job: D.CL[c.cls]?.jobs[c.job] || '' })).sort((a, b) => b.lv - a.lv).slice(0, 10),
   };
 };

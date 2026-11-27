@@ -120,6 +120,7 @@ body.fs .t-mnt{left:calc(16px + var(--sl))!important;top:auto!important;bottom:c
 .btn:hover:not(:disabled){filter:brightness(1.15)}.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn.pri{background:linear-gradient(180deg,#ffe58a,var(--gold) 50%,#d39a12);color:#2a1a00;border-color:#fff0b0}
 .btn.sm{min-height:36px;font-size:14px;padding:0 12px}
+.nmrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:var(--dim)}.nmrow input{flex:1;min-width:180px}
 .gmf{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:8px 12px;margin-top:10px}.gmf label{display:grid;gap:4px;font-size:14px;color:var(--dim)}
 .gmf select,.gmf input{font:600 15px "Noto Sans TC",sans-serif;color:var(--ink);background:#0f1328;border:1px solid #ffffff2e;border-radius:10px;min-height:40px;padding:0 10px}
 .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
@@ -147,7 +148,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
 .top a:hover{color:var(--ink);border-color:var(--gold)}
 .netinfo{font-size:13px;color:var(--dim);white-space:nowrap}.netinfo b{color:#7dff9a}
 .auth{display:grid;gap:10px;max-width:360px}
-.auth input,.chatbar input{font:16px "Noto Sans TC",sans-serif;background:#0d1020;color:var(--ink);border:1px solid var(--edge);border-radius:10px;min-height:44px;padding:0 12px}
+.auth input,.chatbar input,.nmrow input{font:16px "Noto Sans TC",sans-serif;background:#0d1020;color:var(--ink);border:1px solid var(--edge);border-radius:10px;min-height:44px;padding:0 12px}
 .auth input:focus-visible,.chatbar input:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
 .err{color:#ff8a95;font-size:14px;min-height:1.3em}
 .chat{margin-top:6px;background:#0f1328;border-radius:10px;padding:8px 10px}
@@ -189,6 +190,7 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
         <div class="panel" id="clsPanel" hidden>
           <h2>選擇你的職業</h2>
           <p class="sub" style="margin:0" id="hiName"></p>
+          <label class="nmrow">角色名字 <input id="newNm" maxlength="16" placeholder="可留空，留空就用帳號暱稱" aria-label="角色名字"></label>
           <div class="classes" id="classes"></div>
           <div class="row" style="margin-top:10px"><button class="btn" type="button" id="clsBack">返回角色列表</button></div>
         </div>
@@ -257,7 +259,7 @@ const others=new Map();let sock=null,myId=null,myName='',ready=false,hitQ=[],onl
 const K={};
 function applyMe(m){if(!m)return;SPD=SPD0*(m.pet==='baihu'?1.2:1);const keep=P?{hp:P.hp,mp:P.mp}:null;
   if(!P)P={x:MAPS[m.map||0].start,y:GY,vx:0,vy:0,f:1,ground:true,rope:null,inv:0,cd:{atk:0,s1:0,s2:0,s3:0,s4:0,s5:0,s6:0},act:0,actK:'',drop:0,walk:0,dead:0,clone:0,mount:0,bf:{rage:0,bless:0,wing:0,shield:0}};
-  for(const k of ['cls','lv','exp','gold','pot','eth','base','job','wep','arm','map','pet','ap','st','slots','mounts','mnt'])P[k]=m[k];
+  for(const k of ['nm','rnN','gm','cls','lv','exp','gold','pot','eth','base','job','wep','arm','map','pet','ap','st','slots','mounts','mnt'])P[k]=m[k];
   $('#gmBtn').style.display=m.gmOk?'':'none';
   P.max=m.max||D.stats(P);P.hp=keep?Math.min(keep.hp,P.max.hp):P.max.hp;P.mp=keep?Math.min(keep.mp,P.max.mp):P.max.mp;ui()}
 
@@ -760,7 +762,7 @@ function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
     ctx.fillStyle={dmg:'#ffb13b',crit:'#ff4dd2',odmg:'#d8d8e8',ocrit:'#c9a6ff',hurt:'#c084ff',heal:'#7dff9a',mp:'#8ab8ff',gold:'#ffd23f',exp:'#fff27a'}[n.k];ctx.fillText(n.v,x,y)}ctx.globalAlpha=1;
   for(const m of mons){if(m.dead||!MON[m.t].boss)continue;label(m.x,m.y+6,`Lv${MON[m.t].lv} ${MON[m.t].name}`,'#ffd23f')}
   for(const o of others.values()){label(o.x,o.y+3,`${o.name}　Lv${o.lv} ${CL[o.cls].jobs[o.job]}`,'#9fe0ff');if(o.chatT>0)bubble(o.x,o.y-34,o.chat)}
-  if(P){label(P.x,P.y+3,`${myName}　${CL[P.cls].jobs[P.job]}`,'#fff');if(P.chatT>0)bubble(P.x,P.y-34,P.chat)}
+  if(P){label(P.x,P.y+3,`${P.nm||myName}${P.gm?'［GM］':''}　${CL[P.cls].jobs[P.job]}`,'#fff');if(P.chatT>0)bubble(P.x,P.y-34,P.chat)}
   ctx.textAlign='left';ctx.font='700 12px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';const nt=`此地圖 ${others.size+1} 人`,ntw=ctx.measureText(nt).width+14,nx=TOUCH&&document.body.classList.contains('fs')?SW-ntw-8:8;ctx.fillRect(nx,8,ntw,20);ctx.fillStyle='#7dff9a';ctx.fillText(nt,nx+7,22);
   if(MAPS[MI].pvp==='duel'&&duel){const now=Date.now();ctx.textAlign='center';let big='',small='';
     if(duel.over){big=duel.over;small='即將回到原本的位置…'}else if(now<duel.go){big=String(Math.ceil((duel.go-now)/1000));small=`決鬥：你 vs ${duel.name}`}else{const left=Math.max(0,duel.end-now),mm=Math.floor(left/60000),ss=Math.floor(left%60000/1000);small=`決鬥中 vs ${duel.name}　剩 ${mm}:${String(ss).padStart(2,'0')}`;if(now-duel.go<900)big='開始！'}
@@ -855,9 +857,17 @@ function openPet(){const PS=D.PETS;const render=()=>{const lock=P.lv<D.PETLV;
 async function openInfo(){const c=CL[P.cls],sk=SK[P.cls];let top=null;try{top=await (await fetch('/api/rpg-top')).json()}catch(e){}
   openPop(`<h2>${c.jobs[P.job]}　Lv ${P.lv}</h2><div class="stats"><span>HP <b>${Math.ceil(P.hp)}/${P.max.hp}</b></span><span>MP <b>${Math.floor(P.mp)}/${P.max.mp}</b></span><span>攻擊 <b>${P.max.atk}</b></span><span>防禦 <b>${P.max.def}</b></span><span>爆擊 <b>${P.max.crit}%</b></span><span>金幣 <b>${P.gold.toLocaleString()}</b></span></div>
   <div class="stats"><span>武器 <b>${WEAPONS[P.cls][P.wep][0]}</b></span><span>防具 <b>${ARMORS[P.arm][0]}</b></span><span>地圖 <b>${MAPS[MI].name}</b></span><span>寵物 <b>${P.pet?D.PETS[P.pet].n:P.lv>=D.PETLV?'尚未選擇':'Lv '+D.PETLV+' 解鎖'}</b></span></div>
-  <h3>技能欄位</h3><div class="stats"><span>Z <b>${sk.atk.n}</b></span>${(P.slots||[]).map((k,i)=>`<span>${'XCVBNM'[i]} <b>${k?sk[k].n:'（空）'}</b></span>`).join('')}</div><div class="row" style="justify-content:flex-start"><button class="btn sm pri" data-sk="1">技能配置</button><button class="btn sm" data-mntopen="1">坐騎（${D.MOUNTS[P.mnt||'horse'].n}）</button></div>
+  <h3>技能欄位</h3><div class="stats"><span>Z <b>${sk.atk.n}</b></span>${(P.slots||[]).map((k,i)=>`<span>${'XCVBNM'[i]} <b>${k?sk[k].n:'（空）'}</b></span>`).join('')}</div><div class="row" style="justify-content:flex-start"><button class="btn sm pri" data-sk="1">技能配置</button><button class="btn sm" data-mntopen="1">坐騎（${D.MOUNTS[P.mnt||'horse'].n}）</button><button class="btn sm" data-rn="1">改名</button></div>
   ${top?`<h3>等級排行榜（線上 ${top.online} 人）</h3><div class="lead">${top.top.map((t,i)=>`<div><span>${i+1}. ${esc(t.name)}</span><span>${esc(t.job)} <b>Lv ${t.lv}</b></span></div>`).join('')}</div>`:''}
-  <div class="row"><span class="keys" style="margin:0">練等路線：蘑菇森林（1–15）→ 冰雪山谷（15–30）→ 熔岩深淵（30–45）→ 暗黑神殿（45–60）→ 天空聖域（65–80）→ 虛空裂隙（80，怪物 Lv 86～100，必須組隊）</span><button class="btn pri" data-close="1">關閉</button></div>`,bt=>{if(bt.dataset.sk)openSkills();if(bt.dataset.mntopen)openMounts()})}
+  <div class="row"><span class="keys" style="margin:0">練等路線：蘑菇森林（1–15）→ 冰雪山谷（15–30）→ 熔岩深淵（30–45）→ 暗黑神殿（45–60）→ 天空聖域（65–80）→ 虛空裂隙（80，怪物 Lv 86～100，必須組隊）</span><button class="btn pri" data-close="1">關閉</button></div>`,bt=>{if(bt.dataset.sk)openSkills();if(bt.dataset.mntopen)openMounts();if(bt.dataset.rn)openRename()})}
+// 角色改名：第一次免費，之後每次 50,000 金幣
+function openRename(){const cost=P.gm||!P.rnN?0:50000,cur=P.nm||myName;
+  openPop(`<h2>角色改名</h2><p class="sub" style="margin:0">現在的名字：<b>${esc(cur)}</b>。名字 2～16 個字，只能用文字、數字、底線或減號，不能和其他玩家撞名。</p>
+    <label class="nmrow">新名字 <input id="rnIn" maxlength="16" value="${esc(P.nm||'')}" placeholder="${esc(cur)}" aria-label="新名字"></label>
+    <p class="keys" style="margin:8px 0 0">${cost?`這次改名需要 <b style="color:var(--gold)">${cost.toLocaleString()}</b> 金幣（目前 ${P.gold.toLocaleString()}）`:'這次改名<b>免費</b>（之後每次 50,000 金幣）'}</p>
+    <div class="row"><button class="btn" data-close="1">取消</button><button class="btn pri" data-rngo="1" ${cost>P.gold?'disabled':''}>確定改名</button></div>`,bt=>{
+    if(bt.dataset.rngo){const nm=$('#rnIn').value.trim();if(!nm)return toast('請輸入新名字');bt.disabled=true;sock.emit('rename',{nm},r=>{if(!r||!r.ok){toast(r&&r.msg||'改名失敗');bt.disabled=false;return}applyMe(r.me);closePop();toast(`改名成功！現在叫「${nm}」`)})}});
+  setTimeout(()=>{const i=$('#rnIn');if(i){i.focus();i.select()}},0)}
 $('#potSlot').onclick=()=>usePot('pot');$('#ethSlot').onclick=()=>usePot('eth');
 $('#infoBtn').onclick=()=>{if(P&&$('#pop').hidden)openInfo()};
 let duelFrom=null,duelReqT=0;
@@ -908,10 +918,10 @@ $('#authForm').onsubmit=async e=>{e.preventDefault();$('#aErr').textContent='';$
     token=j.token;try{localStorage.setItem('pyan-token',token)}catch(x){}connect()}catch(err){$('#aErr').textContent=err.message||'連線失敗，請稍後再試'}$('#aBtn').disabled=false};
 $('#classes').innerHTML=Object.entries(CL).map(([k,c])=>`<button class="cls" data-cls="${k}"><canvas width="26" height="26" data-pc="${k}"></canvas><b style="color:${k==='rogue'?'#c9cde0':c.col}">${c.name}</b><span class="d">${c.desc}</span><span class="k">轉職：${c.jobs[1]} → ${c.jobs[2]}</span><span class="k">HP ${c.base.hp} · MP ${c.base.mp} · 攻擊 ${c.base.atk} · 爆擊 ${c.base.crit}%</span></button>`).join('');
 document.querySelectorAll('[data-pc]').forEach(pc=>{const k=pc.dataset.pc,c2=pc.getContext('2d');b.clearRect(0,0,26,26);drawBody({x:13,y:25,f:1,cls:k,ground:true,walk:0,act:0,rope:null,job:0,wep:0},0,0);c2.drawImage(buf,0,0,26,26,0,0,26,26)});
-$('#classes').addEventListener('click',e=>{const bt=e.target.closest('.cls');if(!bt||!sock)return;sock.emit('create',{cls:bt.dataset.cls,slot:curSlot},r=>{if(r&&r.ok){P=null;applyMe(r.me);enterWorld(true)}else toast(r&&r.msg||'建立失敗')})});
+$('#classes').addEventListener('click',e=>{const bt=e.target.closest('.cls');if(!bt||!sock)return;sock.emit('create',{cls:bt.dataset.cls,slot:curSlot,nm:$('#newNm').value.trim()},r=>{if(r&&r.ok){P=null;applyMe(r.me);enterWorld(true)}else toast(r&&r.msg||'建立失敗')})});
 let curSlot=0,inWorld=false;
 function showChars(list,act){$('#ui').hidden=true;$('#chat').hidden=true;$('#charHi').textContent=`${myName}，最多可以建立 6 個角色，點一個開始冒險。`;
-  $('#slots').innerHTML=list.map((c,i)=>c?`<div class="slotc${i===act?' act':''}"><canvas width="26" height="26" data-sc="${i}"></canvas><b>${CL[c.cls].name}　Lv ${c.lv}</b><span class="d">${c.jobName} · ${c.map}</span><div class="row"><button class="btn pri sm" data-use="${i}">進入遊戲</button><button class="btn sm" data-del="${i}">刪除</button></div></div>`
+  $('#slots').innerHTML=list.map((c,i)=>c?`<div class="slotc${i===act?' act':''}"><canvas width="26" height="26" data-sc="${i}"></canvas><b>${esc(c.nm||myName)}</b><span class="d">${CL[c.cls].name} Lv ${c.lv} · ${c.jobName} · ${c.map}</span><div class="row"><button class="btn pri sm" data-use="${i}">進入遊戲</button><button class="btn sm" data-del="${i}">刪除</button></div></div>`
     :`<button class="slotc empty" data-new="${i}"><b>＋</b><span class="d">第 ${i+1} 格・建立新角色</span></button>`).join('');
   list.forEach((c,i)=>{if(!c)return;const pc=$(`[data-sc="${i}"]`),c2=pc.getContext('2d');b.clearRect(0,0,26,26);drawBody({x:13,y:25,f:1,cls:c.cls,ground:true,walk:0,act:0,rope:null,job:c.job,wep:0},0,0);c2.drawImage(buf,0,0,26,26,0,0,26,26)});
   showPanel('charPanel')}

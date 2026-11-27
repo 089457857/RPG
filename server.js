@@ -73,7 +73,8 @@ app.post('/api/register', async (req, res) => {
   const name = String(req.body.name || '').trim(), pass = String(req.body.pass || '');
   if (!/^[\p{L}\p{N}_\-]{2,16}$/u.test(name)) return res.status(400).json({ error: '暱稱需 2～16 個字，只能用文字、數字、底線或減號' });
   if (pass.length < 4 || pass.length > 64) return res.status(400).json({ error: '密碼需 4～64 個字元' });
-  if (Object.values(S.users).some(u => u.name.toLowerCase() === name.toLowerCase())) return res.status(400).json({ error: '這個暱稱已經有人用了' });
+  const lk = name.toLowerCase(), chars = [...Object.values(S.rpg || {}), ...Object.values(S.rpgAlt || {}).flatMap(a => a.slots || [])].filter(Boolean);
+  if (Object.values(S.users).some(u => u.name.toLowerCase() === lk) || chars.some(c => c.nm && c.nm.toLowerCase() === lk)) return res.status(400).json({ error: '這個暱稱已經有人用了' });
   const u = { id: newId(), name, hash: await bcrypt.hash(pass, 10), created: Date.now() };
   S.users[u.id] = u;
   const token = crypto.randomBytes(24).toString('hex'); S.sessions[token] = u.id; save();
