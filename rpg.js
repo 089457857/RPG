@@ -311,6 +311,13 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       pushMe(uid);
     }
     if (d.boss) ns.to(w.room).emit('sys', { t: `${D.MON[m.t].name} 被打倒了！最後一擊：${nameOf(killer)}` });
+    // 記錄打倒過的 Boss（地獄之門、虛空之門、之後的嚮導捷徑都看這個）
+    if (d.boss) for (const u of new Set([killer, ...gain])) {
+      const c = char(u); if (!c || !w.players.has(u)) continue; c.slain ||= {}; const first = !c.slain[m.t]; c.slain[m.t] = 1;
+      const gate = first && D.MAPS.some(mp => (mp.portals || []).some(p => p.gate === m.t)) && D.MAPS.flatMap(mp => mp.portals || []).find(p => p.gate === m.t);
+      if (gate) ns.to('u:' + u).emit('notice', { t: `🚪 你打倒了${D.MON[m.t].name}，「${gate.label.replace(/ →$/, '')}」為你開啟了！` });
+      pushMe(u);
+    }
     // 突破等級上限：虛空之主 → 100、克拉肯 → 110、古城守護神 → 120（有出手的玩家，和他們在同一張地圖的隊友）
     const capTo = D.CAPBOSS[m.t];
     if (capTo) for (const u of new Set([killer, ...gain])) {
@@ -505,7 +512,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const used = Object.values(c.st).reduce((a, b) => a + b, 0); if (!used) return ack && ack({ ok: false, msg: '還沒有分配任何點數' });
       if (c.gold < D.APRESET) return ack && ack({ ok: false, msg: `重置需要 ${D.APRESET} 金幣` }); c.gold -= D.APRESET; c.ap += used; c.st = { str: 0, vit: 0, int: 0, dex: 0 }; save(); ack && ack({ ok: true, me: me(uid) });
     });
-    socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); if (D.MAPS[c.map || 0]?.pvp || D.MAPS[c.map || 0]?.trial) c.map = 0; { const mp = D.MAPS[c.map || 0]; if (mp && mp.need && D.capOf(c) < mp.need) c.map = mp.home ?? 9; } enter(c.map || 0); ack && ack({ ok: true });
+    socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); if (D.MAPS[c.map || 0]?.pvp || D.MAPS[c.map || 0]?.trial) c.map = 0; if (!D.MAPS[c.map || 0]) c.map = 0; enter(c.map || 0); ack && ack({ ok: true });
       if (D.VERSION && S.users[uid] && S.users[uid].seenVer !== D.VERSION) socket.emit('news', { v: D.VERSION, list: D.newsSince(S.users[uid].seenVer) });
       if (c.apComp) { delete c.apComp; save(); socket.emit('notice', { t: `能力值系統改版補償：獲得 ${D.APRESET.toLocaleString()} 金幣，可以到「能力」重新配點！` }); } });
     socket.on('pos', (p = {}) => {
@@ -518,7 +525,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('elem', ({ e } = {}, ack) => {   // 巨龍使者：一轉時免費選屬性，之後找轉職教官花金幣更換
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || c.cls !== 'dragon') return no('');
       if (!D.ELEM[e]) return no('沒有這個屬性'); if (c.job < 1) return no('一轉後才能選擇龍的屬性'); if (c.elem === e) return no('已經是這個屬性了');
-      if (c.elem) { if (!w || w.mi !== 0) return no('要在晨露村找轉職教官更換'); if (c.gold < D.ELEMSWAP) return no(`更換屬性需要 ${D.ELEMSWAP.toLocaleString()} 金幣`); c.gold -= D.ELEMSWAP; }
+      if (c.elem) { if (!w || w.mi !== 0) return no('要在像素村找轉職教官更換'); if (c.gold < D.ELEMSWAP) return no(`更換屬性需要 ${D.ELEMSWAP.toLocaleString()} 金幣`); c.gold -= D.ELEMSWAP; }
       c.elem = e; D.fix(c); save(); pushMe(uid); ack && ack({ ok: true, me: me(uid) });
       if (w) ns.to(w.room).emit('sys', { t: `🐉 ${nameOf(uid)} 的龍覺醒了「${D.ELEM[e].n}」之力！`, quiet: 1 });
     });
@@ -545,7 +552,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const g = Math.floor(priceOf(c, k, i) * D.SELLR); loseGear(c, k, i); c.gold += g; save(); ack && ack({ ok: true, me: me(uid), gold: g });
     });
     // ---------------- 鐵匠 老鐵：強化、移植、賣卷軸（只在潮聲港） ----------------
-    const atSmith = () => { if (!w || w.mi !== 9) return '要在潮聲港找鐵匠 老鐵'; const n = D.MAPS[9].npcs.find(x => x.kind === 'smith'); return Math.abs(pl.x - n.x) > 90 ? '離鐵匠太遠了' : ''; };
+    const atSmith = () => { const n = w && (D.MAPS[w.mi].npcs || []).find(x => x.kind === 'smith'); if (!n) return '要在城鎮找鐵匠'; return Math.abs(pl.x - n.x) > 90 ? '離鐵匠太遠了' : ''; };
     const gearName = (c, k, i) => (gearList(c, k)[i] || ['?'])[0];
     // 打鐵小遊戲（+6 以上）：先領開始單，敲完再送 enh；伺服器檢查時間合不合理
     socket.on('enhStart', ({ k, i } = {}, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); { const e = atSmith(); if (e) return ack && ack({ ok: false, msg: e }); }
@@ -685,11 +692,14 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       potT[k] = now; c[k]--; save(); ack && ack({ ok: true, me: me(uid) });
       if (k === 'pot' && isPvp(w) && pl.php > 0) { const st = D.stats(c); pvpHp(pl.php + (st.hp * .35 + 40) * (1 + (st.potB || 0))); }
     });
-    socket.on('buy', ({ k, i } = {}, ack) => {
+    socket.on('buy', ({ k, i, n } = {}, ack) => {
       const c = char(uid); if (!c) return ack && ack({ ok: false });
       const no = msg => ack && ack({ ok: false, msg });
-      if (k === 'pot' || k === 'eth' || k === 'pot10' || k === 'rest') {
-        if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
+      if (k === 'home') {
+        if (!w || !D.MAPS[w.mi].town) return no('要在城鎮才能購買'); n = Math.max(1, Math.min(20, n | 0 || 1)); const price = D.HOMESCROLL.price * n;
+        if (c.gold < price) return no('金幣不足'); c.gold -= price; D.gearOk(c); c.mat.home = (c.mat.home || 0) + n;
+      } else if (k === 'pot' || k === 'eth' || k === 'pot10' || k === 'rest') {
+        if (!w || !D.MAPS[w.mi].town) return no('要在村莊（像素村、潮聲港）才能購買');
         const price = D.shopPrice(k, c.lv); if (c.gold < price) return no('金幣不足');
         if ((k === 'pot' && c.pot >= D.POTMAX) || (k === 'eth' && c.eth >= D.POTMAX)) return no(`藥水最多帶 ${D.POTMAX} 瓶`);
         if (k === 'pot10' && c.pot + 10 > D.POTMAX) return no(`紅藥水最多帶 ${D.POTMAX} 瓶，現在只能再買 ${Math.max(0, D.POTMAX - c.pot)} 瓶`);
@@ -708,12 +718,12 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         c.gold -= it[4]; c.own.a.push(i); c.arm = i; if (D.SHOPA.indexOf(i) > D.SHOPA.indexOf(c.shopA)) c.shopA = i;
       } else if (k === 'helm' || k === 'cape') {
         const kk = k === 'helm' ? 'h' : 'c', L = kk === 'h' ? D.HELMS : D.CAPES; i = i | 0; const it = L[i]; D.gearOk(c);
-        if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
+        if (!w || !D.MAPS[w.mi].town) return no('要在村莊（像素村、潮聲港）才能購買');
         if (!it || !i || it[5]) return no(it && it[5] ? `${D.TIERN[it[5]]}裝備只能打倒 Boss 取得` : '無法購買'); if (c.own[kk].includes(i)) return no('已經擁有了（在「裝備」裡可以換上）');
         if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); if (c.gold < it[4]) return no('金幣不足');
         c.gold -= it[4]; c.own[kk].push(i); c[kk === 'h' ? 'helm' : 'cape'] = i;
       } else if (k === 'mount') {
-        const mt = D.MOUNTS[i]; if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
+        const mt = D.MOUNTS[i]; if (!w || !D.MAPS[w.mi].town) return no('要在村莊（像素村、潮聲港）才能購買');
         if (!mt || !mt.price) return no('這個坐騎買不到，只能打 Boss 取得'); if (c.mounts.includes(i)) return no('已經擁有了');
         if (c.lv < mt.lv) return no(`需要 Lv ${mt.lv}`); if (c.gold < mt.price) return no('金幣不足');
         c.gold -= mt.price; c.mounts.push(i); c.mnt = i;
@@ -851,7 +861,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (c.awk) return no('你已經喚醒過守護靈了');
       if (c.lv < D.AWK.lv || c.job < 4) return no(`要 Lv ${D.AWK.lv} 並完成四轉`);
       if (!D.GUARD[c.cls].ready) return no(`${D.GUARD[c.cls].n} 還在準備中，下次更新開放`);
-      if (!w || w.mi !== 0) return no('要在晨露村找轉職教官');
+      if (!w || w.mi !== 0) return no('要在像素村找轉職教官');
       const opts = Object.keys(D.CL).filter(k => k !== c.cls && !D.HIDDEN[k]), rc = opts[ri(0, opts.length - 1)];
       const tw = mkWorld(8, [{ t: 'rival_' + rc, s: 0, a: 1000, b: 1600 }], 'trial:' + uid); trials.set(uid, tw);
       ret = { mi: 0, x: 120 }; ack && ack({ ok: true, rival: D.MON['rival_' + rc].name }); enter(8, 300, tw);
@@ -899,9 +909,27 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('sail', ({ to } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w || w.mi !== 9) return no('要在潮聲港的碼頭搭船');
       const boat = D.MAPS[9].npcs.find(n => n.kind === 'boat'); if (Math.abs(pl.x - boat.x) > 90) return no('離船長太遠了');
-      if (D.capOf(c) < D.MAXLV2) return no(`要先打倒虛空之主、把等級上限突破到 ${D.MAXLV2} 才能出海`);
       to = to === 11 ? 11 : 10; c.map = to; save(); ack && ack({ ok: true }); enter(to, D.MAPS[to].start);
     });
+    // ---- 接待員：付一次，之後雙向免費 ----
+    socket.on('guide', ({ g } = {}, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w) return no('');
+      const G = D.GUIDES[g]; const npc = G && (D.MAPS[w.mi].npcs || []).find(n => n.kind === 'guide' && n.g === g);
+      if (!npc) return no('這裡沒有這位接待員'); if (Math.abs(pl.x - npc.x) > 90) return no('離接待員太遠了');
+      c.guide ||= {}; const paid = c.guide[G.key];
+      if (!paid) { if (c.gold < G.fee) return no(`第一次搭乘需要 ${G.fee.toLocaleString()} 金幣`); c.gold -= G.fee; c.guide[G.key] = 1; }
+      c.map = G.to; save(); pushMe(uid); ack && ack({ ok: true, paid: !paid ? G.fee : 0 }); enter(G.to, G.tx ?? D.MAPS[G.to].start);
+    });
+    // ---- 回城卷軸：唸 2 秒，回到這個區域的城鎮 ----
+    const recallBlock = () => { if (!w) return '現在不能使用'; const mp = D.MAPS[w.mi]; if (mp.pvp || mp.trial) return '這裡不能使用回城卷軸';
+      if (w.mons.some(m => m.fight && pl.x >= m.fight.x1 - 10 && pl.x <= m.fight.x2 + 10)) return 'Boss 戰中不能使用回城卷軸'; return ''; };
+    socket.on('recallStart', (_, ack) => { const c = char(uid); if (!c) return; if (!((c.mat || {}).home > 0)) return ack && ack({ ok: false, msg: '沒有回城卷軸（雜貨商有賣）' });
+      const e = recallBlock(); if (e) return ack && ack({ ok: false, msg: e }); pl.recallT = Date.now(); ack && ack({ ok: true }); });
+    socket.on('recall', (_, ack) => { const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c) return no('');
+      if (!pl.recallT || Date.now() - pl.recallT < D.HOMESCROLL.cast - 250) return no('還在唸咒語'); pl.recallT = 0;
+      if (!((c.mat || {}).home > 0)) return no('沒有回城卷軸'); const e = recallBlock(); if (e) return no(e);
+      const home = D.MAPS[w.mi].home ?? 0; c.mat.home--; c.map = home; save(); pushMe(uid); ack && ack({ ok: true }); enter(home, D.MAPS[home].start); });
+    socket.on('recallCancel', () => { pl.recallT = 0; });
     // ---- 更新公告：每個帳號每個版本只看一次 ----
     socket.on('newsSeen', ({ v } = {}) => { const u = S.users[uid]; if (u && v === D.VERSION) { u.seenVer = D.VERSION; save(); } });
     // ---- 轉職試煉 ----
@@ -909,7 +937,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const c = char(uid); if (!c) return ack && ack({ ok: false });
       const next = c.job + 1; if (next > 4) return ack && ack({ ok: false, msg: '已經完成所有轉職' });
       if (c.lv < D.JOBLV[next]) return ack && ack({ ok: false, msg: `需要 Lv ${D.JOBLV[next]}` });
-      if (!w || w.mi !== 0) return ack && ack({ ok: false, msg: '要在晨露村找轉職教官' });
+      if (!w || w.mi !== 0) return ack && ack({ ok: false, msg: '要在像素村找轉職教官' });
       const tw = mkWorld(8, [{ t: 'trial' + next, s: 0, a: 1000, b: 1600 }], 'trial:' + uid); trials.set(uid, tw);
       ret = { mi: 0, x: 120 }; ack && ack({ ok: true }); enter(8, 300, tw);
       socket.emit('notice', { t: `轉職試煉開始！打倒「${D.MON['trial' + next].name}」就能轉職成「${D.CL[c.cls].jobs[next]}」` });
@@ -992,7 +1020,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const c = char(uid); if (!c) return ack && ack({ ok: false });
       const next = c.job + 1; if (next > 4) return ack && ack({ ok: false, msg: '已經完成所有轉職' });
       if (c.lv < D.JOBLV[next]) return ack && ack({ ok: false, msg: `需要 Lv ${D.JOBLV[next]}` });
-      if (!w || w.mi !== 0) return ack && ack({ ok: false, msg: '要在晨露村找轉職教官' });
+      if (!w || w.mi !== 0) return ack && ack({ ok: false, msg: '要在像素村找轉職教官' });
       c.job = next; save(); ack && ack({ ok: true, me: me(uid) });
       ns.to(w.room).emit('sys', { t: `${nameOf(uid)} 轉職成為「${D.CL[c.cls].jobs[next]}」！` });
     });
@@ -1001,7 +1029,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const pt = D.MAPS[w.mi].portals.find(p => p.to === to); if (!pt) return ack && ack({ ok: false });
       if (Math.abs(pl.x - pt.x) > 60) return ack && ack({ ok: false, msg: '離傳送門太遠' });
       if (pt.ret) { ack && ack({ ok: true }); goRet(); return; }
-      { const need = D.MAPS[to] && D.MAPS[to].need; if (need && D.capOf(c) < need) return ack && ack({ ok: false, msg: need >= 120 ? '要先打倒「古城守護神」，把等級上限突破到 120 才能前往' : '要先打倒「深淵海皇・克拉肯」，把等級上限突破到 110 才能前往' }); }
+      if (pt.gate && !(c.slain || {})[pt.gate] && !isGM(uid)) return ack && ack({ ok: false, msg: `要先打倒「${D.MON[pt.gate].name}」，${pt.label.replace(/ →$/, '')}才會為你開啟` });
             c.map = to; save(); ack && ack({ ok: true }); enter(to, pt.tx);
     });
     socket.on('revive', (_, ack) => {

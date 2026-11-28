@@ -251,7 +251,7 @@
     ENH.push({ rate, opts, mat: opts[0].mat, num: opts[0].num, add: n <= 5 ? .05 : n <= 7 ? .06 : n <= 10 ? .08 : .4, gold: n <= 5 ? 5000 * n : n <= 7 ? 30000 : n <= 10 ? 80000 : 200000,
       down: n <= 7 ? 0 : n <= 10 ? .3 : n <= 13 ? .5 : .7, brk: n <= 7 ? 0 : n <= 10 ? .03 : [.1, .15, .2, .25, .3][n - 11] }); }
   const ENHMAX = 15, enhB = n => { let t = 0; for (let k = 1; k <= Math.min(ENHMAX, n | 0); k++) t += ENH[k].add; return Math.round(t * 100) / 100; };
-  const MATN = { s1: '強化石', s2: '高級強化石', s3: '神話強化石', luck: '加成卷軸', luck2: '高級加成卷軸', guard: '守護卷軸', nodown: '防降級卷軸' };
+  const MATN = { home: '回城卷軸', s1: '強化石', s2: '高級強化石', s3: '神話強化石', luck: '加成卷軸', luck2: '高級加成卷軸', guard: '守護卷軸', nodown: '防降級卷軸' };
   const SCROLL = { luck: { add: .1, price: 200000 }, luck2: { add: .2, price: 0 }, guard: { price: 500000 }, s1: { price: 50000 }, nodown: { price: 0, lv: 11 } };   // 防降級卷軸：+11 以上失敗不降級；只從深海 Boss（3%）和暗黑 Boss（15%）掉落，之後可在儲值商城購買   // s1：一般強化石也可以跟鐵匠買
   const XFER = { lose: 3, rate: .7, gold: 50000 };   // 移植：等級 -3、成功率 70%、金幣 50,000 × 原本的強化等級；失敗時原本那件歸零
   const SELLR = .3;   // 賣商店裝備：拿回 30%
@@ -371,18 +371,21 @@
     { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 6 }, { t: C, s: 6 }, { t: B, s: 7 }, { t: C, s: 7 }, { t: C, s: 8 }, { t: C, s: 8 }, { t: C, s: 9 }, { t: C, s: 9 },
     { t: boss, s: 0, a: 2140, b: 2460 }];
   const MAPS = [
-    { name: '蘑菇森林', pal: 'forest', town: true, spawns: layout('slime', 'shroom', 'stump', 'king'), zones: [[260, '晨露村'], [700, '史萊姆草原'], [1200, '蘑菇小徑'], [2100, '樹墩森林'], [9e9, '巨菇王的巢穴']],
-      portals: [{ x: 2560, to: 1, tx: 150, rec: 15, label: '冰雪山谷' }], start: 120 },
+    // ---- 第 0 張：像素村（新手村；重生點、轉職教官、商店、鐵匠）----
+    { name: '像素村', pal: 'forest', town: true, safe: true, home: 0, spawns: [], xr: 1500, houses: [40, 400, 900, 1180],
+      seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 560, x2: 760, y: 240 }], ropes: [{ x: 580, y1: 240, y2: GY }],
+      npcs: [{ x: 300, kind: 'job', name: '轉職教官 艾倫' }, { x: 640, kind: 'shop', name: '商人 老陳' }, { x: 820, kind: 'smith', name: '鐵匠 老錘' }],
+      zones: [[9e9, '像素村']], portals: [{ x: 1440, to: 15, tx: 150, label: '蘑菇森林 →' }], start: 200, sign: [1340, '往蘑菇森林 →'] },
     { name: '冰雪山谷', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 330, x2: 480, y: 262 }, { x1: 450, x2: 640, y: 224 }, { x1: 700, x2: 860, y: 262 }, { x1: 830, x2: 1000, y: 224 }, { x1: 970, x2: 1160, y: 186 }, { x1: 1250, x2: 1420, y: 262 }, { x1: 1390, x2: 1580, y: 224 }, { x1: 1550, x2: 1760, y: 186 }, { x1: 1730, x2: 1960, y: 148 }, { x1: 1950, x2: 2090, y: 110 }]], ropes: [{ x: 2000, y1: 110, y2: GY }, { x: 1120, y1: 186, y2: GY }], pal: 'snow', spawns: layout('snowslime', 'icewolf', 'yeti', 'frost'), zones: [[260, '山谷入口'], [700, '雪原'], [1200, '冰柱林'], [2100, '暴風雪坡'], [9e9, '冰霜巨人之巔']],
-      portals: [{ x: 60, to: 0, tx: 2490, label: '← 蘑菇森林' }, { x: 2560, to: 2, tx: 150, rec: 30, label: '熔岩深淵' }], start: 150 },
+      portals: [{ x: 60, to: 18, tx: 900, label: '← 風語驛站' }], start: 150, home: 18 },
     { name: '熔岩深淵', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 330, x2: 450, y: 230 }, { x1: 380, x2: 560, y: 160 }, { x1: 700, x2: 820, y: 240 }, { x1: 860, x2: 1000, y: 190 }, { x1: 1020, x2: 1170, y: 130 }, { x1: 1230, x2: 1360, y: 230 }, { x1: 1400, x2: 1540, y: 170 }, { x1: 1570, x2: 1740, y: 110 }, { x1: 1800, x2: 2050, y: 220 }]], ropes: [{ x: 350, y1: 230, y2: GY }, { x: 420, y1: 160, y2: 230 }, { x: 720, y1: 240, y2: GY }, { x: 880, y1: 190, y2: GY }, { x: 1040, y1: 130, y2: GY }, { x: 1250, y1: 230, y2: GY }, { x: 1420, y1: 170, y2: GY }, { x: 1590, y1: 110, y2: GY }, { x: 1820, y1: 220, y2: GY }], pal: 'lava', spawns: layout('fireslime', 'imp', 'golem', 'balrog'), zones: [[260, '深淵入口'], [700, '焦土'], [1200, '熔岩河'], [2100, '惡魔迴廊'], [9e9, '炎魔王的王座']],
-      portals: [{ x: 60, to: 1, tx: 2490, label: '← 冰雪山谷' }, { x: 2560, to: 3, tx: 150, rec: 45, label: '暗黑神殿' }], start: 150 },
+      portals: [{ x: 60, to: 18, tx: 900, label: '← 風語驛站' }], start: 150, home: 18 },
     { name: '暗黑神殿', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 300, x2: 700, y: 240 }, { x1: 400, x2: 600, y: 170 }, { x1: 720, x2: 1180, y: 240 }, { x1: 780, x2: 940, y: 170 }, { x1: 980, x2: 1140, y: 170 }, { x1: 1220, x2: 1700, y: 240 }, { x1: 1280, x2: 1440, y: 170 }, { x1: 1480, x2: 1660, y: 100 }, { x1: 1820, x2: 2060, y: 200 }]], ropes: [{ x: 320, y1: 240, y2: GY }, { x: 420, y1: 170, y2: 240 }, { x: 740, y1: 240, y2: GY }, { x: 800, y1: 170, y2: 240 }, { x: 1120, y1: 170, y2: 240 }, { x: 1240, y1: 240, y2: GY }, { x: 1300, y1: 170, y2: 240 }, { x: 1500, y1: 100, y2: 240 }, { x: 1840, y1: 200, y2: GY }], pal: 'dark', spawns: layout('knight', 'gargoyle', 'reaper', 'dragon'), zones: [[260, '神殿大門'], [700, '騎士迴廊'], [1200, '石像大廳'], [2100, '冥河祭壇'], [9e9, '黑龍王的巢穴']],
-      portals: [{ x: 60, to: 2, tx: 2490, label: '← 熔岩深淵' }, { x: 2560, to: 4, tx: 150, rec: 65, label: '天空聖域' }], start: 150 },
+      portals: [{ x: 60, to: 4, tx: 2490, label: '← 天空聖域' }, { x: 2560, to: 5, tx: 150, gate: 'dragon', label: '虛空之門 →' }], start: 150, home: 18 },
     { name: '天空聖域', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 440, y: 260 }, { x1: 460, x2: 600, y: 220 }, { x1: 700, x2: 820, y: 260 }, { x1: 840, x2: 960, y: 220 }, { x1: 980, x2: 1160, y: 180 }, { x1: 1240, x2: 1360, y: 260 }, { x1: 1380, x2: 1500, y: 220 }, { x1: 1520, x2: 1660, y: 180 }, { x1: 1680, x2: 1800, y: 140 }, { x1: 1820, x2: 2000, y: 100 }]], ropes: [{ x: 1150, y1: 180, y2: GY }, { x: 1980, y1: 100, y2: GY }], pal: 'sky', spawns: layout('seraph', 'stargolem', 'phoenix', 'titan'), zones: [[260, '雲端階梯'], [700, '天使庭園'], [1200, '星辰廣場'], [2100, '不死鳥之巢'], [9e9, '天穹泰坦的王座']],
-      portals: [{ x: 60, to: 3, tx: 2490, label: '← 暗黑神殿' }, { x: 2560, to: 5, tx: 150, rec: 80, label: '虛空裂隙' }], start: 150 },
+      portals: [{ x: 60, to: 18, tx: 900, label: '← 風語驛站' }, { x: 2560, to: 3, tx: 150, gate: 'titan', label: '地獄之門 →' }], start: 150, home: 18 },
     { name: '虛空裂隙', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 300, x2: 520, y: 200 }, { x1: 500, x2: 700, y: 250 }, { x1: 720, x2: 900, y: 180 }, { x1: 900, x2: 1060, y: 240 }, { x1: 1060, x2: 1180, y: 150 }, { x1: 1220, x2: 1420, y: 210 }, { x1: 1420, x2: 1600, y: 250 }, { x1: 1600, x2: 1780, y: 160 }, { x1: 1820, x2: 2060, y: 230 }]], ropes: [{ x: 320, y1: 200, y2: GY }, { x: 680, y1: 250, y2: GY }, { x: 740, y1: 180, y2: GY }, { x: 1040, y1: 240, y2: GY }, { x: 1080, y1: 150, y2: GY }, { x: 1240, y1: 210, y2: GY }, { x: 1580, y1: 250, y2: GY }, { x: 1620, y1: 160, y2: GY }, { x: 1840, y1: 230, y2: GY }], pal: 'void', spawns: layout('voidling', 'chaosknight', 'abyssmage', 'voidking'), zones: [[260, '裂隙邊緣'], [700, '虛空荒原'], [1200, '混沌要塞'], [2100, '深淵回廊'], [9e9, '虛空之主的王座']],
-      portals: [{ x: 60, to: 4, tx: 2490, label: '← 天空聖域' }, { x: 2560, to: 9, tx: 150, label: '潮聲港' }], start: 150 },
+      portals: [{ x: 60, to: 3, tx: 2490, label: '← 暗黑神殿' }], start: 150, home: 18 },
     // ---- 特殊地圖（不會出現在一般傳送門的路線上） ----
     { name: '決鬥場', pal: 'arena', pvp: 'duel', spawns: [], seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 860, x2: 1040, y: 240 }, { x1: 1160, x2: 1340, y: 240 }], ropes: [{ x: 880, y1: 240, y2: GY }, { x: 1320, y1: 240, y2: GY }],
       zones: [[9e9, '決鬥場']], portals: [], start: 1100, lo: 700, hi: 1500 },
@@ -395,8 +398,8 @@
     { name: '潮聲港', pal: 'harbor', town: true, safe: true, spawns: [], home: 9,
       seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 420, x2: 600, y: 250 }, { x1: 900, x2: 1100, y: 240 }, { x1: 1400, x2: 1560, y: 250 }],
       ropes: [{ x: 440, y1: 250, y2: GY }, { x: 1080, y1: 240, y2: GY }, { x: 1420, y1: 250, y2: GY }],
-      npcs: [{ x: 300, kind: 'shop', name: '雜貨商 阿珠' }, { x: 760, kind: 'smith', name: '鐵匠 老鐵' }, { x: 2330, kind: 'boat', name: '船長 老海' }], dock: 2240,
-      zones: [[700, '港口入口'], [1800, '漁村市集'], [9e9, '碼頭']], portals: [{ x: 60, to: 5, tx: 2490, label: '← 虛空裂隙' }], start: 150 },
+      npcs: [{ x: 120, kind: 'guide', g: 'seaback', name: '漁夫 阿潮' }, { x: 300, kind: 'shop', name: '雜貨商 阿珠' }, { x: 760, kind: 'smith', name: '鐵匠 老鐵' }, { x: 2330, kind: 'boat', name: '船長 老海' }], dock: 2240,
+      zones: [[700, '港口入口'], [1800, '漁村市集'], [9e9, '碼頭']], portals: [], start: 200 },
     // ---- 第 8 張地圖：深淵海溝（Lv 101～105）----
     { name: '深淵海溝', pal: 'abyss', sea: 1, home: 9, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 500, y: 236 }, { x1: 520, x2: 680, y: 176 }, { x1: 720, x2: 880, y: 246 }, { x1: 900, x2: 1040, y: 186 }, { x1: 1060, x2: 1200, y: 126 }, { x1: 1240, x2: 1400, y: 236 }, { x1: 1420, x2: 1580, y: 176 }, { x1: 1600, x2: 1760, y: 120 }, { x1: 1800, x2: 2060, y: 206 }]],
       ropes: [{ x: 340, y1: 236, y2: GY }, { x: 540, y1: 176, y2: 236 }, { x: 740, y1: 246, y2: GY }, { x: 920, y1: 186, y2: GY }, { x: 1080, y1: 126, y2: 186 }, { x: 1260, y1: 236, y2: GY }, { x: 1440, y1: 176, y2: 236 }, { x: 1620, y1: 120, y2: 176 }, { x: 1820, y1: 206, y2: GY }],
@@ -428,6 +431,36 @@
       zones: [[260, '火山裂谷'], [700, '熔岩海床'], [1200, '熱泉群'], [2100, '火山口邊緣'], [9e9, '熔岩海龍的巢穴']],
       portals: [{ x: 60, to: 13, tx: 2490, label: '← 冰封海淵' }], start: 150 },
   ];
+  // ================= 改版第一批：蘑菇森林拆成三張、風語驛站 =================
+  // spawn：s=0 地面（a～b 之間隨機），s>0 站在第 s 個平台上
+  const G = (t, n, a, b) => Array.from({ length: n }, () => ({ t, s: 0, a, b })), P = (t, ...ss) => ss.map(s => ({ t, s }));
+  const SEG_B = MAPS[1].seg, ROPES_B = MAPS[1].ropes, SEG_C = MAPS[3].seg, ROPES_C = MAPS[3].ropes;
+  MAPS[15] = { name: '蘑菇森林 1・史萊姆草原', pal: 'forest', home: 0, rec: 1,
+    spawns: [...G('slime', 9, 260, 1900), ...P('slime', 1, 2, 3, 4, 6, 7), ...G('shroom', 3, 1950, 2450), ...P('shroom', 8, 9)],
+    zones: [[9e9, '史萊姆草原']], portals: [{ x: 60, to: 0, tx: 1340, label: '← 像素村' }, { x: 2560, to: 16, tx: 150, label: '蘑菇小徑 →' }], start: 150 };
+  MAPS[16] = { name: '蘑菇森林 2・蘑菇小徑', pal: 'forest', home: 0, seg: SEG_B, ropes: ROPES_B,
+    spawns: [...G('slime', 3, 200, 600), ...G('shroom', 9, 600, 2000), ...P('shroom', 1, 2, 3, 4, 5, 6, 7), ...G('stump', 3, 2050, 2450), ...P('stump', 9, 10)],
+    zones: [[9e9, '蘑菇小徑']], portals: [{ x: 60, to: 15, tx: 2490, label: '← 史萊姆草原' }, { x: 2560, to: 17, tx: 150, label: '樹墩森林 →' }], start: 150 };
+  MAPS[17] = { name: '蘑菇森林 3・樹墩森林', pal: 'forest', home: 0, seg: SEG_C, ropes: ROPES_C,
+    spawns: [...G('shroom', 3, 200, 700), ...G('stump', 8, 700, 2050), ...P('stump', 1, 2, 3, 4, 5, 6, 7, 8, 9), { t: 'king', s: 0, a: 2140, b: 2460 }],
+    zones: [[2100, '樹墩森林'], [9e9, '巨菇王的巢穴']], portals: [{ x: 60, to: 16, tx: 2490, label: '← 蘑菇小徑' }, { x: 2560, to: 18, tx: 150, label: '風語驛站 →' }], start: 150 };
+  MAPS[18] = { name: '風語驛站', pal: 'forest', town: true, safe: true, home: 18, spawns: [], xr: 1500, houses: [300, 1200], station: 1,
+    seg: [{ x1: 0, x2: WW, y: GY, g: 1 }], ropes: [],
+    npcs: [{ x: 420, kind: 'shop', name: '雜貨商 阿福' }, { x: 560, kind: 'smith', name: '鐵匠 老錘' },
+      { x: 760, kind: 'guide', g: 'snow', name: '雪人 阿努克' }, { x: 880, kind: 'guide', g: 'lava', name: '火人 蕾拉妮' },
+      { x: 1000, kind: 'guide', g: 'sea', name: '漁夫 阿潮' }, { x: 1120, kind: 'guide', g: 'sky', name: '天人 賽拉菲' }],
+    zones: [[9e9, '風語驛站']], portals: [{ x: 60, to: 17, tx: 2490, label: '← 蘑菇森林' }], start: 150 };
+  // 改版：拿掉海洋的等級門檻（之後統一重新設定）
+  for (const m of MAPS) { delete m.need; for (const p of m.portals || []) delete p.cap; }
+  // 接待員：付一次（key 相同的共用），之後雙向免費
+  const GUIDES = {
+    snow: { key: 'snow', fee: 1000, to: 1, place: '冰雪山谷', d: '嘿！我是冰原嚮導阿努克。我的狗雪橇可以帶你穿過暴風雪，直達冰雪山谷。' },
+    lava: { key: 'lava', fee: 3000, to: 2, place: '熔岩深淵', d: 'Aloha～我是火舞女郎蕾拉妮！跟著我的火舞，就能穿過火山口，抵達熔岩深淵。' },
+    sea: { key: 'sea', fee: 8000, to: 9, tx: 200, place: '潮聲港', d: '我是漁夫阿潮，我的漁船往返風語驛站和潮聲港。大海那頭還有好多冒險喔。' },
+    seaback: { key: 'sea', fee: 8000, to: 18, tx: 1000, place: '風語驛站', d: '要回風語驛站嗎？搭過一次我的船，之後來回都免費。' },
+    sky: { key: 'sky', fee: 15000, to: 4, place: '天空聖域', d: '我是天使賽拉菲。我可以帶你飛上雲端，前往天空聖域。天空之後，就是地獄與虛空……' },
+  };
+  const HOMESCROLL = { price: 2000, cast: 2000 };   // 回城卷軸：雜貨商販售，唸 2 秒，被打會中斷
   // 升級經驗：前期和以前差不多，後期大幅變難（滿等總經驗約為舊版的 4 倍）
   // 升級所需經驗（2026-11-27h 改版）：依「每級要打幾隻當地小怪」設計，從約 4 隻慢慢爬到 100 等前約 130 隻，1→100 約 5000 隻
   const EXPT = [47,60,76,99,129,151,178,210,226,243,291,348,416,495,613,758,936,1036,1193,1371,1573,1730,1899,2081,2410,2676,2966,3379,3845,4371,5111,5642,6223,6857,7336,7842,8376,8680,8989,10135,11420,12859,14470,16273,18881,21894,23286,24751,26296,27922,30527,32312,34186,36152,38214,40378,42646,43709,44781,45862,49137,52628,56348,60311,66091,72402,79291,82950,88960,95378,102232,106966,111890,117010,122335,124699,127078,129473,131884,134310,157680,185079,217193,254829,308190,372652,450514,472268,509886,550405,594040,621765,650677,680823,712253,765228,822019,881056,942249,1005491];
@@ -545,6 +578,13 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-28m', notes: [
+      ['🏡 像素村獨立', '像素村變成獨立的村莊：轉職教官艾倫、商人老陳、鐵匠老錘都在這裡，在蘑菇森林倒下會回到像素村。'],
+      ['🍄 蘑菇森林三張', '蘑菇森林拆成史萊姆草原、蘑菇小徑、樹墩森林三張地圖，巨菇王在樹墩森林最深處。'],
+      ['🌬 風語驛站', '打完蘑菇森林往東走就是風語驛站。四位接待員：雪人阿努克（冰雪山谷）、火人蕾拉妮（熔岩深淵）、漁夫阿潮（潮聲港）、天人賽拉菲（天空聖域）。每條路線第一次付費，之後來回免費。'],
+      ['🚪 地獄之門・虛空之門', '天空聖域打倒天穹泰坦，開啟通往暗黑神殿的地獄之門；暗黑神殿打倒黑龍王，開啟通往虛空裂隙的虛空之門。'],
+      ['📜 回城卷軸', '雜貨商販售回城卷軸（2,000 金），唸 2 秒回到這個區域的城鎮，被打會中斷。'],
+    ] },
     { v: '2026-11-28l', notes: [
       ['👗 外觀上架', '「💎 商城」的外觀頁開放：時裝 6 套、武器外觀 8 款、披風外觀 6 款（含天使之翼、惡魔之翼）、頭盔外觀 8 款（皇冠、貓耳、兔耳、魔法帽……）。可以先試穿再買，買了就是帳號永久擁有。外觀只改變樣子，不影響數值。'],
       ['🧥 衣櫃', '在「裝備」的時裝欄位或「背包」的時裝分頁打開衣櫃，就能換上或卸下已擁有的外觀，每個角色可以穿不同的。'],
@@ -660,6 +700,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
