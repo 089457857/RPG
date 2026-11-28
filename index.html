@@ -1700,7 +1700,7 @@ function forgeAnim(o,getRes,done){let ov=document.getElementById('forgeOv');if(o
 // ================= 鐵匠 老鐵（潮聲港）：強化、移植、卷軸 =================
 // 按兩下才執行的按鈕（避免手滑）
 const confirm2=(d,msg)=>{if(d.sure)return true;toast(msg+'（再按一次確定）');d.sure=1;setTimeout(()=>{d.sure=''},2500);return false};
-let smTab='enh',smK='w',smI=null,smFrom=null,smLuck='',smGuard=false;
+let smTab='enh',smK='w',smI=null,smFrom=null,smLuck='',smGuard=false,smUse='',smND=false;
 function openSmith(){const render=()=>{const own=P.own||{w:[],a:[]},m=P.mat||{},L=smK==='w'?WEAPONS[P.cls]:ARMORS,ids=[...(smK==='w'?own.w:own.a)],cur=smK==='w'?P.wep:P.arm,tI=smK==='w'?4:5;
     if(smI==null||!ids.includes(smI))smI=cur;const nmOf=i=>{const e=D.enhOf(P,smK,i);return `${e?`+${e} `:''}${L[i][0]}`};
     const mats=`<div class="stats" style="flex-wrap:wrap">${Object.entries(D.MATN).map(([k,n])=>`<span>${n} <b>${m[k]||0}</b></span>`).join('')}<span>金幣 <b>${P.gold.toLocaleString()}</b></span></div>`;
@@ -1708,11 +1708,13 @@ function openSmith(){const render=()=>{const own=P.own||{w:[],a:[]},m=P.mat||{},
     let body='';
     if(smTab==='enh'){const e=D.enhOf(P,smK,smI),n=e+1,E=D.ENH[n];
       if(!E)body=`<p class="sub">「${nmOf(smI)}」已經強化到最高 +${D.ENHMAX} 了！</p>`;
-      else{const lc=smLuck?D.SCROLL[smLuck].add:0,rate=Math.min(1,E.rate+lc),okM=(m[E.mat]||0)>=E.num,okG=P.gold>=E.gold;
+      else{const has=o2=>(m[o2.mat]||0)>=o2.num;let O=E.opts.find(o2=>o2.mat===smUse);if(!O||!has(O))O=E.opts.filter(has).sort((a2,b2)=>b2.rate-a2.rate)[0]||E.opts[0];smUse=O.mat;
+        const lc=smLuck?D.SCROLL[smLuck].add:0,rate=Math.min(1,O.rate+lc),okM=has(O),okG=P.gold>=E.gold;
         body=`<p class="sub" style="margin:6px 0">強化「<b>${nmOf(smI)}</b>」→ <b style="color:#ffd23f">+${n}</b>：成功率 <b>${Math.round(rate*100)}%</b>${lc?`（含卷軸 +${Math.round(lc*100)}%）`:''}，成功後${smK==='w'?'攻擊':'防禦和 HP'} +${Math.round(D.enhB(n)*100)}%（目前 +${Math.round(D.enhB(e)*100)}%）<br>
-          需要 ${D.MATN[E.mat]} ×${E.num}（有 ${m[E.mat]||0}）、${E.gold.toLocaleString()} 金幣。失敗時：${E.down?'<b style="color:#ff7a5a">降 1 級</b>':'只損失材料'}${E.brk?`，<b style="color:#ff5a3a">${Math.round(E.brk*100)}% 機率毀損</b>`:''}</p>
+          需要 ${D.MATN[O.mat]} ×${O.num}（有 ${m[O.mat]||0}）、${E.gold.toLocaleString()} 金幣。失敗時：${E.down?`<b style="color:#ff7a5a">${Math.round(E.down*100)}% 機率降 1 級</b>`:'只損失材料'}${E.brk?`，<b style="color:#ff5a3a">${Math.round(E.brk*100)}% 機率毀損</b>`:''}</p>
+          ${E.opts.length>1?`<div class="row" style="flex-wrap:wrap;gap:6px;margin:4px 0"><span class="ds">使用材料：</span>${E.opts.map(o2=>`<button class="btn sm${o2.mat===smUse?' on':''}" data-use="${o2.mat}" ${has(o2)?'':'disabled'}>${D.MATN[o2.mat]} ×${o2.num}（${Math.round(o2.rate*1000)/10}%）</button>`).join('')}</div>`:''}
           <div class="row" style="flex-wrap:wrap;gap:6px;margin:4px 0"><span class="ds">加成卷軸：</span>${[['','不用'],['luck',`一般 +10%（${m.luck||0}）`],['luck2',`高級 +20%（${m.luck2||0}）`]].map(([k,t])=>`<button class="btn sm${smLuck===k?' on':''}" data-lc="${k}" ${k&&!(m[k]>0)?'disabled':''}>${t}</button>`).join('')}
-          ${E.brk?`<button class="btn sm${smGuard?' on':''}" data-gd="1" ${m.guard>0?'':'disabled'}>守護卷軸（${m.guard||0}）${smGuard?' ✓':''}</button>`:''}</div>
+          ${E.brk?`<button class="btn sm${smGuard?' on':''}" data-gd="1" ${m.guard>0?'':'disabled'}>守護卷軸（${m.guard||0}）${smGuard?' ✓':''}</button>`:''}${n>=D.SCROLL.nodown.lv?`<button class="btn sm${smND?' on':''}" data-nd="1" ${m.nodown>0?'':'disabled'}>防降級卷軸（${m.nodown||0}）${smND?' ✓':''}</button>`:''}</div>
           <div class="row"><button class="btn pri" data-go="1" ${okM&&okG?'':'disabled'}>${okM?okG?'🔨 強化':'金幣不足':'材料不足'}</button></div>`}
       body+=pick(smI,'pi')}
     else if(smTab==='xfer'){const from=smFrom!=null&&ids.includes(smFrom)?smFrom:null,fe=from!=null?D.enhOf(P,smK,from):0,nn=Math.max(0,fe-D.XFER.lose),g=D.XFER.gold*fe;
@@ -1720,19 +1722,19 @@ function openSmith(){const render=()=>{const own=P.own||{w:[],a:[]},m=P.mat||{},
         <p class="sub" style="margin:4px 0">① 從：<b>${from!=null?nmOf(from):'（先在下面選）'}</b>　② 移到：<b>${nmOf(smI)}</b>${from!=null?`　→ 成功後變成 <b style="color:#ffd23f">+${nn}</b>，費用 ${g.toLocaleString()}`:''}</p>
         <div class="row"><button class="btn pri" data-xf="1" ${from!=null&&from!==smI&&fe>0&&nn>D.enhOf(P,smK,smI)&&P.gold>=g?'':'disabled'}>🔁 移植</button></div>
         <div class="list">${ids.map(i=>`<div class="item${i===from||i===smI?' on':''}"><div><div class="nm">${nmOf(i)}</div></div><div class="row" style="margin:0;gap:4px"><button class="btn sm${i===from?' on':''}" data-fr="${i}">從這件</button><button class="btn sm${i===smI?' on':''}" data-pi="${i}">移到這件</button></div></div>`).join('')}</div>`}
-    else body=`<p class="sub" style="margin:6px 0">強化石：+1～+7 用，也可以在海洋地圖打怪取得。守護卷軸：強化 +11 以上失敗時不會毀損（還是會降 1 級）。加成卷軸：這次強化的成功率 +10%。<br>高級加成卷軸（+20%）買不到，只會從海洋地圖和暗黑 Boss 掉落。</p>
+    else body=`<p class="sub" style="margin:6px 0">強化石：+1～+10 都能用（+8 以上要 3 顆、成功率較低），也可以在海洋地圖打怪取得。守護卷軸：強化 +8 以上失敗時不會毀損（降級照機率判定）。防降級卷軸：+11 以上失敗時不會降級（只從深海 Boss 和暗黑 Boss 掉落）。加成卷軸：這次強化的成功率 +10%。<br>高級加成卷軸（+20%）買不到，只會從海洋地圖和暗黑 Boss 掉落。</p>
       <div class="list">${[['s1','強化石（+1～+7 用）'],['luck','加成卷軸'],['guard','守護卷軸']].map(([k,n])=>{const pr=D.SCROLL[k].price;return `<div class="item"><div><div class="nm">${n}（有 ${m[k]||0}）</div><div class="ds">${pr.toLocaleString()} 金幣</div></div><div class="row" style="margin:0;gap:4px"><button class="btn pri sm" data-buy="${k}" data-n="1" ${P.gold<pr?'disabled':''}>買 1 張</button><button class="btn sm" data-buy="${k}" data-n="5" ${P.gold<pr*5?'disabled':''}>買 5 張</button></div></div>`}).join('')}</div>`;
     openPop(`<h2>🔨 鐵匠 老鐵</h2><p class="sub" style="margin:0">強化石在珊瑚王國以後的海洋地圖掉落；高級強化石在深淵海溝以後；神話強化石只有克拉肯以後的 Boss 會掉。</p>${mats}
       <div class="tabs">${[['enh','強化'],['xfer','移植'],['shop','商店']].map(([k,t])=>`<button class="btn sm${smTab===k?' on':''}" data-st="${k}">${t}</button>`).join('')}　${smTab!=='shop'?[['w','武器'],['a','防具']].map(([k,t])=>`<button class="btn sm${smK===k?' on':''}" data-sk="${k}">${t}</button>`).join(''):''}</div>
       ${body}<div class="row"><button class="btn" data-close="1">離開</button></div>`,bt=>{const d=bt.dataset;
       if(d.st){smTab=d.st;return render()}if(d.sk){smK=d.sk;smI=null;smFrom=null;return render()}if(d.pi!=null){smI=+d.pi;return render()}if(d.fr!=null){smFrom=+d.fr;return render()}
-      if(d.lc!=null){smLuck=d.lc;return render()}if(d.gd){smGuard=!smGuard;return render()}
+      if(d.lc!=null){smLuck=d.lc;return render()}if(d.use){smUse=d.use;return render()}if(d.gd){smGuard=!smGuard;return render()}if(d.nd){smND=!smND;return render()}
       if(d.buy){bt.disabled=true;sock.emit('buyScroll',{s:d.buy,n:+d.n},r=>{if(!r||!r.ok)toast(r&&r.msg||'失敗');else{applyMe(r.me);toast('買好了！');ui()}render()});return}
       if(d.go){const e0=D.enhOf(P,smK,smI),E=D.ENH[e0+1];if(E&&E.brk&&!smGuard&&!confirm2(d,`+${e0+1} 失敗有 ${Math.round(E.brk*100)}% 機率毀損，確定不用守護卷軸嗎？`))return;bt.disabled=true;
-        const L0=smK==='w'?WEAPONS[P.cls]:ARMORS,t0=L0[smI][smK==='w'?4:5]||0,isW=smK==='w',game=e0+1>=6,k0=smK,i0=smI,lc0=smLuck||null,gd0=smGuard;let got=null,bad=false;
-        const send=g=>sock.emit('enh',{k:k0,i:i0,luck:lc0,guard:gd0,...g},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();return render()}got=r});
+        const L0=smK==='w'?WEAPONS[P.cls]:ARMORS,t0=L0[smI][smK==='w'?4:5]||0,isW=smK==='w',game=e0+1>=6,k0=smK,i0=smI,lc0=smLuck||null,gd0=smGuard,nd0=smND&&e0+1>=D.SCROLL.nodown.lv;let got=null,bad=false;
+        const send=g=>sock.emit('enh',{k:k0,i:i0,luck:lc0,guard:gd0,use:smUse,nodown:nd0,...g},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();return render()}got=r});
         if(game)sock.emit('enhStart',{k:k0,i:i0},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();render()}});else send({});
-        forgeAnim({kind:'enh',isW,col:t0>=2?'#7affea':t0>=1?'#ff7ae0':'#bfe8ff',from:e0,to:e0+1,slow:e0+1>=11,game,base:Math.round(Math.min(1,E.rate+(smLuck?D.SCROLL[smLuck].add:0))*100),onEnd:send},()=>bad?{r:'fail'}:got,r=>{if(bad||!got)return;applyMe(r.me);if(smLuck&&!(P.mat[smLuck]>0))smLuck='';if(smGuard&&!(P.mat.guard>0))smGuard=false;
+        forgeAnim({kind:'enh',isW,col:t0>=2?'#7affea':t0>=1?'#ff7ae0':'#bfe8ff',from:e0,to:e0+1,slow:e0+1>=11,game,base:Math.round(Math.min(1,((E.opts.find(o2=>o2.mat===smUse)||E.opts[0]).rate)+(smLuck?D.SCROLL[smLuck].add:0))*1000)/10,onEnd:send},()=>bad?{r:'fail'}:got,r=>{if(bad||!got)return;applyMe(r.me);if(smLuck&&!(P.mat[smLuck]>0))smLuck='';if(smGuard&&!(P.mat.guard>0))smGuard=false;if(smND&&!(P.mat.nodown>0))smND=false;
           fx.push({t:'lvup',x:P.x,y:P.y,life:r.r==='ok'?60:20});toast(r.r==='ok'?`✨ 強化成功！變成 +${r.n}`:r.r==='broke'?'💥 裝備碎掉了……':r.r==='reset'?'💥 強化失敗，被打回 +0……':r.down?`強化失敗，降到 +${r.n}${r.saved?'（守護卷軸保住了裝備）':''}`:'強化失敗，材料沒了');ui();render()});return}
       if(d.xf){if(!confirm2(d,'移植失敗時原本那件會歸零，確定要移植嗎？'))return;bt.disabled=true;const fe=D.enhOf(P,smK,smFrom),L0=smK==='w'?WEAPONS[P.cls]:ARMORS,t0=L0[smFrom][smK==='w'?4:5]||0;let got=null,bad=false;
         sock.emit('xfer',{k:smK,from:smFrom,to:smI},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();return render()}got=r});
@@ -1909,7 +1911,7 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
   sock.on('phurt',d=>{const t=d.u===myId?P:others.get(d.u);if(!t)return;if(d.k){num(t.x+rnd(-6,6),t.y-30,d.dmg,'dot',D.EF[d.k].col);return}num(t.x,t.y-34-(d.s||0)*11,d.dmg,d.u===myId?'hurt':d.by===myId?(d.crit?'crit':'dmg'):(d.crit?'ocrit':'odmg'));if(d.u===myId&&P&&!P.rope){P.vy=-1.6;P.vx=(P.x<(others.get(d.by)||P).x?-1:1)*1.2;P.ground=false}});
   sock.on('trialDone',d=>{if(P){fx.push({t:'lvup',x:P.x,y:P.y,life:120});P.hp=P.max.hp}toast(`🎉 試煉通過！轉職成為「${d.name}」，獲得 ${d.gold.toLocaleString()} 金幣。按「技能」設定新技能，稍後自動回到晨露村`)});
   sock.on('heal',d=>{if(!P||P.dead)return;P.hp=Math.min(P.max.hp,P.hp+d.hp);if(Math.random()<.35)num(P.x+8,P.y-30,'+'+d.hp,'heal');ui()});
-  sock.on('mat',d=>{if(!P)return;let k2=0;for(const [k,v] of Object.entries(d)){setTimeout(()=>num(P.x,P.y-52-k2*0,`${D.MATN[k]} +${v}`,'exp','#ffd23f'),k2*250);k2++}if(d.luck2||d.s3)toast(`獲得 ${Object.entries(d).map(([k,v])=>D.MATN[k]+' ×'+v).join('、')}`)});
+  sock.on('mat',d=>{if(!P)return;let k2=0;for(const [k,v] of Object.entries(d)){setTimeout(()=>num(P.x,P.y-52-k2*0,`${D.MATN[k]} +${v}`,'exp','#ffd23f'),k2*250);k2++}if(d.luck2||d.s3||d.nodown)toast(`獲得 ${Object.entries(d).map(([k,v])=>D.MATN[k]+' ×'+v).join('、')}`)});
   sock.on('gain',d=>{if(!P)return;num(P.x,P.y-42,`經驗 +${d.exp}`,'exp');if(d.up){fx.push({t:'lvup',x:P.x,y:P.y,life:90});
     if(d.lv>=D.capOf(P)){const cp=D.capOf(P);toast(cp>=D.MAXTOP?`恭喜達到滿等 Lv ${cp}！`:cp>=110?`恭喜達到 Lv ${cp}！打倒沉沒古城的古城守護神可以突破到 Lv 120`:cp>=100?`恭喜達到 Lv ${cp}！打倒深淵海皇・克拉肯可以突破到 Lv 110`:`恭喜達到 Lv ${MAXLV}！打倒虛空之主可以突破到 Lv ${D.MAXLV2}`)}else if(d.lv>=D.PETLV&&d.lv-d.up<D.PETLV)toast(`Lv ${D.PETLV}！寵物系統解鎖，點「寵物」挑一隻夥伴`);else if(d.newJob)toast(`Lv ${d.lv}！可以轉職了，回晨露村找轉職教官`);else if(d.lv===3)toast(`學會了新技能「${SK[P.cls].s2.n}」！按 C 使用`);else toast(`升級！Lv ${d.lv}　獲得 ${D.APL*d.up} 能力點數（按「能力」分配）`)}});
   sock.on('me',m=>{const up=P&&m&&m.lv>P.lv;applyMe(m);if(up){P.hp=P.max.hp;P.mp=P.max.mp;ui()}});

@@ -301,6 +301,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       // 強化材料：海洋地圖
       if (D.MAPS[m.mi].sea || (d.boss && m.dark)) { const got = {}, give = (k2, v) => { if (v > 0) { c.mat[k2] = (c.mat[k2] || 0) + v; got[k2] = v; } }, mul = m.dark ? 5 : 1, deep = D.MAPS[m.mi].deep, sea = D.MAPS[m.mi].sea;
         if (d.boss) { if (sea) { give('s1', ri(5, 10) * mul); give('s2', ri(2, 4) * mul); if (deep) give('s3', ri(1, 3) * mul + Math.max(0, Math.floor((d.lv - 105) / 5))); if (Math.random() < .15) give('luck', 1); if (Math.random() < .1) give('guard', 1); }
+          if ((deep && Math.random() < .03 * mul) || (!deep && m.dark && Math.random() < .15)) give('nodown', 1);
           if (Math.random() < .05) give('luck2', 1); }
         else { if (Math.random() < .08) give('s1', 1); if (deep && Math.random() < .02) give('s2', 1); if (Math.random() < .01) give('luck2', 1); }
         if (Object.keys(got).length) ns.to('u:' + uid).emit('mat', got); }
@@ -545,26 +546,27 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     // 打鐵小遊戲（+6 以上）：先領開始單，敲完再送 enh；伺服器檢查時間合不合理
     socket.on('enhStart', ({ k, i } = {}, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); { const e = atSmith(); if (e) return ack && ack({ ok: false, msg: e }); }
       pl.enhTok = { k, i: i | 0, t: Date.now() }; ack && ack({ ok: true }); });
-    socket.on('enh', ({ k, i, luck, guard, perf, auto, skip } = {}, ack) => {
+    socket.on('enh', ({ k, i, luck, guard, perf, auto, skip, use, nodown } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); { const e = atSmith(); if (e) return no(e); }
       i = i | 0; if (!c.own[k].includes(i)) return no('沒有這件裝備');
       const cur = D.enhOf(c, k, i), n = cur + 1; if (n > D.ENHMAX) return no(`已經強化到 +${D.ENHMAX} 了`);
-      const E = D.ENH[n], m = c.mat; if ((m[E.mat] || 0) < E.num) return no(`需要 ${D.MATN[E.mat]} ×${E.num}`); if (c.gold < E.gold) return no(`需要 ${E.gold.toLocaleString()} 金幣`);
+      const E = D.ENH[n], m = c.mat, O = E.opts.find(x => x.mat === use) || E.opts[0]; if ((m[O.mat] || 0) < O.num) return no(`需要 ${D.MATN[O.mat]} ×${O.num}`); if (c.gold < E.gold) return no(`需要 ${E.gold.toLocaleString()} 金幣`);
       if (luck && luck !== 'luck' && luck !== 'luck2') luck = null; if (luck && !(m[luck] > 0)) return no(`沒有${D.MATN[luck]}`);
-      guard = !!guard && n >= 11; if (guard && !(m.guard > 0)) return no('沒有守護卷軸');
-      m[E.mat] -= E.num; c.gold -= E.gold; if (luck) m[luck]--; if (guard) m.guard--;
+      guard = !!guard && E.brk > 0; if (guard && !(m.guard > 0)) return no('沒有守護卷軸');
+      nodown = !!nodown && n >= D.SCROLL.nodown.lv; if (nodown && !(m.nodown > 0)) return no('沒有防降級卷軸'); if (nodown) m.nodown--;
+      m[O.mat] -= O.num; c.gold -= E.gold; if (luck) m[luck]--; if (guard) m.guard--;
       // 敲擊加成：完美 1 次 +1%、2 次 +3%、3 次 +5%；5 秒沒敲自動敲時隨機 0／1／3／5%（60／20／15／5%）；跳過 0%
       let hb = 0; if (n >= 6) { const tk = pl.enhTok, okT = tk && tk.k === k && tk.i === i && Date.now() - tk.t < 120000; pl.enhTok = null;
         if (okT && !skip) { if (auto) { const r = Math.random(); hb = r < .6 ? 0 : r < .8 ? .01 : r < .95 ? .03 : .05; }
           else { let p = Math.max(0, Math.min(3, perf | 0)); if (Date.now() - tk.t < 700 * p) p = 0; hb = [0, .01, .03, .05][p]; } } }
-      const rate = Math.min(1, E.rate + (luck ? D.SCROLL[luck].add : 0) + hb), nm = gearName(c, k, i), t = tierOf(c, k, i);
+      const rate = Math.min(1, O.rate + (luck ? D.SCROLL[luck].add : 0) + hb), nm = gearName(c, k, i), t = tierOf(c, k, i);
       let res;
       if (Math.random() < rate) { c.enh[k][i] = n; res = { r: 'ok', n };
         if (n >= 10) ns.emit('sys', { t: `🔥 ${nameOf(uid)} 成功把「${nm}」強化到 +${n}！` }); }
       else if (E.brk && !guard && Math.random() < E.brk) {
         if (t) { c.enh[k][i] = 0; res = { r: 'reset', n: 0 }; ns.emit('sys', { t: `💥 ${nameOf(uid)} 的「${nm}」在強化 +${n} 時失敗，被打回 +0……` }); }
         else { loseGear(c, k, i); res = { r: 'broke' }; ns.emit('sys', { t: `💥 ${nameOf(uid)} 的「${nm}」在強化 +${n} 時碎掉了……` }); }
-      } else { const nn = E.down ? Math.max(0, cur - 1) : cur; c.enh[k][i] = nn; res = { r: 'fail', n: nn, down: nn < cur, saved: !!(E.brk && guard) }; }
+      } else { const nn = !nodown && E.down && Math.random() < E.down ? Math.max(0, cur - 1) : cur; c.enh[k][i] = nn; res = { r: 'fail', n: nn, down: nn < cur, saved: !!(E.brk && guard) }; }
       save(); ack && ack({ ok: true, ...res, hb: Math.round(hb * 100), rate: Math.round(rate * 100), me: me(uid) });
     });
     socket.on('xfer', ({ k, from, to } = {}, ack) => {
