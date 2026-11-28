@@ -1,6 +1,7 @@
 // 屁眼王國大冒險 — 伺服器與瀏覽器共用的遊戲資料
 (function (root) {
-  const MAXLV = 80, MAXLV2 = 100;   // 擊敗虛空之主後等級上限變成 100
+  const MAXLV = 80, MAXLV2 = 100, MAXTOP = 120;   // 擊敗虛空之主 → 100、克拉肯 → 110、古城守護神 → 120
+  const CAPBOSS = { voidking: 100, kraken: 110, ruinlord: 120 };
   const capOf = c => (c && c.cap) || MAXLV;
   const MAXSLOT = 6; // 每個帳號最多 6 個角色
   const CL = {
@@ -204,6 +205,30 @@
     pirate: { name: '幽靈海盜', lv: 104, hp: 78000, atk: 1270, exp: 13000, gold: [3800, 4600], w: 16, h: 26, spd: .6, leg: .014 },
     kraken: { name: '深淵海皇・克拉肯', lv: 105, hp: 1450000, atk: 1420, exp: 500000, gold: [150000, 180000], w: 68, h: 60, spd: .4, boss: true, leg: .5,
       sk: ['pillars', 'pull', 'split', 'homing'], skn: { pillars: '觸手破地（站在空隙）', pull: '深海漩渦（往外跑）', split: '雙層潮汐（低的跳過、高的蹲在地上）', homing: '追蹤墨彈（一直移動甩掉）' } },
+    // ---- 珊瑚王國（第 9 張地圖，Lv 90～100，和虛空裂隙並行的海洋練功地） ----
+    puffer: { name: '河豚兵', lv: 90, hp: 40000, atk: 1000, exp: 5000, gold: [1700, 2200], w: 16, h: 16, spd: .6, leg: .005 },
+    seahorse: { name: '海馬騎士', lv: 94, hp: 46000, atk: 1070, exp: 6000, gold: [2000, 2600], w: 14, h: 26, spd: .7, leg: .007 },
+    coralguard: { name: '珊瑚守衛', lv: 97, hp: 54000, atk: 1120, exp: 7000, gold: [2300, 2900], w: 20, h: 26, spd: .4, leg: .009 },
+    mermqueen: { name: '人魚女王', lv: 100, hp: 1150000, atk: 1260, exp: 230000, gold: [75000, 95000], w: 60, h: 60, spd: .45, boss: true, leg: .35,
+      sk: ['homing', 'icering', 'split', 'safe'], skn: { homing: '海妖之歌（一直移動甩掉）', icering: '漩渦結界（離開牠身邊）', split: '雙層浪潮（低的跳過、高的蹲在地上）', safe: '珍珠審判（站進綠色安全區）' } },
+    // ---- 沉沒古城（第 10 張地圖，Lv 106～110；打倒古城守護神，等級上限 110 → 120） ----
+    fishman: { name: '石像魚人', lv: 106, hp: 90000, atk: 1350, exp: 16000, gold: [4200, 5000], w: 16, h: 26, spd: .5, leg: .015 },
+    ruinghost: { name: '遺跡幽靈', lv: 108, hp: 100000, atk: 1420, exp: 18000, gold: [4600, 5400], w: 16, h: 22, spd: .7, leg: .016 },
+    ancientguard: { name: '古代守護者', lv: 109, hp: 112000, atk: 1470, exp: 20000, gold: [5000, 5800], w: 24, h: 30, spd: .35, leg: .018 },
+    ruinlord: { name: '古城守護神', lv: 110, hp: 1900000, atk: 1560, exp: 800000, gold: [200000, 240000], w: 64, h: 64, spd: .4, boss: true, leg: .55,
+      sk: ['pillars', 'laser', 'quake', 'charge'], skn: { pillars: '崩落石柱（站在空隙）', laser: '古代光束（站在地上別跳）', quake: '神殿震動（跳過震波）', charge: '守護衝撞（躲開箭頭方向）' } },
+    // ---- 冰封海淵（第 11 張地圖，Lv 111～115） ----
+    icejelly: { name: '冰晶水母', lv: 111, hp: 120000, atk: 1520, exp: 23000, gold: [5400, 6200], w: 16, h: 20, spd: .5, leg: .018 },
+    narwhal: { name: '獨角鯨', lv: 113, hp: 132000, atk: 1580, exp: 25500, gold: [5800, 6600], w: 28, h: 14, spd: .8, leg: .02 },
+    iceseal: { name: '冰甲海獸', lv: 114, hp: 144000, atk: 1630, exp: 28000, gold: [6200, 7000], w: 26, h: 18, spd: .4, leg: .022 },
+    iceking: { name: '冰甲海獸王', lv: 115, hp: 2400000, atk: 1700, exp: 1100000, gold: [260000, 300000], w: 70, h: 56, spd: .4, boss: true, leg: .6,
+      sk: ['frostbreath', 'icering', 'rain', 'split'], skn: { frostbreath: '極寒吐息（繞到背後）', icering: '冰甲震盪（離開牠身邊）', rain: '冰錐墜落（避開紅點）', split: '冰浪雙擊（低的跳、高的蹲）' } },
+    // ---- 海底火山（第 12 張地圖，Lv 116～120，目前的最終地圖） ----
+    lavacrab: { name: '熔岩蟹', lv: 116, hp: 156000, atk: 1680, exp: 31000, gold: [6600, 7400], w: 24, h: 16, spd: .45, leg: .022 },
+    fireeel: { name: '火焰鰻', lv: 118, hp: 170000, atk: 1750, exp: 34500, gold: [7000, 7800], w: 30, h: 12, spd: .75, leg: .024 },
+    ventgolem: { name: '熱泉魔像', lv: 119, hp: 185000, atk: 1800, exp: 38000, gold: [7400, 8200], w: 22, h: 28, spd: .35, leg: .026 },
+    lavadragon: { name: '熔岩海龍', lv: 120, hp: 3000000, atk: 1900, exp: 1500000, gold: [320000, 380000], w: 72, h: 60, spd: .4, boss: true, leg: .65,
+      sk: ['firefloor', 'breath', 'homing', 'pull', 'rain'], skn: { firefloor: '熔岩海床（跑到另一邊）', breath: '熔岩吐息（離開正前方）', homing: '追蹤火球（一直移動甩掉）', pull: '熱泉漩渦（往外跑）', rain: '火山彈（避開紅點）' } },
     // ---- 覺醒試煉的電腦對手：長得像玩家，用該職業風格的招式（預警較長、傷害較低） ----
     rival_warrior: { name: '試煉之影・劍聖', cls: 'warrior', lv: 80, sk: ['charge', 'breath', 'quake', 'tail'], skn: { charge: '衝鋒斬（躲開箭頭方向）', breath: '劍氣斬（繞到背後）', quake: '震地重擊（跳過震波）', tail: '回身斬（別站在牠背後）' } },
     rival_mage: { name: '試煉之影・魔導神', cls: 'mage', lv: 80, sk: ['rain', 'icering', 'homing', 'pillars'], skn: { rain: '隕石術（避開紅點）', icering: '冰環（離開牠身邊）', homing: '追蹤魔彈（一直移動）', pillars: '冰柱陣（站在空隙）' } },
@@ -230,6 +255,10 @@
     knight: { k: 'breath', r: 80, len: 80, n: '暗影斬' }, gargoyle: { k: 'rain', r: 100, n: '石塊墜落', two: 1 }, reaper: { k: 'icering', r: 70, rad: 70, n: '死神鐮舞' },
     seraph: { k: 'homing', r: 110, n: '墮天之羽' }, stargolem: { k: 'quake', r: 90, rad: 90, n: '星辰重踏' }, phoenix: { k: 'breath', r: 90, len: 90, n: '烈焰吐息' },
     voidling: { k: 'roll', r: 100, dist: 100, n: '虛空突進' }, chaosknight: { k: 'breath', r: 90, len: 90, n: '混沌斬' }, abyssmage: { k: 'homing', r: 110, n: '深淵飛彈' },
+    puffer: { k: 'roll', r: 90, dist: 90, n: '尖刺衝撞' }, seahorse: { k: 'breath', r: 90, len: 90, n: '長槍突刺' }, coralguard: { k: 'quake', r: 90, rad: 90, n: '珊瑚震擊' },
+    fishman: { k: 'breath', r: 90, len: 90, n: '三叉戟突刺' }, ruinghost: { k: 'homing', r: 110, n: '怨靈追擊' }, ancientguard: { k: 'quake', r: 95, rad: 95, n: '古代重踏' },
+    icejelly: { k: 'icering', r: 70, rad: 70, n: '冰晶脈衝' }, narwhal: { k: 'roll', r: 110, dist: 110, n: '長角衝刺' }, iceseal: { k: 'rain', r: 110, n: '冰塊投擲', two: 1 },
+    lavacrab: { k: 'quake', r: 90, rad: 90, n: '熔岩砸地' }, fireeel: { k: 'breath', r: 100, len: 100, n: '火焰噴吐' }, ventgolem: { k: 'rain', r: 110, n: '熱泉噴發', two: 1 },
     siren: { k: 'homing', r: 110, n: '海妖之歌' }, crab: { k: 'quake', r: 90, rad: 90, n: '巨鉗砸地' }, pirate: { k: 'rain', r: 110, n: '幽靈砲擊', two: 1 },
   };
   for (const [t, sp] of Object.entries(MSP)) MON[t].sp = sp;
@@ -279,7 +308,32 @@
     { name: '深淵海溝', pal: 'abyss', home: 9, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 500, y: 236 }, { x1: 520, x2: 680, y: 176 }, { x1: 720, x2: 880, y: 246 }, { x1: 900, x2: 1040, y: 186 }, { x1: 1060, x2: 1200, y: 126 }, { x1: 1240, x2: 1400, y: 236 }, { x1: 1420, x2: 1580, y: 176 }, { x1: 1600, x2: 1760, y: 120 }, { x1: 1800, x2: 2060, y: 206 }]],
       ropes: [{ x: 340, y1: 236, y2: GY }, { x: 540, y1: 176, y2: 236 }, { x: 740, y1: 246, y2: GY }, { x: 920, y1: 186, y2: GY }, { x: 1080, y1: 126, y2: 186 }, { x: 1260, y1: 236, y2: GY }, { x: 1440, y1: 176, y2: 236 }, { x: 1620, y1: 120, y2: 176 }, { x: 1820, y1: 206, y2: GY }],
       spawns: layout('siren', 'crab', 'pirate', 'kraken'), zones: [[260, '沉船淺灘'], [700, '珊瑚礁'], [1200, '海盜船骸'], [2100, '深淵斷崖'], [9e9, '海皇的巢穴']],
+      portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }, { x: 2560, to: 12, tx: 150, cap: 110, label: '沉沒古城' }], start: 150, deep: 1, need: 100 },
+    // ---- 第 9 張海洋地圖：珊瑚王國（Lv 90～100；和虛空裂隙並行，搭船前往）----
+    // bubbles：上升氣泡柱，站進去會被托上高處
+    { name: '珊瑚王國', pal: 'coral', home: 9, need: 100, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 230 }, { x1: 520, x2: 700, y: 160 }, { x1: 740, x2: 900, y: 240 }, { x1: 920, x2: 1080, y: 170 }, { x1: 1100, x2: 1220, y: 110 }, { x1: 1260, x2: 1420, y: 230 }, { x1: 1450, x2: 1620, y: 160 }, { x1: 1640, x2: 1780, y: 100 }, { x1: 1820, x2: 2060, y: 210 }]],
+      ropes: [{ x: 340, y1: 230, y2: GY }, { x: 760, y1: 240, y2: GY }, { x: 1280, y1: 230, y2: GY }, { x: 1840, y1: 210, y2: GY }],
+      bubbles: [505, 910, 1090, 1435, 1630], spawns: layout('puffer', 'seahorse', 'coralguard', 'mermqueen'),
+      zones: [[260, '珊瑚入口'], [700, '海葵花園'], [1200, '珍珠大道'], [2100, '人魚宮殿'], [9e9, '女王的珊瑚王座']],
       portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }], start: 150 },
+    // ---- 沉沒古城（Lv 106～110）：機關門會定時開關、天花板的石柱會崩落 ----
+    { name: '沉沒古城', pal: 'ruins', home: 9, need: 110, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 300, x2: 520, y: 236 }, { x1: 460, x2: 660, y: 172 }, { x1: 720, x2: 880, y: 236 }, { x1: 860, x2: 1040, y: 176 }, { x1: 1000, x2: 1180, y: 116 }, { x1: 1260, x2: 1420, y: 236 }, { x1: 1440, x2: 1600, y: 176 }, { x1: 1620, x2: 1780, y: 116 }, { x1: 1820, x2: 2060, y: 220 }]],
+      ropes: [{ x: 320, y1: 236, y2: GY }, { x: 480, y1: 172, y2: 236 }, { x: 740, y1: 236, y2: GY }, { x: 880, y1: 176, y2: 236 }, { x: 1020, y1: 116, y2: 176 }, { x: 1280, y1: 236, y2: GY }, { x: 1460, y1: 176, y2: 236 }, { x: 1640, y1: 116, y2: 176 }, { x: 1840, y1: 220, y2: GY }],
+      gate: { x: 1220, open: 4500, shut: 3500 }, fall: [560, 980, 1520, 1940], spawns: layout('fishman', 'ruinghost', 'ancientguard', 'ruinlord'),
+      zones: [[260, '古城外牆'], [700, '沉沒街道'], [1200, '神殿廣場'], [2100, '石像迴廊'], [9e9, '守護神的祭壇']],
+      portals: [{ x: 60, to: 10, tx: 2490, label: '← 深淵海溝' }, { x: 2560, to: 13, tx: 150, cap: 120, label: '冰封海淵' }], start: 150 },
+    // ---- 冰封海淵（Lv 111～115）：海流會把人往一邊推 ----
+    { name: '冰封海淵', pal: 'icesea', home: 9, need: 120, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 246 }, { x1: 500, x2: 680, y: 186 }, { x1: 700, x2: 860, y: 236 }, { x1: 880, x2: 1040, y: 176 }, { x1: 1060, x2: 1200, y: 116 }, { x1: 1240, x2: 1400, y: 246 }, { x1: 1420, x2: 1580, y: 186 }, { x1: 1600, x2: 1760, y: 126 }, { x1: 1800, x2: 2060, y: 216 }]],
+      ropes: [{ x: 340, y1: 246, y2: GY }, { x: 520, y1: 186, y2: 246 }, { x: 720, y1: 236, y2: GY }, { x: 900, y1: 176, y2: 236 }, { x: 1080, y1: 116, y2: 176 }, { x: 1260, y1: 246, y2: GY }, { x: 1440, y1: 186, y2: 246 }, { x: 1620, y1: 126, y2: 186 }, { x: 1820, y1: 216, y2: GY }],
+      currents: [[420, 820, 1], [1000, 1380, -1], [1560, 2000, 1]], spawns: layout('icejelly', 'narwhal', 'iceseal', 'iceking'),
+      zones: [[260, '冰層裂口'], [700, '極光淺海'], [1200, '冰柱森林'], [2100, '寒流深淵'], [9e9, '海獸王的冰窟']],
+      portals: [{ x: 60, to: 12, tx: 2490, label: '← 沉沒古城' }, { x: 2560, to: 14, tx: 150, cap: 120, label: '海底火山' }], start: 150 },
+    // ---- 海底火山（Lv 116～120，目前的最終地圖）：熱泉會定時噴發 ----
+    { name: '海底火山', pal: 'volcano', home: 9, need: 120, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 470, y: 230 }, { x1: 400, x2: 600, y: 166 }, { x1: 700, x2: 840, y: 240 }, { x1: 860, x2: 1020, y: 180 }, { x1: 1040, x2: 1190, y: 120 }, { x1: 1240, x2: 1380, y: 230 }, { x1: 1400, x2: 1560, y: 170 }, { x1: 1580, x2: 1760, y: 110 }, { x1: 1800, x2: 2060, y: 214 }]],
+      ropes: [{ x: 340, y1: 230, y2: GY }, { x: 420, y1: 166, y2: 230 }, { x: 720, y1: 240, y2: GY }, { x: 880, y1: 180, y2: 240 }, { x: 1060, y1: 120, y2: 180 }, { x: 1260, y1: 230, y2: GY }, { x: 1420, y1: 170, y2: 230 }, { x: 1600, y1: 110, y2: 170 }, { x: 1820, y1: 214, y2: GY }],
+      geysers: [640, 1120, 1500, 1790, 2010], spawns: layout('lavacrab', 'fireeel', 'ventgolem', 'lavadragon'),
+      zones: [[260, '火山裂谷'], [700, '熔岩海床'], [1200, '熱泉群'], [2100, '火山口邊緣'], [9e9, '熔岩海龍的巢穴']],
+      portals: [{ x: 60, to: 13, tx: 2490, label: '← 冰封海淵' }], start: 150 },
   ];
   // 升級經驗：前期和以前差不多，後期大幅變難（滿等總經驗約為舊版的 4 倍）
   // 升級所需經驗（2026-11-27h 改版）：依「每級要打幾隻當地小怪」設計，從約 4 隻慢慢爬到 100 等前約 130 隻，1→100 約 5000 隻
@@ -397,6 +451,13 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-28e', notes: [
+      ['🪸 新地圖：珊瑚王國（Lv 90～100）', '在潮聲港找船長老海，現在可以選擇出海到「珊瑚王國」。這裡有河豚兵、海馬騎士、珊瑚守衛，最深處是人魚女王。站進上升的氣泡柱會被托到高處。'],
+      ['🏛️ 新地圖：沉沒古城（Lv 106～110）', '打倒深淵海皇・克拉肯，等級上限突破到 110，就能從深淵海溝最深處前往沉沒古城。小心定時開關的機關門和天花板崩落的石柱。最深處的古城守護神打倒後，等級上限突破到 120。'],
+      ['🧊 新地圖：冰封海淵（Lv 111～115）', '寒冷的冰下海域，海流會定時把人往一邊推，逆流時要多走幾步。最深處住著冰甲海獸王。'],
+      ['🌋 新地圖：海底火山（Lv 116～120）', '目前最深、最危險的地方。熱泉會定時噴發（看到冒泡和紅色預警就快離開），最深處是熔岩海龍。'],
+      ['⬆️ 等級上限提升到 120', '打倒克拉肯：上限 100 → 110；打倒古城守護神：上限 110 → 120（有出手的玩家，和他們在同一張地圖的隊友都算）。'],
+    ] },
     { v: '2026-11-28d', notes: [
       ['📱 手機長按不再跳出選單', '在手機上長按按鈕或畫面時，不會再跳出「拷貝／查詢／翻譯」的系統選單。'],
       ['🚪 Boss 附近的傳送門修正', '站在傳送門上按 ↑（或搖桿往上）會直接進入下一張地圖，不會再被附近的 Boss 對話擋住；要走到 Boss 身邊才會發起挑戰。'],
@@ -471,6 +532,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { MAXTOP, CAPBOSS, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);

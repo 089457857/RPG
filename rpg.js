@@ -282,7 +282,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     if (d.boss && !d.trial && !d.rival) {   // 傳說 0.5%（Lv55 以上 Boss）、神話 0.1%（深淵海溝以後的 Boss 與所有暗黑版）；暗黑版 ×5
       const L = D.LOOT, mul = m.dark ? L.darkMul : 1, nm = (m.dark ? '暗黑' : '') + d.name;
       if ((d.lv >= L.legLv || m.dark) && Math.random() < L.leg * mul) { add('leg', 1, -10); ns.to(w.room).emit('sys', { t: `✦ ${nm} 掉落了傳說裝備！快去撿！` }); }
-      if ((m.mi >= L.mythMap || m.dark) && Math.random() < L.myth * (m.dark && m.mi >= L.mythMap ? L.darkMul : 1)) { add('myth', 1, 10); ns.to(w.room).emit('sys', { t: `🌌 ${nm} 掉落了神話裝備！！快去撿！` }); }
+      if ((D.MAPS[m.mi].deep || m.dark) && Math.random() < L.myth * (m.dark && D.MAPS[m.mi].deep ? L.darkMul : 1)) { add('myth', 1, 10); ns.to(w.room).emit('sys', { t: `🌌 ${nm} 掉落了神話裝備！！快去撿！` }); }
     }
     ns.to(w.room).emit('drop', news);
     // 經驗：有出手的人，加上他們在同一張地圖的隊友（沒出手也有基本份額），一起打比較划算
@@ -299,12 +299,14 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       pushMe(uid);
     }
     if (d.boss) ns.to(w.room).emit('sys', { t: `${D.MON[m.t].name} 被打倒了！最後一擊：${nameOf(killer)}` });
-    // 打倒虛空之主：有出手的玩家（不限最後一擊），和他們在同一張地圖的隊友，等級上限都變成 100
-    if (m.t === 'voidking') for (const u of new Set([killer, ...gain])) {
-      const c = char(u); if (!c || !w.players.has(u) || D.capOf(c) >= D.MAXLV2) continue;
-      c.cap = D.MAXLV2; pushMe(u);
-      ns.to('u:' + u).emit('notice', { t: `🌊 你突破了極限！等級上限提升到 ${D.MAXLV2}，可以到「潮聲港」找船長出海了` });
-      ns.emit('sys', { t: `🌊 ${nameOf(u)} 擊敗虛空之主，突破等級上限到 ${D.MAXLV2}！` });
+    // 突破等級上限：虛空之主 → 100、克拉肯 → 110、古城守護神 → 120（有出手的玩家，和他們在同一張地圖的隊友）
+    const capTo = D.CAPBOSS[m.t];
+    if (capTo) for (const u of new Set([killer, ...gain])) {
+      const c = char(u); if (!c || !w.players.has(u) || D.capOf(c) >= capTo) continue;
+      c.cap = capTo; pushMe(u);
+      const next = { 100: '可以到「潮聲港」找船長出海了', 110: '可以從深淵海溝最深處前往「沉沒古城」了', 120: '可以前往「冰封海淵」和「海底火山」了' }[capTo];
+      ns.to('u:' + u).emit('notice', { t: `🌊 你突破了極限！等級上限提升到 ${capTo}，${next}` });
+      ns.emit('sys', { t: `🌊 ${nameOf(u)} 擊敗${D.MON[m.t].name}，突破等級上限到 ${capTo}！` });
     }
     m.dmgBy = {}; save();
   }
@@ -490,7 +492,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const used = Object.values(c.st).reduce((a, b) => a + b, 0); if (!used) return ack && ack({ ok: false, msg: '還沒有分配任何點數' });
       if (c.gold < D.APRESET) return ack && ack({ ok: false, msg: `重置需要 ${D.APRESET} 金幣` }); c.gold -= D.APRESET; c.ap += used; c.st = { str: 0, vit: 0, int: 0, dex: 0 }; save(); ack && ack({ ok: true, me: me(uid) });
     });
-    socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); if (D.MAPS[c.map || 0]?.pvp || D.MAPS[c.map || 0]?.trial) c.map = 0; if (c.map === 10 && D.capOf(c) < D.MAXLV2) c.map = 9; enter(c.map || 0); ack && ack({ ok: true });
+    socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); if (D.MAPS[c.map || 0]?.pvp || D.MAPS[c.map || 0]?.trial) c.map = 0; { const mp = D.MAPS[c.map || 0]; if (mp && mp.need && D.capOf(c) < mp.need) c.map = mp.home ?? 9; } enter(c.map || 0); ack && ack({ ok: true });
       if (D.VERSION && S.users[uid] && S.users[uid].seenVer !== D.VERSION) socket.emit('news', { v: D.VERSION, list: D.newsSince(S.users[uid].seenVer) });
       if (c.apComp) { delete c.apComp; save(); socket.emit('notice', { t: `能力值系統改版補償：獲得 ${D.APRESET.toLocaleString()} 金幣，可以到「能力」重新配點！` }); } });
     socket.on('pos', (p = {}) => {
@@ -666,7 +668,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (!isGM(uid)) return no('只有 GM 帳號可以使用');
       if (!D.CL[cls]) return no('職業錯誤');
       if (w && (isPvp(w) || D.MAPS[w.mi].trial)) return no('請先離開決鬥場／競技場／試煉再切換');
-      lv = clamp(lv | 0 || D.MAXLV, 1, D.MAXLV2); job = clamp(job | 0, 0, 4); while (job > 0 && D.JOBLV[job] > lv) job--;
+      lv = clamp(lv | 0 || D.MAXLV, 1, D.MAXTOP); job = clamp(job | 0, 0, 4); while (job > 0 && D.JOBLV[job] > lv) job--;
       const old = S.rpg[uid] || {}, c = D.newChar(cls), wl = D.WEAPONS[cls];
       let wep = 0; wl.forEach((it, i) => { if (!it[4] && it[2] <= lv) wep = i; });
       let arm = 0; D.ARMORS.forEach((it, i) => { if (!it[5] && it[3] <= lv) arm = i; });
@@ -674,7 +676,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const mounts = Object.keys(D.MOUNTS).filter(k => (D.MOUNTS[k].lv || 0) <= lv); if (!mounts.length) mounts.push('horse');
       Object.assign(c, { gm: 1, lv, job, exp: 0, wep, arm, gold: 9999999, pot: 999, eth: 999, ap: (lv - 1) * D.APL, map: w ? w.mi : (old.map || 0), mounts,
         mnt: mounts.includes(old.mnt) ? old.mnt : mounts[mounts.length - 1], pet: lv >= D.PETLV && D.PETS[pet] ? pet : null });
-      if (old.nm) c.nm = old.nm; if (old.rnN) c.rnN = old.rnN; if (lv > D.MAXLV || old.cap) c.cap = D.MAXLV2; if (lv >= D.AWK.lv && job >= 4) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
+      if (old.nm) c.nm = old.nm; if (old.rnN) c.rnN = old.rnN; { const cp = Math.max(old.cap || 0, lv > 110 ? 120 : lv > 100 ? 110 : lv > D.MAXLV ? 100 : 0); if (cp) c.cap = cp; } if (lv >= D.AWK.lv && job >= 4) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
       // 套用每一級的能力成長（和正常升級一樣），GM 角色的強度才會等於真正練到這個等級的角色
       const gr = D.CL[cls].grow; for (let l = 1; l < lv; l++) { c.base.hp += gr.hp; c.base.mp += gr.mp; c.base.atk = Math.round((c.base.atk + gr.atk) * 10) / 10; c.base.def = Math.round((c.base.def + gr.def) * 10) / 10; }
       S.rpg[uid] = c; save();
@@ -760,11 +762,11 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       p.leader = String(u); for (const v of p.members) ns.to('u:' + v).emit('sys', { t: `👥 ${nameOf(p.leader)} 成為新隊長` }); pushParty(p); ack && ack({ ok: true });
     });
     // ---- 潮聲港碼頭：搭船到深淵海溝（要先解鎖 100 等） ----
-    socket.on('sail', (_, ack) => {
+    socket.on('sail', ({ to } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w || w.mi !== 9) return no('要在潮聲港的碼頭搭船');
       const boat = D.MAPS[9].npcs.find(n => n.kind === 'boat'); if (Math.abs(pl.x - boat.x) > 90) return no('離船長太遠了');
       if (D.capOf(c) < D.MAXLV2) return no(`要先打倒虛空之主、把等級上限突破到 ${D.MAXLV2} 才能出海`);
-      c.map = 10; save(); ack && ack({ ok: true }); enter(10, D.MAPS[10].start);
+      to = to === 11 ? 11 : 10; c.map = to; save(); ack && ack({ ok: true }); enter(to, D.MAPS[to].start);
     });
     // ---- 更新公告：每個帳號每個版本只看一次 ----
     socket.on('newsSeen', ({ v } = {}) => { const u = S.users[uid]; if (u && v === D.VERSION) { u.seenVer = D.VERSION; save(); } });
@@ -865,6 +867,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const pt = D.MAPS[w.mi].portals.find(p => p.to === to); if (!pt) return ack && ack({ ok: false });
       if (Math.abs(pl.x - pt.x) > 60) return ack && ack({ ok: false, msg: '離傳送門太遠' });
       if (pt.ret) { ack && ack({ ok: true }); goRet(); return; }
+      { const need = D.MAPS[to] && D.MAPS[to].need; if (need && D.capOf(c) < need) return ack && ack({ ok: false, msg: need >= 120 ? '要先打倒「古城守護神」，把等級上限突破到 120 才能前往' : '要先打倒「深淵海皇・克拉肯」，把等級上限突破到 110 才能前往' }); }
             c.map = to; save(); ack && ack({ ok: true }); enter(to, pt.tx);
     });
     socket.on('revive', (_, ack) => {

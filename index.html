@@ -256,6 +256,10 @@ const PAL={
   arena:{sky:['#3a2a1e','#8a5a3a','#d8a070'],h1:'#a07850',h2:'#7a5a3a',trunk:'#c8b090',l1:'#e0d0b0',l2:'#c8463a',top:'#c8a878',dirt:'#8a6a48',dirt2:'#6a4a30',speck:'#c8463a',cloud:'#ffffff30',tree:'pillar'},
   harbor:{sky:['#ff9a5a','#ffd3a0','#8fd3f0'],h1:'#5ab0d8',h2:'#3a8ab8',trunk:'#8a5a2b',l1:'#3fa35a',l2:'#5cc46a',top:'#f0dca0',dirt:'#d8b878',dirt2:'#b8965a',speck:'#f4e8c0',cloud:'#fff4e0e0',tree:'round'},
   abyss:{sky:['#02101e','#06304e','#0a5a7a'],h1:'#0a2a44',h2:'#061c30',trunk:'#0a3a4a',l1:'#0f5a5a',l2:'#ff6a8a',top:'#2a8a8a',dirt:'#0c2a3a',dirt2:'#071c28',speck:'#5af0ff',cloud:'#5af0ff20',tree:'dead',fx:'ember',fxc:['#bff6ff','#5af0ff']},
+  coral:{sky:['#0a4a7a','#1a8ab0','#6ad8e0'],h1:'#1a6a8a',h2:'#145a78',trunk:'#ff7a8a',l1:'#ff9a6a',l2:'#c86aff',top:'#f0dca0',dirt:'#e0c890',dirt2:'#c8a870',speck:'#ff9ad8',cloud:'#ffffff1c',tree:'coral',fx:'bubble',sea:1},
+  ruins:{sky:['#020c12','#0a2e36','#1e5a5a'],h1:'#0e3438',h2:'#0a2428',trunk:'#5a7a70',l1:'#7a9a88',l2:'#3affc8',top:'#4a6a60',dirt:'#1e2e2c',dirt2:'#141e1e',speck:'#3affc8',cloud:'#3affc814',tree:'ruin',fx:'bubble',sea:1},
+  icesea:{sky:['#04142a','#14406a','#8ac8f0'],h1:'#2a5a8a',h2:'#1a4070',trunk:'#bfe8ff',l1:'#e8f8ff',l2:'#7fd3ff',top:'#e8f8ff',dirt:'#6a90b8',dirt2:'#4a70a0',speck:'#ffffff',cloud:'#bfe8ff18',tree:'iceberg',fx:'bubble',sea:1,aurora:1},
+  volcano:{sky:['#0c0404','#3a0e08','#8a2a10'],h1:'#2a0c08',h2:'#1a0806',trunk:'#2a1814',l1:'#3a201a',l2:'#ff6a2a',top:'#4a2a22',dirt:'#2a1a16',dirt2:'#1a0e0c',speck:'#ff8a3a',cloud:'#ff6a2a14',tree:'vent',fx:'ember',fxc:['#ffb04a','#ff5a1a'],sea:1},
   trial:{sky:['#2a1a4a','#6a4a9a','#e8c8ff'],h1:'#5a3a8a',h2:'#3a2466',trunk:'#ffe9a8',l1:'#fff6d0',l2:'#ffd23f',top:'#d8c8ff',dirt:'#4a3a6a',dirt2:'#2e2048',speck:'#ffd23f',cloud:'#ffffff60',tree:'pillar',fx:'ember',fxc:['#ffd23f','#ffffff']},
 };
 const NPCS=[{x:188,kind:'shop',name:'商人 老陳'},{x:58,kind:'job',name:'轉職教官 艾倫'}];
@@ -375,9 +379,11 @@ function updHero(){const p=P;if(p.dead){if(!p.ground){p.vy=Math.min(MAXF,p.vy+G)
   if(tap('jump')&&p.ground&&!rooted){if(K.down){const si=segUnder(p.x,p.y);if(si>0){p.drop=14;p.ignore=si;p.ground=false;p.vy=1}}else{p.vy=JUMP*(p.mount?Math.sqrt((D.MOUNTS[p.mnt]||D.MOUNTS.horse).jump):1);p.ground=false}}
   if(!p.ground)p.vy=Math.min(MAXF,p.vy+G);
   if(p.mount&&!p.ground&&p.vy>1.1&&K.jump&&(D.MOUNTS[p.mnt]||{}).glide){p.vy=1.1;if(frame%5===0)fx.push({t:'dj',x:p.x,y:p.y,f:p.f,life:10})}
+  mechPre(p);const x0=p.x;
   const ar=myArena(),ny=p.y+p.vy,nx=ar?clamp(p.x+p.vx,ar.x1+6,ar.x2-6):clamp(p.x+p.vx,6,WW-6);
   if(p.ground){if(segUnder(nx,p.y)<0)p.ground=false;p.x=nx}
   else{const li=p.vy>=0?landOn(p.y,ny,nx,p.drop>0?p.ignore:-1):null;if(li!==null){p.y=SEG[li].y;p.vy=0;p.ground=true}else p.y=ny;p.x=nx}
+  mechPost(p,x0);
   if(p.y>WH+40){p.x=MAPS[MI].start;p.y=GY;p.vy=0}
   p.walk+=p.ground&&ax?1:0;
   if(tap('atk')||K.atk)doSkill('atk',P);for(const k of ['s1','s2','s3','s4','s5','s6'])if(tap(k)){const id=slotK(k);if(id)doSkill(id,P);else toast('這一格還沒有配置技能（按「技能」設定）')}}
@@ -388,7 +394,7 @@ function usePot(k){if(!P||P.dead)return;if(performance.now()-potT[k]<D.POTCD)ret
   sock.emit('use',{k},r=>{if(r&&(r.ok||r.me))applyMe(r.me)})}
 function potCdUi(){for(const [k,id] of [['pot','potSlot'],['eth','ethSlot']]){const el=$('#'+id);if(!el)continue;const left=D.POTCD-(performance.now()-potT[k]);
   const p=left>0?Math.round(left/D.POTCD*50)/50:0;if(el._cd===p)continue;el._cd=p;el.style.setProperty('--cd',p);el.classList.toggle('cding',p>0)}}
-function usePortal(pt){if(pt.rec&&P.lv<pt.rec)toast(`${pt.label}建議 Lv ${pt.rec} 以上，怪物很強，記得找朋友一起打！`);
+function usePortal(pt){if(pt.cap&&D.capOf(P)<pt.cap){toast(pt.cap>=120?'要先打倒「古城守護神」，把等級上限突破到 120 才能前往':'要先打倒「深淵海皇・克拉肯」，把等級上限突破到 110 才能前往');return}if(pt.rec&&P.lv<pt.rec)toast(`${pt.label}建議 Lv ${pt.rec} 以上，怪物很強，記得找朋友一起打！`);
   sock.emit('portal',{to:pt.to},r=>{if(!r||!r.ok)toast(r&&r.msg||'傳送失敗')})}
 
 // ================= 技能（自己出招會打到怪；別人出招只播特效） =================
@@ -741,7 +747,7 @@ function updShots(){for(const s of shots){s.x+=s.vx;if(s.vy)s.y+=s.vy;if(s.fall)
 
 // ================= 怪物（伺服器同步） =================
 function mkLocalMon(sp,i,st){const m=MON[sp.t],seg=SEG[sp.s];return{i,t:sp.t,sp,seg:sp.s,x:st.x,tx:st.x,y:seg.y,hop:st.hop||0,f:st.f||1,hp:st.hp,max:st.max||m.hp,dark:st.dark||0,dead:st.dead,hurt:0,frozen:0,w:m.w,h:m.h}}
-let haz=[];const HCOL=['#b8f07a','#bfe8ff','#ff7a2a','#b46aff','#ffe680','#3affc8'];HCOL[10]='#ff9ad8';
+let haz=[];const HCOL=['#b8f07a','#bfe8ff','#ff7a2a','#b46aff','#ffe680','#3affc8'];HCOL[10]='#ff9ad8';HCOL[11]='#ff9ad8';HCOL[12]='#3affc8';HCOL[13]='#bff6ff';HCOL[14]='#ff8a3a';
 // Boss 招式：伺服器決定招式與位置，每位玩家的畫面依預警範圍自行判定有沒有被打中
 function addBoss(d){const m=mons[d.i],now=performance.now();if(d.mob){if(m&&P&&Math.abs(P.x-d.x)<400)num(m.x,m.y-m.h-12,d.n,'ef','#ffb34d')}else if(m&&d.n&&P&&Math.abs(P.x-d.x)<560)toast(`${MON[m.t].name}：${d.n}！${d.rage?'（暴怒）':''}`);
   const base={x:d.x,y:d.y,f:d.f,t0:now,warn:d.warn,atk:d.atk,mi:d.i,safe:!d.mob&&!bossCanHit(d.i)};
@@ -801,6 +807,39 @@ function drawHaz(ox,oy){const now=performance.now(),col=HCOL[MI]||'#fff',blink=.
 function updMons(){updHaz();const p=P;for(const m of mons){if(m.dead)continue;if(m.hurt>0)m.hurt--;
   const dx=m.tx-m.x;m.x+=Math.abs(dx)>60?dx:dx*.25;
   if(p&&!p.dead&&p.inv<=0&&!m.frozen&&(!MON[m.t].boss||bossCanHit(m.i))&&Math.abs(p.x-m.x)<(m.w/2+5)&&p.y>m.y-m.h+m.hop-2&&p.y-20<m.y+m.hop)hurtHero(MON[m.t].atk*(m.dark?D.DARK.atk:1),m.x)}}
+// ================= 海洋地圖機制（每個玩家自己判定；用時間同步，大家看到的節奏一樣） =================
+const MT=()=>Date.now();
+const curOn=()=>MT()%8000<5500;                                                      // 冰封海淵：海流吹 5.5 秒、停 2.5 秒
+const gateSt=g=>{const c=g.open+g.shut,t=MT()%c;return {open:t<g.open,left:t<g.open?g.open-t:c-t}};   // 沉沒古城：機關門
+const geySt=i=>{const t=(MT()+i*1100)%5000;return {warn:t>=3400&&t<4300,erupt:t>=4300,t}};       // 海底火山：熱泉
+const fallSt=i=>{const t=(MT()+i*1700)%7000;return {warn:t>=5000&&t<6000,drop:t>=6000&&t<6200,rubble:t>=6200,t}};   // 沉沒古城：崩落石柱
+const mapAtk=()=>{const sp=MAPS[MI].spawns||[];const t=sp.length?sp[sp.length-2].t:null;return t&&MON[t]?MON[t].atk:1000};
+// 移動前：氣泡托升、海流推動
+function mechPre(p){const M=MAPS[MI];if(p.dead||p.rope)return;
+  if(M.bubbles)for(const bx of M.bubbles)if(Math.abs(p.x-bx)<12&&p.y>70){p.vy=Math.max(-3,Math.min(p.vy,-2.4));p.ground=false;if(frame%6===0)fx.push({t:'dj',x:p.x,y:p.y,f:p.f,life:10});break}
+  if(M.currents&&curOn())for(const [a,b2,d] of M.currents)if(p.x>a&&p.x<b2){p.x=clamp(p.x+d*(p.ground?.85:.6),6,WW-6);break}}
+// 移動後：機關門擋路、熱泉和石柱的傷害
+function mechPost(p,x0){const M=MAPS[MI];if(p.dead)return;
+  if(M.gate&&!gateSt(M.gate).open&&p.y>GY-72){const g=M.gate;if((x0<g.x)!==(p.x<g.x)||Math.abs(p.x-g.x)<8){p.x=x0<g.x?g.x-8:g.x+8;p.vx=0;if(frame-(p.gateTip||-99)>90){p.gateTip=frame;toast('機關門關著，等門打開再過去')}}}
+  if(p.gyT>0)p.gyT--;if(p.fallT>0)p.fallT--;
+  if(M.geysers&&p.inv<=0&&!(p.gyT>0))M.geysers.forEach((gx,i)=>{if(geySt(i).erupt&&Math.abs(p.x-gx)<12&&p.y>GY-150&&!(p.gyT>0)){p.gyT=45;hurtHero(mapAtk()*1.1,gx);p.vy=-5.5;p.ground=false;toast('被熱泉燙到了！')}});
+  if(M.fall&&p.inv<=0&&!(p.fallT>0))M.fall.forEach((fx0,i)=>{const s=fallSt(i);if(s.drop&&Math.abs(p.x-fx0)<13&&p.y>GY-30&&!(p.fallT>0)){p.fallT=40;hurtHero(mapAtk()*1.3,fx0)}})}
+// 畫面
+function drawMech(ox,oy){const M=MAPS[MI],gy=Math.round(GY-oy);
+  if(M.bubbles)for(const bx of M.bubbles){const x=Math.round(bx-ox);if(x<-20||x>IW+20)continue;b.globalAlpha=.18;R(x-10,0,20,gy,'#bff6ff');b.globalAlpha=1;R(x-9,gy-4,18,4,'#f0dca0');R(x-7,gy-7,14,3,'#ff9ad8');
+    for(let k=0;k<12;k++){const t=(frame*1.6+k*23)%gy,yy=gy-t,xx=x+Math.round(Math.sin(k*1.7+t/14)*5),sz=1+(k%3);R(xx-sz,yy-sz,sz*2,sz*2,'#e8fcff');R(xx-sz+1,yy-sz+1,Math.max(1,sz*2-2),Math.max(1,sz*2-2),'#7fd3ff80')}}
+  if(M.currents){const on=curOn();for(const [a,b2,d] of M.currents){const x1=Math.round(a-ox),x2=Math.round(b2-ox);if(x2<0||x1>IW)continue;b.globalAlpha=on?.55:.15;
+    for(let k=0;k<18;k++){const span=x2-x1,px=x1+((k*53+frame*(on?2.4:.4)*d)%span+span)%span,py=gy-10-((k*37)%120);R(Math.round(px),py,10,1,'#e8f8ff');R(Math.round(px)+(d>0?10:-2),py-1,2,3,'#e8f8ff')}
+    b.globalAlpha=1;if(on&&frame%60<30){const mx=Math.round((x1+x2)/2);R(mx-6,gy-150,12,2,'#bff6ff');R(mx+(d>0?6:-9),gy-152,3,6,'#bff6ff')}}}
+  if(M.gate){const g=M.gate,s=gateSt(g),x=Math.round(g.x-ox);if(x>-20&&x<IW+20){const up=s.open?Math.min(66,(g.open-s.left)/6):Math.max(0,66-(g.shut-s.left)/6),warn=(s.open&&s.left<1000)||(!s.open&&s.left<800);
+    R(x-10,gy-84,20,10,'#4a5a52');R(x-10,gy-84,20,2,'#8a9a90');R(x-7,gy-74-0,14,74-up,'#5a6a62');for(let k=0;k<3;k++)R(x-5,gy-68+k*20-up,10,2,'#3a4a42');R(x-2,gy-46-up,4,6,warn&&frame%10<5?'#ff5a3a':'#3affc8')}}
+  if(M.fall)M.fall.forEach((fx0,i)=>{const s=fallSt(i),x=Math.round(fx0-ox);if(x<-20||x>IW+20)return;const top=gy-180,sh=s.warn?Math.round(Math.sin(frame*1.5)*2):0;
+    if(s.t<5000||s.warn){R(x-7+sh,top,14,34,'#6a7a70');R(x-9+sh,top+30,18,4,'#8a9a90');if(s.warn){b.globalAlpha=.5;for(let k=0;k<4;k++)R(x-8+((k*7+frame)%16),top+36+((frame*2+k*13)%40),2,2,'#c8c0a8');b.globalAlpha=.35;R(x-13,gy-4,26,4,'#ff3a3a');b.globalAlpha=1}}
+    else if(s.drop){const yy=top+Math.round((s.t-6000)/200*(gy-34-top));R(x-7,yy,14,34,'#6a7a70');R(x-9,yy+30,18,4,'#8a9a90')}
+    else{const a=1-(s.t-6200)/800;b.globalAlpha=Math.max(0,a);R(x-12,gy-6,24,6,'#6a7a70');R(x-8,gy-10,8,4,'#8a9a90');R(x+2,gy-9,7,3,'#5a6a62');b.globalAlpha=1}});
+  if(M.geysers)M.geysers.forEach((gx,i)=>{const s=geySt(i),x=Math.round(gx-ox);if(x<-20||x>IW+20)return;R(x-10,gy-6,20,6,'#2a1814');R(x-6,gy-9,12,3,'#3a201a');R(x-3,gy-9,6,2,s.warn||s.erupt?'#ff8a3a':'#8a3a1a');
+    if(s.warn){for(let k=0;k<5;k++){const t=(frame*1.2+k*9)%30;R(x-4+((k*5)%9),gy-10-t,2,2,'#ffb04a')}b.globalAlpha=.3;R(x-12,gy-150,24,150,'#ff3a1a');b.globalAlpha=1}
+    if(s.erupt){const h=Math.min(150,(s.t-4300)*.6);b.globalAlpha=.75;R(x-8,gy-h,16,h,'#ff8a3a');b.globalAlpha=.9;R(x-3,gy-h,6,h,'#ffe680');b.globalAlpha=1;for(let k=0;k<8;k++)R(x-12+((k*7+frame*3)%24),gy-h+((k*11)%20),3,3,'#c8c8c8')}})}
 function hurtHero(atk,fromX){const p=P;if(!p||p.dead)return;const aw=awkFxC(p),red=Math.max(1-D.AWK.drCap,(CL[p.cls].dr||1)*(p.bf.shield>0?.6:1)*(p.bf.wing>0?.5:1)*(p.bf.guard>0?.7:1)*(p.mount?1-((D.MOUNTS[p.mnt]||{}).dr||.25):1)*(aw?1-aw.dr:1));
   const dmg=Math.max(1,Math.round((atk*rnd(.9,1.1)-p.max.def*.7)*red));p.hp-=dmg;p.inv=Math.round(70*(1+(p.max.invB||0)));num(p.x,p.y-30,dmg,'hurt');
   if(!p.rope){p.vy=-2.6;p.vx=(p.x<fromX?-1:1)*1.6;p.ground=false}
@@ -1234,6 +1273,55 @@ function drawMon(m,ox,oy){if(m.dead)return;const d=MON[m.t],x=Math.round(m.x-ox)
     case 'pirate':{const st=Math.floor(frame/8)%2,b2=Math.sin(frame/14);b.globalAlpha=.85;R(x-5,y-6,3,6-st,'#2a3a4a');R(x+2,y-6,3,5+st,'#2a3a4a');R(x-6,y-18,12,12,W||'#3a2a4a');R(x-6,y-18,12,2,'#c8a04a');R(x-1,y-16,2,10,'#c8a04a');
       R(x-5,y-26,10,8,W||'#d8e8e0');R(x-3+f,y-23,2,2,'#5af0ff');R(x+1+f,y-23,2,2,'#1a1a1a');R(x+1+f,y-24,3,1,'#1a1a1a');R(x-8,y-29,16,3,'#1a1a1a');R(x-5,y-32,10,3,'#1a1a1a');R(x-1,y-31,2,1,'#ffffff');
       R(x+f*9-1,y-20+b2,2,12,'#c9ced9');R(x+f*9-3,y-9+b2,6,2,'#c8a04a');b.globalAlpha=1;break}
+    // ===== 珊瑚王國 =====
+    case 'puffer':{const b2=Math.sin(frame/9)*2,pf=Math.floor(frame/30)%3===0?2:0,c=W||'#f0c040';R(x-7-pf,y-15+b2-pf,14+pf*2,12+pf*2,c);R(x-5-pf,y-17+b2-pf,10+pf*2,2,c);R(x-5,y-5+b2+pf,10,2,c);R(x-5,y-8+b2+pf,10,3,W||'#fff2c0');
+      for(const [dx,dy] of [[-9,-12],[-9,-7],[7,-12],[7,-7],[-3,-19],[2,-19],[-3,-2],[2,-2]])R(x+dx+(dx<0?-pf:pf),y+dy+b2+(dy<-15?-pf:dy>-5?pf:0),2,2,'#c88a1a');
+      R(x+f*3-1,y-13+b2,3,3,'#ffffff');R(x+f*4-1,y-12+b2,2,2,'#1a1a1a');R(x+f*6-1,y-9+b2,2,2,'#c8463a');R(x-f*9-2,y-12+b2,4,6,'#e0a030');R(x-f*7-4,y-20+b2,5,2,'#c8463a');R(x-f*7-3,y-22+b2,3,2,'#c8463a');break}
+    case 'seahorse':{const b2=Math.sin(frame/11)*2,c=W||'#ff8a5a';R(x-3,y-6+b2,6,5,c);R(x-f*3-1,y-3+b2,4,3,c);R(x-f*5-2,y-6+b2,3,4,c);R(x-4,y-17+b2,8,11,c);R(x-2,y-15+b2,3,8,W||'#ffc090');
+      for(let k=0;k<4;k++)R(x-f*5-1,y-16+k*3+b2,2,2,'#c8463a');R(x-3,y-25+b2,7,8,c);R(x+f*3-1,y-23+b2,6,3,c);R(x+f*1-1,y-23+b2,2,2,'#1a1a1a');R(x-3,y-28+b2,6,3,'#c8a04a');R(x-1,y-30+b2,2,2,'#ffd23f');
+      R(x+f*4,y-22+b2,1,16,'#c9ced9');R(x+f*4-1,y-24+b2,3,3,'#ffffff');R(x+f*3-2,y-12+b2,5,4,'#2a6ab8');break}
+    case 'coralguard':{const st=Math.floor(frame/10)%2,c=W||'#ff6a7a';R(x-6,y-6,4,6-st,'#c8465a');R(x+2,y-6,4,5+st,'#c8465a');R(x-8,y-20,16,14,c);R(x-8,y-20,16,3,'#ffb0b8');R(x-5,y-15,10,6,W||'#f0dca0');
+      R(x-6,y-28,12,8,c);R(x-3+f,y-25,2,2,'#1a1a1a');R(x+1+f,y-25,2,2,'#1a1a1a');for(const [dx,h,cc] of [[-7,6,'#c86aff'],[-3,9,'#ff9a6a'],[1,7,'#c86aff'],[5,5,'#ff9a6a']]){R(x+dx,y-28-h,2,h,cc);R(x+dx-1,y-28-h,4,2,cc)}
+      R(x+f*9-2,y-26,4,18,'#c86aff');R(x+f*9-4,y-28,8,3,'#c86aff');R(x-f*10-3,y-19,6,10,W||'#ff9a6a');break}
+    case 'mermqueen':{const b2=Math.sin(frame/12)*2,gl=frame%40<20,c=W||'#2ab0a0';b.globalAlpha=.22;R(x-36,y-70,72,70,'#ff9ad8');b.globalAlpha=1;
+      R(x-14,y-22+b2,28,16,c);R(x-18,y-12+b2,12,8,c);R(x-26+Math.round(Math.sin(frame/8)*2),y-14+b2,10,6,W||'#1a8a80');R(x-30+Math.round(Math.sin(frame/8)*2),y-18+b2,6,12,W||'#1a8a80');for(let k=0;k<5;k++)R(x-12+k*5,y-20+b2,3,2,'#7af0e0');
+      R(x-12,y-40+b2,24,18,W||'#ffd8c0');R(x-12,y-30+b2,24,4,'#ff7aa0');R(x-10,y-36+b2,6,4,'#ff9ad8');R(x+4,y-36+b2,6,4,'#ff9ad8');
+      R(x-11,y-56+b2,22,16,W||'#ffd8c0');R(x-14,y-58+b2,28,6,'#ff6a8a');R(x-16,y-54+b2,5,26,'#ff6a8a');R(x+11,y-54+b2,5,26,'#ff6a8a');R(x-5+f*2,y-50+b2,3,3,gl?'#1a4a6a':'#5af0ff');R(x+2+f*2,y-50+b2,3,3,gl?'#1a4a6a':'#5af0ff');R(x-2+f*2,y-45+b2,4,1,'#c8463a');
+      R(x-10,y-64+b2,20,4,'#ffd23f');for(const dx of [-9,-3,3,8])R(x+dx,y-68+b2,2,4,'#ffd23f');R(x-1,y-70+b2,2,2,'#ffffff');R(x+f*20,y-56+b2,2,34,'#ffd23f');R(x+f*20-3,y-60+b2,8,5,'#bff6ff');R(x+f*20-1,y-62+b2,4,2,'#ffffff');break}
+    // ===== 沉沒古城 =====
+    case 'fishman':{const st=Math.floor(frame/9)%2,c=W||'#7a9a88';R(x-5,y-6,3,6-st,'#4a6a60');R(x+2,y-6,3,5+st,'#4a6a60');R(x-6,y-18,12,12,c);R(x-6,y-18,12,2,'#a8c8b0');for(let k=0;k<3;k++)R(x-4+k*3,y-14+k%2,2,2,'#4a6a60');
+      R(x-5,y-26,11,8,c);R(x+f*4-2,y-24,5,4,c);R(x+f*2-1,y-24,2,2,'#3affc8');R(x-f*6-1,y-30,3,6,'#4a6a60');R(x-1,y-29,4,3,'#4a6a60');R(x+f*8,y-28,1,22,'#8a7a5a');for(const dx of [-2,0,2])R(x+f*8+dx,y-31,1,4,'#c9ced9');break}
+    case 'ruinghost':{const b2=Math.sin(frame/10)*3;b.globalAlpha=.75;R(x-6,y-22+b2,12,14,W||'#a8e8d8');R(x-7,y-12+b2,14,4,W||'#a8e8d8');for(let k=0;k<4;k++)R(x-7+k*4,y-8+b2+(k+Math.floor(frame/6))%2*2,3,4,W||'#a8e8d8');
+      R(x-3+f,y-18+b2,2,3,'#0a2a2a');R(x+1+f,y-18+b2,2,3,'#0a2a2a');R(x-2+f,y-13+b2,4,2,'#0a2a2a');R(x-8,y-24+b2,16,3,'#3affc8');b.globalAlpha=.4;R(x-10,y-26+b2,20,24,'#3affc8');b.globalAlpha=1;R(x+f*8,y-18+b2,2,2,'#3affc8');break}
+    case 'ancientguard':{const st=Math.floor(frame/14)%2,c=W||'#6a7a70',gl=frame%60<30;R(x-9,y-8,6,8-st,'#4a5a52');R(x+3,y-8,6,7+st,'#4a5a52');R(x-11,y-24,22,16,c);R(x-11,y-24,22,3,'#8a9a90');R(x-4,y-20,8,8,'#4a5a52');R(x-2,y-18,4,4,gl?'#3affc8':'#1a8a70');
+      R(x-8,y-32,16,9,c);R(x-6,y-29,12,3,'#1a2a26');R(x-4+f*2,y-29,3,2,'#3affc8');R(x+1+f*2,y-29,3,2,'#3affc8');R(x-9,y-34,18,3,'#8a9a90');R(x-15,y-24,5,14,c);R(x+10,y-24,5,14,c);R(x+f*16-3,y-30,6,26,'#8a7a5a');R(x+f*16-5,y-32,10,4,'#c9ced9');break}
+    case 'ruinlord':{const s2=Math.sin(frame/16)*2,gl=frame%50<25,c=W||'#5a6a62';b.globalAlpha=.2;R(x-40,y-74,80,74,'#3affc8');b.globalAlpha=1;R(x-18,y-12,12,12,'#3a4a42');R(x+6,y-12,12,12,'#3a4a42');
+      R(x-24,y-44+s2,48,32,c);R(x-24,y-44+s2,48,4,'#8a9a90');for(let k=0;k<4;k++)R(x-20+k*11,y-38+s2,6,24,'#4a5a52');R(x-7,y-36+s2,14,14,'#2a3a34');R(x-4,y-33+s2,8,8,gl?'#3affc8':'#1a8a70');
+      R(x-34,y-44+s2,10,26,c);R(x+24,y-44+s2,10,26,c);R(x-36,y-20+s2,14,8,'#8a9a90');R(x+22,y-20+s2,14,8,'#8a9a90');
+      R(x-14,y-62+s2,28,18,c);R(x-14,y-56+s2,28,5,'#1a2a26');R(x-10+f*3,y-55+s2,6,3,'#3affc8');R(x+4+f*3,y-55+s2,6,3,'#3affc8');R(x-18,y-66+s2,36,5,'#c8a04a');for(const dx of [-16,-8,0,8,14])R(x+dx,y-72+s2,3,6,'#c8a04a');R(x-1,y-74+s2,3,3,'#3affc8');break}
+    // ===== 冰封海淵 =====
+    case 'icejelly':{const b2=Math.sin(frame/9)*3,pu=Math.floor(frame/12)%2;b.globalAlpha=.85;R(x-7-pu,y-22+b2,14+pu*2,8,W||'#bff6ff');R(x-5,y-25+b2,10,3,W||'#e8fcff');R(x-5,y-19+b2,10,2,'#7fd3ff');b.globalAlpha=.6;
+      for(let k=0;k<4;k++)R(x-6+k*4,y-14+b2,2,9+((k+Math.floor(frame/8))%3)*2,'#bff6ff');b.globalAlpha=1;R(x-3+f,y-21+b2,2,2,'#2a6aff');R(x+1+f,y-21+b2,2,2,'#2a6aff');if(frame%30<15)R(x-1,y-24+b2,2,2,'#ffffff');break}
+    case 'narwhal':{const b2=Math.sin(frame/12)*2,tl=Math.floor(frame/8)%2,c=W||'#8aa8c8';R(x-13,y-12+b2,24,10,c);R(x-11,y-6+b2,20,3,W||'#e8f4ff');R(x-f*15-3,y-12+b2+(tl?-2:2),6,4,c);R(x-f*17-3,y-14+b2+(tl?-3:3),4,8,c);
+      for(let k=0;k<4;k++)R(x-8+k*5,y-11+b2,2,2,'#5a7898');R(x+f*8-1,y-10+b2,2,2,'#1a1a1a');R(x-2,y-4+b2,5,3,c);R(x+f*12-(f>0?0:16),y-9+b2,16,2,'#f4ecd8');for(let k=0;k<4;k++)R(x+f*(13+k*4),y-10+b2,1,1,'#c8b898');break}
+    case 'iceseal':{const st=Math.floor(frame/12)%2,c=W||'#7a90a8';R(x-12,y-12,24,12,c);R(x-10,y-5,20,3,'#bfd0e0');R(x+f*8-4,y-18,10,8,c);R(x+f*10-1,y-15,2,2,'#1a1a1a');R(x+f*13-2,y-12,4,6,'#f4ecd8');
+      R(x-f*14-2,y-6+st,6,4,c);for(const [dx,h] of [[-8,5],[-3,7],[2,6],[7,4]])R(x+dx,y-12-h,4,h,'#bff6ff');R(x-10,y-13,20,2,'#e8f8ff');break}
+    case 'iceking':{const s2=Math.sin(frame/15)*2,gl=frame%50<25,c=W||'#5a7898';b.globalAlpha=.22;R(x-40,y-66,80,66,'#bff6ff');b.globalAlpha=1;R(x-30,y-10,12,10,'#3a5070');R(x+16,y-10,12,10,'#3a5070');
+      R(x-34,y-36+s2,64,28,c);R(x-30,y-14+s2,56,6,'#bfd0e0');for(const [dx,h] of [[-28,12],[-18,18],[-8,22],[2,18],[12,14],[22,8]]){R(x+dx,y-36+s2-h,8,h,'#bff6ff');R(x+dx+2,y-36+s2-h,3,h,'#ffffff')}
+      R(x+f*20-12,y-50+s2,26,20,c);R(x+f*30-6,y-40+s2,12,8,c);R(x+f*24-3,y-46+s2,5,4,gl?'#2a6aff':'#7fd3ff');R(x+f*30-(f>0?0:4),y-34+s2,4,10,'#f4ecd8');R(x+f*24-(f>0?0:4),y-34+s2,4,8,'#f4ecd8');R(x-f*40-6,y-30+s2,10,8,c);break}
+    // ===== 海底火山 =====
+    case 'lavacrab':{const st=Math.floor(frame/6)%2,cl=Math.floor(frame/20)%2,gl=frame%30<15;for(let k=0;k<3;k++){R(x-11-k*2,y-4+(k+st)%2,3,4,'#3a1a14');R(x+8+k*2,y-4+(k+st+1)%2,3,4,'#3a1a14')}R(x-10,y-12,20,9,W||'#2a1a16');
+      for(let k=0;k<4;k++)R(x-8+k*5,y-11+(k%2),3,2,gl?'#ff8a3a':'#ff5a1a');R(x-3,y-16,2,4,'#2a1a16');R(x+1,y-16,2,4,'#2a1a16');R(x-4,y-18,3,3,'#ffe680');R(x+1,y-18,3,3,'#ffe680');R(x+f*12-4,y-16-cl*2,8,7,W||'#3a2018');R(x+f*12-3,y-15-cl*2,6,2,'#ff6a2a');R(x-f*12-3,y-13,6,5,W||'#3a2018');break}
+    case 'fireeel':{const ph=frame/7;for(let k=0;k<7;k++){const xx=x-f*(k*4)+f*10,yy=y-7+Math.round(Math.sin(ph+k*.9)*3);R(xx-3,yy-3,6,6,W||(k%2?'#c8302a':'#e0502a'));R(xx-1,yy-4,2,2,'#ffb04a')}
+      R(x+f*12-3,y-12+Math.round(Math.sin(ph)*3),8,7,W||'#e0502a');R(x+f*14,y-11+Math.round(Math.sin(ph)*3),2,2,'#ffe680');if(frame%20<10)R(x+f*18,y-9,3,2,'#ffb04a');break}
+    case 'ventgolem':{const st=Math.floor(frame/14)%2,gl=frame%40<20,c=W||'#3a2a24';R(x-8,y-8,6,8-st,'#2a1a16');R(x+2,y-8,6,7+st,'#2a1a16');R(x-10,y-22,20,14,c);for(let k=0;k<3;k++)R(x-7+k*5,y-20+k*3,3,8,gl?'#ff8a3a':'#c8401a');
+      R(x-7,y-30,14,9,c);R(x-4+f*2,y-27,3,3,'#ffe680');R(x+1+f*2,y-27,3,3,'#ffe680');R(x-3,y-34,6,4,c);b.globalAlpha=.6;for(let k=0;k<4;k++){const t=(frame*.8+k*10)%40;R(x-2+Math.round(Math.sin(k+frame/10)*3),y-36-t,4,4,'#c8c8c8')}b.globalAlpha=1;R(x-14,y-22,5,12,c);R(x+9,y-22,5,12,c);break}
+    case 'lavadragon':{const gl=frame%40<20,c=W||'#7a2e1c',wv=frame/10;b.globalAlpha=.22;R(x-40,y-72,80,72,'#ff6a2a');b.globalAlpha=1;
+      // 盤起來的熔岩身體：從尾巴（後下方）一路升到脖子（前上方）
+      for(let k=0;k<16;k++){const t=k/15,px=Math.round(x+f*(-34+48*t)),py=Math.round(y-6-48*t*t+Math.sin(wv+t*6)*4),sz=Math.round(6+8*t);R(px-sz/2-1,py-sz/2-1,sz+2,sz+2,'#1a0604');R(px-sz/2,py-sz/2,sz,sz,c);R(px-sz/2,py-sz/2,sz,2,gl?'#ffb04a':'#ff6a2a');R(px-sz/2+1,py+sz/2-3,sz-2,2,'#e0703a');if(k%3===1)R(px-1,py-sz/2-4,3,4,'#ff6a2a')}
+      const hx=x+f*16,hy=y-58+Math.round(Math.sin(wv+6)*4),op=frame%60<20?4:1;R(hx-13,hy-10,26,17,'#1a0604');R(hx-12,hy-9,24,15,c);R(hx-12,hy-9,24,2,'#5a2a1a');R(hx+f*12-(f>0?0:10),hy-6,10,7,c);R(hx+f*12-(f>0?0:10),hy+1+op,10,3,c);
+      if(op>1)R(hx+f*13-(f>0?0:8),hy+1,8,op,'#ffb04a');R(hx+f*4-2,hy-5,5,4,'#ffe680');R(hx+f*4-1,hy-4,2,2,'#c8401a');
+      for(const dx of [-10,-4])R(hx+f*dx-1,hy-16,3,8,'#2a0e0a');R(hx-f*14-3,hy-6,6,8,gl?'#ff6a2a':'#c8401a');if(frame%30<15)R(hx+f*24,hy-2,4,3,'#ffb04a');break}
     case 'kraken':{const s2=Math.sin(frame/14)*2,gl=frame%50<25;b.globalAlpha=.22;R(x-42,y-72,84,72,'#5af0ff');b.globalAlpha=1;
       for(let k=0;k<6;k++){const tx=x-30+k*12,wv=Math.round(Math.sin(frame/10+k)*4);R(tx+wv,y-18,7,18,W||'#6a2a7a');R(tx+wv+1,y-14,2,2,'#ff9ad8');R(tx+wv+3,y-8,2,2,'#ff9ad8')}
       R(x-26,y-60+s2,52,44,W||'#7a3a8a');R(x-26,y-60+s2,52,4,'#b46ad8');R(x-22,y-66+s2,44,7,W||'#7a3a8a');R(x-14,y-70+s2,28,5,W||'#7a3a8a');
@@ -1265,7 +1353,7 @@ function drawNPC(n,ox,oy){const x=Math.round(n.x-ox),y=Math.round(GY-oy);if(x<-3
   R(x-2,y-18,2,2,'#1a1a1a');R(x+2,y-18,2,2,'#1a1a1a');
   if(n.kind==='boat'){R(x-5,y-12,10,12,'#f4f4f4');for(let k=0;k<3;k++)R(x-5,y-11+k*4,10,2,'#2a5ab8');R(x-7,y-25,14,4,'#1a2a4a');R(x-4,y-27,8,2,'#ffd23f');R(x-6,y-15,12,2,'#e8e8e8')}
   const by=y-38+Math.sin(frame/12+n.x)*1.5;R(x-10,by,20,10,'#fff');R(x-1,by+10,2,2,'#fff')}
-function drawPortal(pt,ox,oy){const x=Math.round(pt.x-ox),y=Math.round(GY-oy);if(x<-30||x>IW+30)return;const lock=pt.req&&P&&P.lv<pt.req;
+function drawPortal(pt,ox,oy){const x=Math.round(pt.x-ox),y=Math.round(GY-oy);if(x<-30||x>IW+30)return;const lock=(pt.req&&P&&P.lv<pt.req)||(pt.cap&&P&&D.capOf(P)<pt.cap);
   for(let k=0;k<6;k++){const a=frame/10+k*1.05,r=10+Math.sin(frame/8+k)*2;R(x+Math.cos(a)*r*.6-1,y-16+Math.sin(a)*r-1,3,3,lock?'#888':k%2?'#7fd3ff':'#c9a6ff')}
   b.globalAlpha=.5;R(x-6,y-28,12,26,lock?'#555':'#7fd3ff');b.globalAlpha=1;R(x-3,y-24,6,20,lock?'#777':'#e6f7ff')}
 function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
@@ -1276,8 +1364,14 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
   for(let i=-1;i<IW/40+2;i++){const wx=Math.floor((ox*.5)/40)*40+i*40,sx=Math.round(wx-ox*.5),ty=Math.round(GY-oy-20),hh=(wx*7919%17);
     if(pal.tree==='round'){R(sx+8,ty-10,4,14,pal.trunk);R(sx,ty-26-hh/2,20,18,pal.l1);R(sx+3,ty-32-hh/2,14,8,pal.l2)}
     else if(pal.tree==='pine'){R(sx+8,ty-6,4,10,pal.trunk);for(let k=0;k<4;k++){const w=18-k*4;R(sx+10-w/2,ty-10-k*7-hh/3,w,7,pal.l1);R(sx+10-w/2,ty-10-k*7-hh/3,w,2,pal.l2)}}
+    else if(pal.tree==='coral'){const cc=[pal.trunk,pal.l1,pal.l2][((wx/40)|0)%3+3]||pal.l1,c2=[pal.l1,pal.l2,pal.trunk][(((wx/40)|0)%3+3)%3];R(sx+8,ty-14-hh/2,4,18+hh/2,c2);R(sx+3,ty-12-hh/2,3,10,c2);R(sx+3,ty-12-hh/2,7,3,c2);R(sx+13,ty-20-hh/2,3,12,c2);R(sx+10,ty-14-hh/2,6,3,c2);R(sx+7,ty-18-hh/2,6,4,c2);
+      if(i%3===0){const sw=Math.round(Math.sin(frame/20+i)*2);R(sx+18+sw,ty-22,2,26,'#2a8a5a');R(sx+21-sw,ty-16,2,20,'#3aaa6a')}}
+    else if(pal.tree==='ruin'){if(i%2)continue;const hc=26+hh;R(sx+5,ty-hc,10,hc+4,pal.trunk);R(sx+3,ty-hc-3,14,4,pal.l1);R(sx+7,ty-hc+2,2,hc-2,'#ffffff18');if(hh%3===0){R(sx+15,ty-hc-3,26,4,pal.l1);R(sx+37,ty-hc,8,hc+4,pal.trunk)}if(hh%4===1){R(sx+5,ty-hc-8,6,5,pal.trunk)}if(i%4===0){R(sx+8,ty-hc/2,4,4,frame%60<30?pal.l2:'#1a8a70')}}
+    else if(pal.tree==='iceberg'){for(let k=0;k<5;k++){const w=14-k*3;R(sx+10-w/2,ty-6-k*7-hh/2,w,8,k%2?pal.l1:pal.trunk)}R(sx+9,ty-40-hh/2,2,6,'#ffffff')}
+    else if(pal.tree==='vent'){if(i%2)continue;const hc=18+hh;R(sx+5,ty-hc,12,hc+4,pal.trunk);R(sx+3,ty-hc-2,16,4,pal.l1);R(sx+8,ty-hc-2,6,2,frame%40<20?pal.l2:'#c8401a');b.globalAlpha=.4;for(let k=0;k<3;k++){const t=(frame*.6+k*12+i*7)%36;R(sx+8+Math.round(Math.sin(t/6)*2),ty-hc-6-t,5,4,'#7a6a66')}b.globalAlpha=1}
     else if(pal.tree==='pillar'){if(i%2)continue;R(sx+6,ty-30-hh/2,9,34+hh/2,pal.trunk);R(sx+4,ty-33-hh/2,13,3,pal.l1);R(sx+4,ty+1,13,3,pal.l1);R(sx+8,ty-28-hh/2,2,28,'#ffffff90');R(sx+5,ty-35-hh/2,11,2,pal.l2)}
     else{R(sx+8,ty-22-hh/2,3,26+hh/2,pal.trunk);R(sx+3,ty-16-hh/2,6,2,pal.trunk);R(sx+11,ty-12-hh/2,7,2,pal.trunk);R(sx+3,ty-20-hh/2,2,4,pal.trunk)}}
+  if(pal.sea){b.globalAlpha=pal.aurora?.1:.07;for(let k=0;k<6;k++){const rx=((k*97-ox*.15+frame*.12)%(IW+120)+IW+120)%(IW+120)-60;b.fillStyle=pal.aurora?(k%2?'#7affc8':'#bfe8ff'):'#ffffff';b.beginPath();b.moveTo(rx,0);b.lineTo(rx+18,0);b.lineTo(rx-30,IH);b.lineTo(rx-60,IH);b.fill()}b.globalAlpha=1}
   const gy=Math.round(GY-oy);R(0,gy,IW,IH-gy,pal.dirt);for(let x=-((ox|0)%16);x<IW;x+=16){R(x,gy,16,4,pal.top);R(x+3,gy+4,2,2,pal.top);R(x+10,gy+8,3,2,pal.dirt2);R(x+5,gy+14,2,2,pal.speck)}
   if(MI===0&&ox<300){const hx=Math.round(30-ox);R(hx,gy-40,56,40,'#f0dcb0');R(hx-6,gy-54,68,16,'#c8463a');R(hx-2,gy-58,60,5,'#d85a4a');R(hx+22,gy-22,12,22,'#6b4423');R(hx+6,gy-32,10,10,'#8fd3ff');R(hx+40,gy-32,10,10,'#8fd3ff');
     const sx=Math.round(232-ox);R(sx,gy-30,3,30,'#6b4423');R(sx-12,gy-34,28,12,'#a87a45')}
@@ -1286,6 +1380,7 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
   for(let i=1;i<SEG.length;i++){const s=SEG[i],x1=Math.round(s.x1-ox),x2=Math.round(s.x2-ox),y=Math.round(s.y-oy);if(x2<0||x1>IW)continue;
     R(x1,y,x2-x1,9,pal.dirt);R(x1,y,x2-x1,3,pal.top);R(x1+2,y+9,x2-x1-4,2,pal.dirt2);for(let x=x1;x<x2;x+=12){R(x+4,y+5,3,2,pal.speck);R(x+2,y+3,2,1,pal.top)}}
   for(const r of ROPES){const x=Math.round(r.x-ox),y1=Math.round(r.y1-oy),y2=Math.round(r.y2-oy);if(x<-4||x>IW+4)continue;R(x-1,y1,3,y2-y1,'#c8a06a');for(let y=y1+2;y<y2;y+=5)R(x-1,y,3,1,'#8a6a3a')}
+  drawMech(ox,oy);
   for(const n of npcsHere())drawNPC(n,ox,oy);
   for(const pt of MAPS[MI].portals)drawPortal(pt,ox,oy);
   for(const d of drops){const x=Math.round(d.x-ox),y=Math.round(d.y-oy)-(d.vy===null?Math.round(Math.abs(Math.sin(frame/10+d.x))*2):0);if(d.t.startsWith('mnt:')){b.globalAlpha=.35+.3*Math.sin(frame/6);R(x-9,y-18,18,18,'#7affc8');b.globalAlpha=1;R(x-5,y-10,10,3,'#c8463a');R(x-6,y-12,3,4,'#8a5a2b');R(x+3,y-12,3,4,'#8a5a2b');R(x-4,y-7,2,5,'#ffd23f');R(x+2,y-7,2,5,'#ffd23f');R(x-4,y-3,8,2,'#ffd23f')}else if(d.t==='myth'){b.globalAlpha=.45+.3*Math.sin(frame/5);R(x-10,y-26,20,26,frame%20<10?'#7a2aff':'#00ffd5');b.globalAlpha=1;R(x-1,y-20,2,16,'#ffffff');R(x-5,y-8,10,2,'#ffe680');R(x-3,y-22,6,3,'#ff2a6a');for(let k=0;k<3;k++)R(x-8+((frame+k*7)%16),y-24+((frame*2+k*9)%22),1,1,'#fff')}else if(d.t==='leg'){b.globalAlpha=.4+.3*Math.sin(frame/6);R(x-8,y-22,16,22,'#ff4fd8');b.globalAlpha=1;R(x-1,y-16,2,12,'#ffe680');R(x-4,y-6,8,2,'#ff4fd8');R(x-1,y-4,2,3,'#8a4a2a');R(x-2,y-18,4,2,'#ffffff')}else if(d.t==='gold'){R(x-3,y-6,6,6,'#ffd23f');R(x-2,y-5,2,2,'#fff6c0');R(x-3,y-1,6,1,'#c8921c')}else{R(x-2,y-8,4,2,'#ddd');R(x-3,y-6,6,6,d.t==='pot'?'#ff4d5e':'#3d8bff');R(x-2,y-5,2,2,'#ffffffa0')}}
@@ -1374,6 +1469,7 @@ function drawWorld(){const ox=cam.x,oy=cam.y,pal=PAL[MAPS[MI].pal];
     else if(e.t==='lvup'){const W=e.who||P;if(!W)continue;const px=Math.round(W.x-ox),py=Math.round(W.y-oy);b.globalAlpha=Math.min(1,t/30);for(let k=0;k<8;k++){const a=k/8*6.28+frame/10,r=14+(90-t)/6;R(px+Math.cos(a)*r,py-14+Math.sin(a)*r*.6-(90-t)/3,2,2,'#ffd23f')}b.globalAlpha=1}}
   // weather particles
   if(pal.fx){if(parts.length<70&&Math.random()<.6)parts.push({x:rnd(0,IW),y:pal.fx==='snow'?-4:IH+4,vx:rnd(-.3,.3),vy:pal.fx==='snow'?rnd(.3,.8):-rnd(.3,.9),l:400});
+    if(pal.fx==='bubble'){for(const q of parts){q.x+=q.vx+Math.sin((q.l+q.y)/18)*.25;q.y+=q.vy;q.l--;const sz=q.l%3?2:3;R(q.x,q.y,sz,sz,'#e8fcffb0');R(q.x+1,q.y+1,1,1,'#7fd3ff')}parts=parts.filter(q=>q.l>0&&q.y>-10&&q.y<IH+10);return}
     for(const q of parts){q.x+=q.vx;q.y+=q.vy;q.l--;R(q.x,q.y,pal.fx==='snow'?2:1,pal.fx==='snow'?2:2,pal.fx==='snow'?'#ffffff':(q.l%20<10?(pal.fxc||['#ffb34d'])[0]:(pal.fxc||[0,'#ff6a2a'])[1]))}parts=parts.filter(q=>q.l>0&&q.y>-10&&q.y<IH+10)}}
 
 function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
@@ -1587,9 +1683,11 @@ $('#ptYes').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:true},r=>{if
 $('#ptNo').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:false});ptFrom=null;$('#ptReq').hidden=true};
 // ---------- 潮聲港碼頭 ----------
 function openBoat(){const ok=D.capOf(P)>=D.MAXLV2;
-  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，要出海到「深淵海溝」嗎？那裡的怪物都是 Lv 101～105，最深處住著深淵海皇・克拉肯。記得找隊友一起去！':`深淵海溝太危險了，只有突破極限的冒險者才能去。<br>打倒<b>虛空之主</b>（有出手的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
-    <div class="row"><button class="btn" data-close="1">下次再說</button><button class="btn pri" data-sail="1" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div>`,bt=>{
-    if(bt.dataset.sail){bt.disabled=true;sock.emit('sail',{},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出海');bt.disabled=false;return}closePop()})}})}
+  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，今天要去哪裡？':`海上太危險了，只有突破極限的冒險者才能出海。<br>打倒<b>虛空之主</b>（有出手的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
+    <div class="jobs"><div class="job"><b>🪸 珊瑚王國</b><p>Lv 90～100 · 明亮的珊瑚海，最深處是人魚女王的宮殿。站進上升氣泡可以被托上高處。</p><button class="btn pri sm" data-sail="11" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div>
+    <div class="job"><b>🌊 深淵海溝</b><p>Lv 101～105 · 最深處住著深淵海皇・克拉肯，打倒牠可以把等級上限突破到 110，再往深處就是沉沒古城。</p><button class="btn pri sm" data-sail="10" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div></div>
+    <div class="row"><button class="btn" data-close="1">下次再說</button></div>`,bt=>{if(bt.dataset.close){closePop();return}
+    if(bt.dataset.sail){bt.disabled=true;sock.emit('sail',{to:+bt.dataset.sail},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出海');bt.disabled=false;return}closePop()})}})}
 // ---------- 更新公告（每個帳號每個版本一次） ----------
 let newsQ=null;
 function showNews(d){if(!$('#pop').hidden){newsQ=d;return}newsQ=null;
@@ -1600,7 +1698,7 @@ function showNews(d){if(!$('#pop').hidden){newsQ=d;return}newsQ=null;
 function openGM(){const sel=(id,opts,v)=>`<select id="${id}">${opts.map(([k,n])=>`<option value="${k}"${String(k)===String(v)?' selected':''}>${esc(n)}</option>`).join('')}</select>`;
   const render=(cls,job,lv,pet)=>{const c=CL[cls];openPop(`<h2>GM 測試角色</h2><p class="sub" style="margin:0">把目前這個角色直接變成指定的職業、轉數和等級，裝備自動換成該等級最好的（Lv 80 給傳說武器），附上所有可用坐騎、999 瓶藥水和 999 萬金幣（可以無限重置能力點）。GM 角色<b>不會出現在任何排行榜</b>，名字後面會顯示［GM］。</p>
     <div class="gmf"><label>職業 ${sel('gmCls',Object.keys(CL).map(k=>[k,CL[k].jobs[0]]),cls)}</label><label>轉數 ${sel('gmJob',c.jobs.map((j,i)=>[i,['初始','一轉','二轉','三轉','四轉'][i]+'　'+j]),job)}</label>
-    <label>等級 <input id="gmLv" type="number" min="1" max="${D.MAXLV2}" value="${lv}"></label><label>寵物 ${sel('gmPet',[['','（無）'],...Object.entries(D.PETS).map(([k,p])=>[k,p.n])],pet)}</label></div>
+    <label>等級 <input id="gmLv" type="number" min="1" max="${D.MAXTOP}" value="${lv}"></label><label>寵物 ${sel('gmPet',[['','（無）'],...Object.entries(D.PETS).map(([k,p])=>[k,p.n])],pet)}</label></div>
     <p class="keys" style="margin:6px 0 0">轉數會依等級自動調整（一轉 15、二轉 30、三轉 45、四轉 60）；寵物需要 Lv ${D.PETLV}。能力點會全部退回，請到「能力」自己配點。</p>
     <div class="row"><button class="btn" data-close="1">關閉</button><button class="btn pri" data-gmgo="1">套用</button></div>`,bt=>{
     if(bt.dataset.gmgo){bt.disabled=true;sock.emit('gm',{cls:$('#gmCls').value,job:+$('#gmJob').value,lv:+$('#gmLv').value,pet:$('#gmPet').value},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法套用');bt.disabled=false;return}applyMe(r.me);P.hp=P.max.hp;P.mp=P.max.mp;ui();closePop();toast(`已切換為 ${CL[P.cls].jobs[P.job]} Lv ${P.lv}`)})}});
@@ -1695,7 +1793,7 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
   sock.on('trialDone',d=>{if(P){fx.push({t:'lvup',x:P.x,y:P.y,life:120});P.hp=P.max.hp}toast(`🎉 試煉通過！轉職成為「${d.name}」，獲得 ${d.gold.toLocaleString()} 金幣。按「技能」設定新技能，稍後自動回到晨露村`)});
   sock.on('heal',d=>{if(!P||P.dead)return;P.hp=Math.min(P.max.hp,P.hp+d.hp);if(Math.random()<.35)num(P.x+8,P.y-30,'+'+d.hp,'heal');ui()});
   sock.on('gain',d=>{if(!P)return;num(P.x,P.y-42,`經驗 +${d.exp}`,'exp');if(d.up){fx.push({t:'lvup',x:P.x,y:P.y,life:90});
-    if(d.lv>=D.capOf(P))toast(D.capOf(P)>=D.MAXLV2?`恭喜達到滿等 Lv ${D.MAXLV2}！`:`恭喜達到 Lv ${MAXLV}！打倒虛空之主可以突破到 Lv ${D.MAXLV2}`);else if(d.lv>=D.PETLV&&d.lv-d.up<D.PETLV)toast(`Lv ${D.PETLV}！寵物系統解鎖，點「寵物」挑一隻夥伴`);else if(d.newJob)toast(`Lv ${d.lv}！可以轉職了，回晨露村找轉職教官`);else if(d.lv===3)toast(`學會了新技能「${SK[P.cls].s2.n}」！按 C 使用`);else toast(`升級！Lv ${d.lv}　獲得 ${D.APL*d.up} 能力點數（按「能力」分配）`)}});
+    if(d.lv>=D.capOf(P)){const cp=D.capOf(P);toast(cp>=D.MAXTOP?`恭喜達到滿等 Lv ${cp}！`:cp>=110?`恭喜達到 Lv ${cp}！打倒沉沒古城的古城守護神可以突破到 Lv 120`:cp>=100?`恭喜達到 Lv ${cp}！打倒深淵海皇・克拉肯可以突破到 Lv 110`:`恭喜達到 Lv ${MAXLV}！打倒虛空之主可以突破到 Lv ${D.MAXLV2}`)}else if(d.lv>=D.PETLV&&d.lv-d.up<D.PETLV)toast(`Lv ${D.PETLV}！寵物系統解鎖，點「寵物」挑一隻夥伴`);else if(d.newJob)toast(`Lv ${d.lv}！可以轉職了，回晨露村找轉職教官`);else if(d.lv===3)toast(`學會了新技能「${SK[P.cls].s2.n}」！按 C 使用`);else toast(`升級！Lv ${d.lv}　獲得 ${D.APL*d.up} 能力點數（按「能力」分配）`)}});
   sock.on('me',m=>{const up=P&&m&&m.lv>P.lv;applyMe(m);if(up){P.hp=P.max.hp;P.mp=P.max.mp;ui()}});
   sock.on('lvup',d=>{const o=others.get(d.id);if(o)fx.push({t:'lvup',who:o,x:o.x,y:o.y,life:90})});
   sock.on('cast',d=>{const o=others.get(d.id);if(!o)return;o.x=d.x;o.y=d.y;o.f=d.f;doSkill(d.k,o)});
