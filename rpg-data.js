@@ -462,7 +462,64 @@
     const GM = { lv: 36, hp: 1550, atk: 185, exp: 285, gold: [120, 160] }, BR = { lv: 38, hp: 42000, atk: 260, exp: 8000, gold: [5000, 6000] };
     const LT = m => ({ lv: GM.lv, hp: Math.round(GM.hp * m), atk: GM.atk, exp: Math.round(GM.exp * (m > 1 ? 1 + (m - 1) * .6 : 1)), gold: GM.gold });
     const BT = m => ({ lv: BR.lv, hp: Math.round(BR.hp * m), atk: BR.atk, exp: BR.exp, gold: BR.gold });
+    const SG = { lv: 70, hp: 10000, atk: 520, exp: 1300, gold: [380, 480] }, TI = { lv: 80, hp: 240000, atk: 600, exp: 60000, gold: [30000, 40000] };
+    const ST = m => ({ lv: SG.lv, hp: Math.round(SG.hp * m), atk: SG.atk, exp: Math.round(SG.exp * (m > 1 ? 1 + (m - 1) * .6 : 1)), gold: SG.gold });
+    const TT = m => ({ lv: TI.lv, hp: Math.round(TI.hp * m), atk: TI.atk, exp: TI.exp, gold: TI.gold });
+    const VL = { lv: 86, hp: 34000, atk: 950, exp: 4200, gold: [1500, 2000] }, VK = { lv: 100, hp: 1200000, atk: 1300, exp: 250000, gold: [80000, 100000] };
+    const DT = m => ({ lv: VL.lv, hp: Math.round(VL.hp * m), atk: VL.atk, exp: Math.round(VL.exp * (m > 1 ? 1 + (m - 1) * .6 : 1)), gold: VL.gold });
+    const KT = m => ({ lv: VK.lv, hp: Math.round(VK.hp * m), atk: VK.atk, exp: VK.exp, gold: VK.gold });
     Object.assign(MON, {
+      // 虛空（樣板同暗黑，再由 LVMAP 換算）
+      voidspore: { ...mob('虛空孢子', .8, { w: 14, h: 14, spd: .4, sp: { k: 'rain', r: 100, n: '孢子雨' } }), ...DT(.8) },
+      riftwalker: { ...mob('裂隙行者', 1, { w: 16, h: 24, spd: .7, sp: { k: 'roll', r: 110, dist: 120, n: '裂隙穿梭' } }), ...DT(1) },
+      starwreck: { ...mob('星骸傀儡', 1.4, { w: 22, h: 24, spd: .35, sp: { k: 'quake', r: 75, rad: 75, n: '星骸重踏' } }), ...DT(1.4) },
+      cometfiend: { ...mob('彗星魔', .9, { w: 18, h: 16, spd: .85, sp: { k: 'homing', r: 130, n: '彗星彈' } }), ...DT(.9) },
+      chaosjelly: { ...mob('混沌水母', 1, { w: 16, h: 20, spd: .45, sp: { k: 'icering', r: 70, rad: 74, n: '混沌脈衝' } }), ...DT(1) },
+      mirrorshade: { ...mob('鏡影', .9, { w: 14, h: 24, spd: .7, sp: { k: 'breath', r: 85, len: 90, n: '鏡像斬' } }), ...DT(.9) },
+      entropy: { ...mob('熵蟲', 1.2, { w: 22, h: 12, spd: .5, sp: { k: 'roll', r: 90, dist: 100, n: '崩解翻滾' } }), ...DT(1.2) },
+      timekeeper: { ...mob('時之守衛', 1.4, { w: 18, h: 26, spd: .4, sp: { k: 'quake', r: 75, rad: 75, n: '時鐘重擊' } }), ...DT(1.4) },
+      paradox: { ...mob('悖論魔像', 1.3, { w: 22, h: 24, spd: .35, sp: { k: 'icering', r: 72, rad: 76, n: '悖論爆發' } }), ...DT(1.3) },
+      nullknight: { ...mob('虛無騎士', 1.4, { w: 18, h: 26, spd: .5, sp: { k: 'breath', r: 90, len: 95, n: '虛無之刃' } }), ...DT(1.4) },
+      voidpriest: { ...mob('虛空祭司', 1, { w: 14, h: 24, spd: .5, sp: { k: 'rain', r: 110, n: '虛空降臨' } }), ...DT(1) },
+      oblivion: { ...mob('湮滅者', 1.2, { w: 18, h: 22, spd: .65, sp: { k: 'homing', r: 130, n: '湮滅之球' } }), ...DT(1.2) },
+      riftmaw: { ...boss('裂隙吞噬者', .8, { w: 56, h: 50, spd: .4, sk: ['pull', 'split', 'rain'], skn: { pull: '裂隙吸引（往外跑）', split: '碎裂空間（低的跳過、高的別跳）', rain: '虛空碎片雨（避開紅點）' } }), ...KT(.8) },
+      meteorbeast: { ...boss('隕星巨獸', .9, { w: 60, h: 48, spd: .45, sk: ['charge', 'rain', 'quake'], skn: { charge: '隕星衝撞（往旁邊閃）', rain: '流星墜落（避開紅點）', quake: '星核震地（跳過震波）' } }), ...KT(.9) },
+      chaoseye: { ...boss('混沌之眼', 1, { w: 50, h: 50, spd: .3, sk: ['laser', 'orbit', 'homing'], skn: { laser: '混沌凝視（站在地上別跳）', orbit: '眼球衛星（保持移動）', homing: '追蹤視線（一直移動）' } }), ...KT(1) },
+      chronoeater: { ...boss('時空吞噬者', 1, { w: 54, h: 56, spd: .45, sk: ['safe', 'split', 'firefloor'], skn: { safe: '時停審判（站進綠色安全區）', split: '時間碎片（低的跳過、高的別跳）', firefloor: '時空裂縫（跑到另一邊）' } }), ...KT(1) },
+      // 暗黑（樣板：虛空獵手 Lv86、虛空之主 Lv100，再由 LVMAP 換算）
+      ghoul: { ...mob('屍鬼', 1, { w: 16, h: 20, spd: .5, sp: { k: 'roll', r: 80, dist: 90, n: '飢餓撲咬' } }), ...DT(1) },
+      bonehound: { ...mob('骨犬', .85, { w: 20, h: 13, spd: .85, sp: { k: 'breath', r: 70, len: 75, n: '骨牙撕咬' } }), ...DT(.85) },
+      gravedigger: { ...mob('掘墓人', 1.2, { w: 16, h: 22, spd: .45, sp: { k: 'quake', r: 65, rad: 65, n: '鏟擊大地' } }), ...DT(1.2) },
+      banshee: { ...mob('哭泣女妖', .9, { w: 14, h: 22, spd: .6, sp: { k: 'icering', r: 70, rad: 72, n: '悲鳴' } }), ...DT(.9) },
+      vampire: { ...mob('吸血鬼', 1.1, { w: 14, h: 24, spd: .65, sp: { k: 'homing', r: 120, n: '血之蝙蝠' } }), ...DT(1.1) },
+      batswarm: { ...mob('血蝠群', .8, { w: 22, h: 14, spd: .85, sp: { k: 'roll', r: 100, dist: 110, n: '群蝠衝撞' } }), ...DT(.8) },
+      hellhound: { ...mob('地獄犬', 1, { w: 22, h: 15, spd: .85, sp: { k: 'breath', r: 80, len: 85, n: '冥火吐息' } }), ...DT(1) },
+      demonknight: { ...mob('魔騎士', 1.4, { w: 18, h: 26, spd: .5, sp: { k: 'breath', r: 85, len: 90, n: '魔劍斬' } }), ...DT(1.4) },
+      succubus: { ...mob('魅魔', .95, { w: 14, h: 22, spd: .65, sp: { k: 'homing', r: 125, n: '魅惑之吻' } }), ...DT(.95) },
+      darkpriest: { ...mob('暗黑祭司', 1, { w: 14, h: 24, spd: .5, sp: { k: 'rain', r: 100, n: '黑暗降臨' } }), ...DT(1) },
+      shadowbeast: { ...mob('暗影獸', 1.35, { w: 24, h: 18, spd: .7, sp: { k: 'roll', r: 100, dist: 110, n: '暗影突襲' } }), ...DT(1.35) },
+      shadowmage: { ...mob('暗影法師', .95, { w: 14, h: 24, spd: .45, sp: { k: 'homing', r: 125, n: '暗影飛彈' } }), ...DT(.95) },
+      ferryman: { ...boss('冥河擺渡人', .8, { w: 46, h: 52, spd: .4, sk: ['pull', 'homing', 'split'], skn: { pull: '冥河漩渦（往外跑）', homing: '亡魂追蹤（一直移動）', split: '槳擊分浪（低的跳過、高的別跳）' } }), ...KT(.8) },
+      bonedragon: { ...boss('骸骨巨龍', .9, { w: 60, h: 46, spd: .45, sk: ['breath', 'tail', 'rain'], skn: { breath: '屍骨吐息（繞到背後）', tail: '骨尾橫掃（別站在牠背後）', rain: '碎骨雨（避開紅點）' } }), ...KT(.9) },
+      count: { ...boss('血月伯爵', 1, { w: 40, h: 58, spd: .55, sk: ['charge', 'orbit', 'safe'], skn: { charge: '血影突進（往旁邊閃）', orbit: '血蝠環繞（保持移動）', safe: '血月審判（站進綠色安全區）' } }), ...KT(1) },
+      warlord: { ...boss('煉獄魔將', 1, { w: 52, h: 60, spd: .45, sk: ['slam', 'firefloor', 'laser'], skn: { slam: '魔斧重劈（看落點躲開）', firefloor: '煉獄火海（跑到另一邊）', laser: '魔焰橫掃（站在地上別跳）' } }), ...KT(1) },
+      // 天空（樣板：星辰魔像 Lv70、天穹泰坦 Lv80，再由 LVMAP 換算）
+      cloudsprite: { ...mob('雲朵精靈', .8, { w: 16, h: 12, spd: .6, sp: { k: 'rain', r: 100, n: '綿綿細雨' } }), ...ST(.8) },
+      windkite: { ...mob('風箏鳥', .85, { w: 18, h: 12, spd: .85, sp: { k: 'roll', r: 90, dist: 110, n: '順風俯衝' } }), ...ST(.85) },
+      harpy: { ...mob('鷹身女妖', 1, { w: 18, h: 18, spd: .75, sp: { k: 'homing', r: 120, n: '羽刃' } }), ...ST(1) },
+      skyknight: { ...mob('天空騎士', 1.35, { w: 16, h: 24, spd: .5, sp: { k: 'breath', r: 75, len: 80, n: '聖槍突刺' } }), ...ST(1.35) },
+      thunderling: { ...mob('雷電精', .85, { w: 12, h: 14, spd: .7, sp: { k: 'icering', r: 60, rad: 64, n: '放電' } }), ...ST(.85) },
+      stormcrow: { ...mob('風暴烏鴉', .9, { w: 18, h: 12, spd: .85, sp: { k: 'homing', r: 125, n: '雷羽' } }), ...ST(.9) },
+      cloudjelly: { ...mob('雲水母', 1.1, { w: 16, h: 18, spd: .4, sp: { k: 'rain', r: 90, n: '雷雨' } }), ...ST(1.1) },
+      starwisp: { ...mob('星靈', .85, { w: 12, h: 12, spd: .7, sp: { k: 'homing', r: 125, n: '流星彈' } }), ...ST(.85) },
+      starguard: { ...mob('星之守衛', 1.5, { w: 20, h: 24, spd: .35, sp: { k: 'quake', r: 70, rad: 70, n: '星盾重擊' } }), ...ST(1.5) },
+      templeguard: { ...mob('天穹守衛', 1.5, { w: 20, h: 26, spd: .35, sp: { k: 'quake', r: 72, rad: 72, n: '天錘震擊' } }), ...ST(1.5) },
+      archangel: { ...mob('大天使', 1.2, { w: 18, h: 24, spd: .6, sp: { k: 'breath', r: 80, len: 85, n: '聖光劍' } }), ...ST(1.2) },
+      sunpriest: { ...mob('日輪祭司', 1, { w: 14, h: 22, spd: .5, sp: { k: 'rain', r: 100, n: '日輪光雨' } }), ...ST(1) },
+      thunderbird: { ...boss('雷霆神鷹', .8, { w: 54, h: 36, spd: .65, sk: ['charge', 'rain', 'homing'], skn: { charge: '俯衝突擊（往旁邊閃）', rain: '雷羽雨（避開紅點）', homing: '追蹤雷球（一直移動）' } }), ...TT(.8) },
+      stormgiant: { ...boss('風暴巨人', .9, { w: 52, h: 58, spd: .35, sk: ['slam', 'pull', 'quake'], skn: { slam: '巨人重壓（看落點躲開）', pull: '暴風漩渦（往外跑）', quake: '雷鳴震地（跳過震波）' } }), ...TT(.9) },
+      thunderbeast: { ...boss('雷神獸', 1, { w: 56, h: 40, spd: .6, sk: ['laser', 'charge', 'orbit'], skn: { laser: '雷光橫掃（站在地上別跳）', charge: '雷霆衝撞（往旁邊閃）', orbit: '雷球環繞（保持移動）' } }), ...TT(1) },
+      starhunter: { ...boss('星座獵人', 1, { w: 44, h: 56, spd: .5, sk: ['split', 'rain', 'safe'], skn: { split: '星箭散射（找縫隙躲）', rain: '流星雨（避開紅點）', safe: '星座審判（站進綠色安全區）' } }), ...TT(1) },
       // 熔岩（樣板：岩漿魔像 Lv36、炎魔王 Lv38，再由 LVMAP 換算）
       emberbat: { ...mob('餘燼蝙蝠', .8, { w: 16, h: 10, spd: .85, sp: { k: 'homing', r: 120, n: '火星彈' } }), ...LT(.8) },
       magmaworm: { ...mob('熔岩蠕蟲', 1.2, { w: 22, h: 10, spd: .35, sp: { k: 'quake', r: 60, rad: 60, n: '地底竄出' } }), ...LT(1.2) },
@@ -511,14 +568,26 @@
     sulfurtoad: 37, steamsprite: 38, magmasnake: 39, hydra: 40,
     lavahound: 40, golem: 41, lavafish: 42, lavacroc: 43,
     magmaknight: 43, coreguard: 44, flamewisp: 45, balrog: 46,
+    seraph: 68, cloudsprite: 69, windkite: 70, thunderbird: 71,
+    harpy: 71, stargolem: 72, skyknight: 73, stormgiant: 74,
+    thunderling: 74, stormcrow: 75, cloudjelly: 76, thunderbeast: 77,
+    starwisp: 77, starguard: 79, phoenix: 80, starhunter: 81,
+    templeguard: 81, archangel: 82, sunpriest: 83, titan: 84,
+    knight: 86, ghoul: 87, bonehound: 88, ferryman: 89,
+    gravedigger: 89, gargoyle: 90, banshee: 91, bonedragon: 93,
+    vampire: 93, batswarm: 94, reaper: 96, count: 97,
+    hellhound: 97, demonknight: 98, succubus: 99, warlord: 100,
+    darkpriest: 100, shadowbeast: 101, shadowmage: 101, dragon: 102,
+    voidling: 104, voidspore: 105, riftwalker: 106, riftmaw: 107,
+    starwreck: 108, chaosknight: 109, cometfiend: 110, meteorbeast: 111,
+    chaosjelly: 111, mirrorshade: 112, entropy: 113, chaoseye: 114,
+    timekeeper: 114, abyssmage: 115, paradox: 116, chronoeater: 117,
+    nullknight: 117, voidpriest: 118, oblivion: 119, voidking: 120,
     puffer: 46, seahorse: 47, coralguard: 48, mermqueen: 50,
     siren: 50, crab: 51, pirate: 52, kraken: 54,
     fishman: 54, ruinghost: 55, ancientguard: 56, ruinlord: 58,
     icejelly: 58, narwhal: 59, iceseal: 60, iceking: 62,
     lavacrab: 62, fireeel: 63, ventgolem: 64, lavadragon: 66,
-    seraph: 68, stargolem: 74, phoenix: 80, titan: 84,
-    knight: 86, gargoyle: 91, reaper: 96, dragon: 102,
-    voidling: 104, chaosknight: 110, abyssmage: 116, voidking: 120,
   };
   { const KEYS = ['hp', 'atk', 'exp'], curve = boss => { const pts = {}; for (const k in MON) { const m = MON[k]; if (!!m.boss !== boss || m.tpl || m.trial || m.rival || k.startsWith('trial') || !(m.lv > 0)) continue; (pts[m.lv] ||= []).push(m); }
       const lvs = Object.keys(pts).map(Number).sort((a, b) => a - b), at = {}; for (const l of lvs) { at[l] = {}; for (const f of [...KEYS, 'gold']) at[l][f] = pts[l].reduce((a, m) => a + Math.log(f === 'gold' ? (m.gold[0] + m.gold[1]) / 2 || 1 : m[f] || 1), 0) / pts[l].length; }
@@ -701,6 +770,24 @@
     { n: '硫磺溫泉', pal: 'sulfur', mobs: ['sulfurtoad', 'steamsprite', 'magmasnake'], boss: 'hydra', maps: ['硫磺池畔', '蒸汽谷', '九頭蛇沼'] },
     { n: '熔岩河', pal: 'magmariver', mobs: ['lavahound', 'golem', 'lavafish'], boss: 'lavacroc', maps: ['熔岩河岸', '浮石渡口', '巨鱷灣'] },
     { n: '熔岩巨像核心', pal: 'core', mobs: ['magmaknight', 'coreguard', 'flamewisp'], boss: 'balrog', maps: ['巨像之腳', '巨像體內', '炎魔王的熔爐'] } ] });
+  REGION({ area: '天空', vid: 21, vname: '雲頂村', old: 4, nid: 66, guide: 'skyback', seed: 421, L: [
+    { n: '雲海', pal: 'sky', mobs: ['seraph', 'cloudsprite', 'windkite'], boss: 'thunderbird', maps: ['雲海入口', '綿雲小徑', '神鷹之巢'] },
+    { n: '浮空島', pal: 'floatisle', mobs: ['harpy', 'stargolem', 'skyknight'], boss: 'stormgiant', maps: ['浮島碼頭', '空中花園', '巨人的鐘樓'] },
+    { n: '雷雲層', pal: 'thunder', mobs: ['thunderling', 'stormcrow', 'cloudjelly'], boss: 'thunderbeast', maps: ['雷雲邊緣', '閃電迴廊', '雷神獸之巔'] },
+    { n: '星辰神殿', pal: 'starry', mobs: ['starwisp', 'starguard', 'phoenix'], boss: 'starhunter', maps: ['星光階梯', '星座長廊', '獵人的星盤'] },
+    { n: '天穹神殿', pal: 'heaven', mobs: ['templeguard', 'archangel', 'sunpriest'], boss: 'titan', maps: ['神殿大門', '日輪迴廊', '泰坦的王座'] } ] });
+  REGION({ area: '暗黑', vid: 22, vname: '冥火鎮', old: 3, nid: 80, guide: 'grave', seed: 521, L: [
+    { n: '冥河渡口', pal: 'styx', mobs: ['knight', 'ghoul', 'bonehound'], boss: 'ferryman', maps: ['冥河岸邊', '亡魂碼頭', '擺渡人的船塢'] },
+    { n: '亡者墓園', pal: 'graveyard', mobs: ['gravedigger', 'gargoyle', 'banshee'], boss: 'bonedragon', maps: ['墓園入口', '十字架丘', '骸骨龍的墓穴'] },
+    { n: '血月城堡', pal: 'bloodmoon', mobs: ['vampire', 'batswarm', 'reaper'], boss: 'count', maps: ['城堡吊橋', '血色大廳', '伯爵的寢宮'] },
+    { n: '煉獄迴廊', pal: 'purgatory', mobs: ['hellhound', 'demonknight', 'succubus'], boss: 'warlord', maps: ['煉獄入口', '刀山火海', '魔將的戰場'] },
+    { n: '暗黑神殿', pal: 'dark', mobs: ['darkpriest', 'shadowbeast', 'shadowmage'], boss: 'dragon', maps: ['神殿外庭', '暗影聖堂', '黑龍王的祭壇'] } ] });
+  REGION({ area: '虛空', vid: 23, vname: '虛空前哨', old: 5, nid: 94, guide: 'nova', seed: 621, L: [
+    { n: '虛空邊境', pal: 'void', mobs: ['voidling', 'voidspore', 'riftwalker'], boss: 'riftmaw', maps: ['裂隙邊緣', '孢子荒原', '吞噬者的裂口'] },
+    { n: '星骸墳場', pal: 'starwreck', mobs: ['starwreck', 'chaosknight', 'cometfiend'], boss: 'meteorbeast', maps: ['星骸平原', '彗星殘骸', '隕星巨獸之坑'] },
+    { n: '混沌之海', pal: 'chaos', mobs: ['chaosjelly', 'mirrorshade', 'entropy'], boss: 'chaoseye', maps: ['混沌淺灘', '鏡之迷宮', '混沌之眼'] },
+    { n: '時空迴廊', pal: 'timecorridor', mobs: ['timekeeper', 'abyssmage', 'paradox'], boss: 'chronoeater', maps: ['時鐘廣場', '倒流長廊', '吞噬者的時之核'] },
+    { n: '虛空王座', pal: 'voidthrone', mobs: ['nullknight', 'voidpriest', 'oblivion'], boss: 'voidking', maps: ['王座階梯', '湮滅大殿', '虛空之主的王座'] } ] });
   // 海洋：五片海域各拆成 3 張（原本的海域地圖是第 3 張，有 Boss）；船長免費送到珊瑚王國第 1 張，阿潮負責各層捷徑
   const SEAMOB = i => [...new Set(MAPS[i].spawns.map(x => x.t).filter(t => !MON[t].boss))];
   const SEAIDS = REGION({ area: '海洋', vid: 9, vname: '潮聲港', vtx: 2200, vlabel: '← 搭船回潮聲港', olds: [11, 10, 12, 13, 14], nid: 56, guide: 'seaback', seed: 331, L: [
@@ -835,6 +922,18 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-29f', notes: [
+      ['🌌 虛空五層', '虛空區域擴建成 5 層、15 張地圖：虛空邊境 → 星骸墳場 → 混沌之海 → 時空迴廊 → 虛空王座。每層 Boss：裂隙吞噬者、隕星巨獸、混沌之眼、時空吞噬者，最深處是最終 Boss 虛空之主的王座。'],
+      ['🐾 12 種新怪物', '虛空孢子、裂隙行者、星骸傀儡、彗星魔、混沌水母、鏡影、熵蟲、時之守衛、悖論魔像、虛無騎士、虛空祭司、湮滅者。'],
+      ['✨ 諾娃的捷徑', '打倒每一層的 Boss 之後，虛空前哨的諾娃可以直接送你到下一層（每次收費）。'] ] },
+    { v: '2026-11-29e', notes: [
+      ['💀 暗黑五層', '暗黑區域擴建成 5 層、15 張地圖：冥河渡口 → 亡者墓園 → 血月城堡 → 煉獄迴廊 → 暗黑神殿。每層 Boss：冥河擺渡人、骸骨巨龍、血月伯爵、煉獄魔將，最深處是黑龍王的祭壇（虛空之門也在那裡）。'],
+      ['🐾 12 種新怪物', '屍鬼、骨犬、掘墓人、哭泣女妖、吸血鬼、血蝠群、地獄犬、魔騎士、魅魔、暗黑祭司、暗影獸、暗影法師。'],
+      ['🪦 葛雷夫的捷徑', '打倒每一層的 Boss 之後，冥火鎮的葛雷夫可以直接送你到下一層（每次收費）。'] ] },
+    { v: '2026-11-29d', notes: [
+      ['☁ 天空五層', '天空區域擴建成 5 層、15 張地圖：雲海 → 浮空島 → 雷雲層 → 星辰神殿 → 天穹神殿。每層 Boss：雷霆神鷹、風暴巨人、雷神獸、星座獵人，最深處是天穹泰坦的王座（地獄之門也在那裡）。'],
+      ['🐾 12 種新怪物', '雲朵精靈、風箏鳥、鷹身女妖、天空騎士、雷電精、風暴烏鴉、雲水母、星靈、星之守衛、天穹守衛、大天使、日輪祭司。'],
+      ['👼 賽拉菲的捷徑', '打倒每一層的 Boss 之後，雲頂村的賽拉菲可以直接送你到下一層（每次收費）。'] ] },
     { v: '2026-11-29c', notes: [
       ['🌊 海洋拆分', '五片海域各拆成 3 張地圖，共 15 張：珊瑚王國 → 深淵海溝 → 沉沒古城 → 冰封海淵 → 海底火山。每片海域的第 3 張是原本的地圖，有海域霸主坐鎮；打倒霸主才能前往下一片海域。'],
       ['⚓ 船長與阿潮', '船長老海免費送你到珊瑚王國第 1 張。打倒某片海域的霸主後，碼頭邊的漁夫阿潮可以直接載你到下一片海域（每次收費）。'] ] },
