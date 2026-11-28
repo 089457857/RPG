@@ -164,6 +164,9 @@ kbd{font:700 12px ui-monospace,monospace;background:#2c3354;border:1px solid var
 .lead div{display:flex;justify-content:space-between;gap:10px;background:#10142a;border-radius:8px;padding:6px 10px;font-size:14px}
 .lead b{color:var(--gold)}
 .slot.cding::after{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(var(--cd)*100%);background:#000a;pointer-events:none}
+/* 手機長按不要跳出「拷貝／查詢／翻譯」選單，也不要選取文字（輸入框除外） */
+html,body,body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 </style>
 </head>
 <body>
@@ -289,6 +292,7 @@ function doAwk(){if(!P||P.dead)return;const g=D.GUARD[P.cls];
     sock.emit('awk',{},r=>{awkBusy=0;if(r&&r.ok&&r.fin){P.finUsed=1;awkFin(P,true)}else if(r&&r.msg)toast(r.msg)});return}
   if(awkBusy)return;awkBusy=1;
   sock.emit('awk',{},r=>{awkBusy=0;if(!r||!r.ok){if(r&&r.msg)toast(r.msg);return}P.awT0=performance.now();P.finUsed=0;P.ag=0;P.mount=0;fx.push({t:'lvup',x:P.x,y:P.y,life:90});ui();toast(P.cls==='dragon'?`你的龍進化成「${g.n}」！再按一次覺醒鍵放終結技「${g.fin}」`:`喚醒「${g.n}」！再按一次覺醒鍵放終結技「${g.fin}」`)})}
+document.addEventListener('contextmenu',e=>{if(!e.target.closest('input,textarea'))e.preventDefault()});document.addEventListener('selectstart',e=>{if(!e.target.closest('input,textarea'))e.preventDefault()});
 const KEYMAP={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',' ':'jump',Alt:'jump',z:'atk',Z:'atk',Control:'atk',x:'s1',X:'s1',c:'s2',C:'s2',v:'s3',V:'s3',b:'s4',B:'s4',f:'mount',F:'mount',n:'s5',N:'s5',m:'s6',M:'s6',a:'pot',A:'pot',s:'eth',S:'eth',g:'awk',G:'awk'};
 const pressed={};
 const typing=()=>{const a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')};
@@ -359,9 +363,10 @@ function updHero(){const p=P;if(p.dead){if(!p.ground){p.vy=Math.min(MAXF,p.vy+G)
   const upTap=tap('up');
   if((K.up||upTap)&&p.ground&&!cc){
     for(const n of npcsHere())if(Math.abs(p.x-n.x)<16){K.up=false;n.kind==='shop'?openShop():n.kind==='boat'?openBoat():openJob();return}
-    {const bm=talkBoss();if(bm){K.up=false;openBossTalk(bm);return}}
     if(myArena()){for(const pt of MAPS[MI].portals)if(Math.abs(p.x-pt.x)<18){K.up=false;toast('Boss 戰進行中，被空氣牆困住了，打倒牠才能離開！');return}}
-    for(const pt of MAPS[MI].portals)if(Math.abs(p.x-pt.x)<18&&Math.abs(p.y-GY)<1){K.up=false;usePortal(pt);return}}
+    // 站在傳送門上時優先進傳送門，不會被附近的 Boss 對話擋住
+    for(const pt of MAPS[MI].portals)if(Math.abs(p.x-pt.x)<18&&Math.abs(p.y-GY)<1){K.up=false;usePortal(pt);return}
+    {const bm=talkBoss();if(bm){K.up=false;openBossTalk(bm);return}}}
   if(!rooted&&(K.up||(K.down&&p.ground))){for(const r of ROPES){if(Math.abs(p.x-r.x)<10&&((K.up&&p.y>r.y1+2&&p.y<=r.y2+1)||(K.down&&Math.abs(p.y-r.y1)<1))){p.rope=r;p.x=r.x;if(K.down)p.y=r.y1+3;p.ground=false;return}}}
   const busy=(p.act>0&&p.ground)||rooted;let ax=0;if(!busy){if(K.left){ax=-1;p.f=-1}if(K.right){ax=1;p.f=1}}
   const MT=p.mount?D.MOUNTS[p.mnt||'horse']||D.MOUNTS.horse:null,sp=SPD*(MT?MT.spd:1)*(p.bf.rage>0?1.15:1)*(p.bf.haste>0?1.25:1)*(1+(p.max.spdB||0))*(p.slowT>0?.5:1);if(p.ground)p.vx=ax*sp;else p.vx+=(ax*sp-p.vx)*(p.dj?.02:.08);
@@ -823,7 +828,7 @@ const myFight=i=>{const f=BF[i];return !!(f&&f.u.has(myId))};
 const bossCanHit=i=>{const m=mons[i];return !m||!openBossOk(m)||myFight(i)};
 function myArena(){for(const i in BF)if(BF[i].u.has(myId))return BF[i];return null}
 const openBossOk=m=>{const d=MON[m.t];return d.boss&&!d.trial&&!d.rival&&!MAPS[MI].trial};
-function talkBoss(){const p=P;if(!p||myArena())return null;for(const m of mons){if(m.dead||!openBossOk(m))continue;if(Math.abs(p.x-m.x)<=D.bossZone(m.t)&&Math.abs(p.y-m.y)<60)return m}return null}
+function talkBoss(){const p=P;if(!p||myArena())return null;for(const m of mons){if(m.dead||!openBossOk(m))continue;if(Math.abs(p.x-m.x)<=Math.min(D.bossZone(m.t),m.w/2+70)&&Math.abs(p.y-m.y)<60)return m}return null}
 function openBossTalk(m){const d=MON[m.t],busy=BF[m.i],nm=(m.dark?'暗黑':'')+d.name,pt=typeof party!=='undefined'&&party?party.members.length-1:0;
   openPop(`<h2 style="${m.dark?'color:#c48aff':''}">${m.dark?'☠️ ':''}${esc(nm)}　Lv ${d.lv}</h2><p class="sub" style="margin:0;line-height:1.6">${busy?`牠正在和其他冒險者戰鬥，等這場打完再來挑戰。`:`${m.dark?'暗黑版：血量 ×'+D.DARK.hp+'、傷害 ×'+D.DARK.atk+'，掉落神話裝備的機會大增！<br>':''}發起挑戰後，<b>你和同地圖的隊友</b>會被傳送到戰場，四周升起空氣牆，<b>打倒牠之前離不開</b>（限時 ${D.FIGHT_MS/60000} 分鐘）。<br>全員倒地或時間到就算失敗，牠的血量會回滿。`}</p>
     <div class="row"><button class="btn" data-close="1">下次再說</button><button class="btn pri" data-fight="1" ${busy?'disabled':''}>⚔️ 發起挑戰</button></div>`,bt=>{
@@ -1383,7 +1388,7 @@ function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
     const sz=n.k==='crit'?22:n.k==='dmg'||n.k==='hurt'?18:n.k==='odmg'||n.k==='ef'?15:13;ctx.font=`900 ${sz}px "Noto Sans TC",sans-serif`;ctx.lineWidth=4;ctx.strokeStyle='#000';ctx.strokeText(n.v,x,y);
     ctx.fillStyle=n.col||{dmg:'#ffb13b',crit:'#ff4dd2',odmg:'#d8d8e8',ocrit:'#c9a6ff',hurt:'#c084ff',heal:'#7dff9a',mp:'#8ab8ff',gold:'#ffd23f',exp:'#fff27a'}[n.k];ctx.fillText(n.v,x,y)}ctx.globalAlpha=1;
   for(const m of mons){if(m.dead||!MON[m.t].boss)continue;label(m.x,m.y+6,`Lv${MON[m.t].lv} ${m.dark?'☠ 暗黑':''}${MON[m.t].name}`,m.dark?'#d8a8ff':'#ffd23f');
-    if(openBossOk(m)&&!BF[m.i]&&P&&Math.abs(P.x-m.x)<=D.bossZone(m.t)+40)label(m.x,m.y-m.h-30,TOUCH?'搖桿往上：對話挑戰':'按 ↑ 對話挑戰','#9fffb0');
+    if(openBossOk(m)&&!BF[m.i]&&P&&Math.abs(P.x-m.x)<=Math.min(D.bossZone(m.t),m.w/2+70)+30)label(m.x,m.y-m.h-30,TOUCH?'搖桿往上：對話挑戰':'按 ↑ 對話挑戰','#9fffb0');
     else if(BF[m.i]&&!BF[m.i].u.has(myId))label(m.x,m.y-m.h-30,'戰鬥中','#c0c0d0')}
   {const ar=myArena();if(ar){const left=Math.max(0,ar.left-(performance.now()-ar.t0)),mm=Math.floor(left/60000),ss=Math.floor(left/1000)%60;ctx.textAlign='center';ctx.font='900 15px "Noto Sans TC",sans-serif';ctx.fillStyle='#000a';ctx.fillRect(SW/2-70,88,140,24);ctx.fillStyle=left<60000?'#ff6a6a':'#f0d8ff';ctx.fillText(`⚔ Boss 戰 ${mm}:${String(ss).padStart(2,'0')}`,SW/2,105)}}
   for(const o of others.values()){label(o.x,o.y+3,`${inParty(o.id)?'👥':''}${o.name}　Lv${o.lv} ${CL[o.cls].jobs[o.job]}`,inParty(o.id)?'#7dff9a':'#9fe0ff');if(o.chatT>0)bubble(o.x,o.y-34,o.chat)}
