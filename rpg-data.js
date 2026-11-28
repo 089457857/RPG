@@ -448,7 +448,27 @@
   { const Y = { lv: 24, hp: 740, atk: 100, exp: 128, gold: [55, 80] }, F = { lv: 28, hp: 13000, atk: 150, exp: 2600, gold: [1500, 2000] };
     const mob = (name, m, o) => ({ name, tpl: 1, lv: Y.lv, hp: Math.round(Y.hp * m), atk: Y.atk, exp: Math.round(Y.exp * (m > 1 ? 1 + (m - 1) * .6 : 1)), gold: Y.gold, ...o });
     const boss = (name, m, o) => ({ name, tpl: 1, boss: true, lv: F.lv, hp: Math.round(F.hp * m), atk: F.atk, exp: F.exp, gold: F.gold, ...o });
+    const GM = { lv: 36, hp: 1550, atk: 185, exp: 285, gold: [120, 160] }, BR = { lv: 38, hp: 42000, atk: 260, exp: 8000, gold: [5000, 6000] };
+    const LT = m => ({ lv: GM.lv, hp: Math.round(GM.hp * m), atk: GM.atk, exp: Math.round(GM.exp * (m > 1 ? 1 + (m - 1) * .6 : 1)), gold: GM.gold });
+    const BT = m => ({ lv: BR.lv, hp: Math.round(BR.hp * m), atk: BR.atk, exp: BR.exp, gold: BR.gold });
     Object.assign(MON, {
+      // 熔岩（樣板：岩漿魔像 Lv36、炎魔王 Lv38，再由 LVMAP 換算）
+      emberbat: { ...mob('餘燼蝙蝠', .8, { w: 16, h: 10, spd: .85, sp: { k: 'homing', r: 120, n: '火星彈' } }), ...LT(.8) },
+      magmaworm: { ...mob('熔岩蠕蟲', 1.2, { w: 22, h: 10, spd: .35, sp: { k: 'quake', r: 60, rad: 60, n: '地底竄出' } }), ...LT(1.2) },
+      obsidianbeetle: { ...mob('黑曜甲蟲', 1.35, { w: 18, h: 12, spd: .4, sp: { k: 'roll', r: 80, dist: 90, n: '黑曜衝撞' } }), ...LT(1.35) },
+      ashwraith: { ...mob('灰燼幽魂', .9, { w: 14, h: 18, spd: .6, sp: { k: 'homing', r: 120, n: '灰燼詛咒' } }), ...LT(.9) },
+      sulfurtoad: { ...mob('硫磺蟾蜍', 1.1, { w: 18, h: 13, spd: .45, sp: { k: 'rain', r: 90, n: '毒氣噴吐' } }), ...LT(1.1) },
+      steamsprite: { ...mob('蒸汽精靈', .85, { w: 14, h: 16, spd: .6, sp: { k: 'icering', r: 60, rad: 62, n: '蒸汽爆發' } }), ...LT(.85) },
+      magmasnake: { ...mob('熔岩蛇', 1, { w: 22, h: 10, spd: .6, sp: { k: 'breath', r: 70, len: 80, n: '熔岩噴吐' } }), ...LT(1) },
+      lavahound: { ...mob('炎犬', 1, { w: 20, h: 14, spd: .8, sp: { k: 'breath', r: 70, len: 70, n: '火焰撲咬' } }), ...LT(1) },
+      lavafish: { ...mob('熔岩飛魚', .9, { w: 16, h: 12, spd: .7, sp: { k: 'rain', r: 100, n: '岩漿飛濺' } }), ...LT(.9) },
+      magmaknight: { ...mob('熔岩騎士', 1.35, { w: 16, h: 22, spd: .5, sp: { k: 'breath', r: 72, len: 78, n: '烈焰劍氣' } }), ...LT(1.35) },
+      coreguard: { ...mob('核心守衛', 1.5, { w: 22, h: 24, spd: .35, sp: { k: 'quake', r: 66, rad: 66, n: '核心脈衝' } }), ...LT(1.5) },
+      flamewisp: { ...mob('火靈', .85, { w: 12, h: 14, spd: .7, sp: { k: 'homing', r: 125, n: '追蹤火球' } }), ...LT(.85) },
+      salamander: { ...boss('火山蜥蜴王', .8, { w: 48, h: 30, spd: .65, sk: ['charge', 'breath', 'firefloor'], skn: { charge: '蜥蜴衝刺（往旁邊跳開）', breath: '烈焰吐息（繞到背後）', firefloor: '岩漿地板（跑到另一邊）' } }), ...BT(.8) },
+      obscorp: { ...boss('黑曜巨蠍', .9, { w: 52, h: 34, spd: .5, sk: ['tail', 'charge', 'homing'], skn: { tail: '毒尾橫掃（跳起來躲）', charge: '鉗擊突進（往旁邊閃）', homing: '黑曜碎片（一直移動）' } }), ...BT(.9) },
+      hydra: { ...boss('熔岩九頭蛇', 1, { w: 54, h: 50, spd: .35, sk: ['breath', 'rain', 'orbit'], skn: { breath: '三首吐焰（繞到背後）', rain: '硫磺雨（避開紅點）', orbit: '火球環繞（保持移動）' } }), ...BT(1) },
+      lavacroc: { ...boss('岩漿巨鱷', 1, { w: 60, h: 30, spd: .5, sk: ['charge', 'pull', 'firefloor'], skn: { charge: '巨鱷翻滾（往旁邊閃）', pull: '熔岩漩渦（往外跑）', firefloor: '岩漿潮（跑到另一邊）' } }), ...BT(1) },
       frosthare: mob('雪原跳兔', .8, { w: 12, h: 10, spd: .8, sp: { k: 'roll', r: 80, dist: 90, n: '跳跳撞' } }),
       crystalbug: mob('冰晶蟲', .9, { w: 14, h: 9, spd: .45, sp: { k: 'homing', r: 110, n: '冰晶彈' } }),
       iciclesprite: mob('冰柱精靈', .85, { w: 12, h: 16, spd: .6, sp: { k: 'rain', r: 90, n: '冰柱雨' } }),
@@ -475,7 +495,11 @@
     penguin: 19, shardcrab: 20, icebat: 21, mammoth: 22,
     blizzhawk: 22, yeti: 23, frostknight: 24, frostwyrm: 25,
     crystalguard: 25, frostwitch: 26, icegolem: 27, frost: 28,
-    fireslime: 30, imp: 36, golem: 42, balrog: 46,
+    fireslime: 30, emberbat: 31, magmaworm: 32, salamander: 33,
+    imp: 34, obsidianbeetle: 35, ashwraith: 36, obscorp: 37,
+    sulfurtoad: 37, steamsprite: 38, magmasnake: 39, hydra: 40,
+    lavahound: 40, golem: 41, lavafish: 42, lavacroc: 43,
+    magmaknight: 43, coreguard: 44, flamewisp: 45, balrog: 46,
     puffer: 46, seahorse: 47, coralguard: 48, mermqueen: 50,
     siren: 50, crab: 51, pirate: 52, kraken: 54,
     fishman: 54, ruinghost: 55, ancientguard: 56, ruinlord: 58,
@@ -623,8 +647,9 @@
     nova: { area: '虛空', fees: [26000, 28000, 31000, 35000], maps: [null, null, null, null] },
   };
   Object.assign(MAPS[4], { sea: 1 }); Object.assign(MAPS[3], { sea: 1, deep: 1 }); Object.assign(MAPS[5], { sea: 1, deep: 1 });
-  // ===== 冰雪五層：每層 3 張（第 3 張有 Boss）。冰雪山谷（MAPS[1]）改成第 5 層第 3 張：冰霜巨人的王座 =====
-  { let sd = 7; const rnd2 = () => (sd = (sd * 9301 + 49297) % 233280) / 233280;
+  // ===== 五層區域產生器：每層 3 張（第 3 張有 Boss），原本的區域地圖改成第 5 層第 3 張 =====
+  // cfg：area 區域名、vid 村莊、vname 村莊名、old 原地圖、nid 新地圖起始編號、guide 嚮導、seed、L 五層設定
+  const REGION = cfg => { let sd = 7; const rnd2 = () => (sd = (sd * 9301 + 49297) % 233280) / 233280, { area, vid, vname, old, guide, L } = cfg;
     // 平台產生器：一路往右排，高度一層一層變化，高的平台放繩子；Boss 圖右邊留給 Boss 戰場
     const lay = (seed, boss) => { sd = seed; const seg = [{ x1: 0, x2: WW, y: GY, g: 1 }], ropes = [], Y = [262, 224, 186, 148]; let x = 300, t = 0;
       while (x < (boss ? 1850 : 2300)) { const w = 140 + Math.round(rnd2() * 90); seg.push({ x1: x, x2: x + w, y: Y[t] });
@@ -632,30 +657,38 @@
         const up = t < 3 && rnd2() < .55, nt = t === 0 ? (rnd2() < .7 ? 1 : 0) : up ? t + 1 : Math.max(0, t - 1 - (rnd2() < .3 ? 1 : 0));
         x += nt > t ? w - 30 : w + 50 + Math.round(rnd2() * 60); t = nt; }
       return { seg, ropes }; };
-    const L = [
-      { n: '雪原', pal: 'snow', mobs: ['snowslime', 'frosthare', 'crystalbug'], boss: 'snowfox', maps: ['雪原入口', '白樺雪林', '雪狐丘'] },
-      { n: '冰柱林', pal: 'icewood', mobs: ['icewolf', 'iciclesprite', 'frostbeetle'], boss: 'iceent', maps: ['霜霧林道', '垂冰之森', '冰柱樹人的根'] },
-      { n: '冰河裂谷', pal: 'glacier', mobs: ['penguin', 'shardcrab', 'icebat'], boss: 'mammoth', maps: ['冰河灘', '裂谷冰橋', '猛瑪冰原'] },
-      { n: '暴風雪高原', pal: 'blizzard', mobs: ['blizzhawk', 'yeti', 'frostknight'], boss: 'frostwyrm', maps: ['風雪坡道', '冰甲哨站', '飛龍之巢'] },
-      { n: '冰晶宮殿', pal: 'crystal', mobs: ['crystalguard', 'frostwitch', 'icegolem'], boss: 'frost', maps: ['宮殿前庭', '冰晶迴廊', '冰霜巨人的王座'] },
-    ];
-    const ids = []; let nid = 28; for (let l = 0; l < 5; l++) { ids.push([]); for (let k = 0; k < 3; k++) ids[l].push(l === 4 && k === 2 ? 1 : nid++); }
+    const ids = []; let nid = cfg.nid; for (let l = 0; l < 5; l++) { ids.push([]); for (let k = 0; k < 3; k++) ids[l].push(l === 4 && k === 2 ? old : nid++); }
     L.forEach((ly, l) => ly.maps.forEach((nm, k) => {
-      const id = ids[l][k], isB = k === 2, { seg, ropes } = id === 1 ? { seg: MAPS[1].seg, ropes: MAPS[1].ropes } : lay(101 + l * 17 + k * 5, isB);
+      const id = ids[l][k], isB = k === 2, { seg, ropes } = id === old ? { seg: MAPS[old].seg, ropes: MAPS[old].ropes } : lay(cfg.seed + l * 17 + k * 5, isB);
       const [a, b2, c] = ly.mobs, main = [a, b2, c][k], side = [b2, c, a][k], plat = seg.map((_, i) => i).filter(i => i > 0 && (!isB || seg[i].x2 < 2050));
       const spawns = [...G(main, isB ? 6 : 9, 200, isB ? 1950 : 2350), ...G(side, isB ? 3 : 4, 300, isB ? 1950 : 2350), ...plat.slice(0, 9).map((s2, i) => ({ t: i % 3 === 2 ? side : main, s: s2 }))];
       if (isB) spawns.push({ t: ly.boss, s: 0, a: 2140, b: 2460 });
-      const prev = k > 0 ? ids[l][k - 1] : l > 0 ? ids[l - 1][2] : 19, next = k < 2 ? ids[l][k + 1] : l < 4 ? ids[l + 1][0] : null;
-      const portals = [{ x: 60, to: prev, tx: prev === 19 ? 1340 : 2490, label: prev === 19 ? '← 霜鈴村' : '←' }];
+      const prev = k > 0 ? ids[l][k - 1] : l > 0 ? ids[l - 1][2] : vid, next = k < 2 ? ids[l][k + 1] : l < 4 ? ids[l + 1][0] : null;
+      const portals = [{ x: 60, to: prev, tx: prev === vid ? 1340 : 2490, label: prev === vid ? `← ${vname}` : '←' }];
       if (next != null) portals.push({ x: 2560, to: next, tx: 150, label: k < 2 ? '→' : `${L[l + 1].n} →`, ...(isB ? { gate: ly.boss } : {}) });
+      // 原本地圖上的其他出口（例如地獄之門）保留
+      if (id === old) for (const pt of MAPS[old].portals) if (pt.x > 1000) portals.push(pt);
       const zones = isB ? [[2100, nm], [9e9, MON[ly.boss].name + '的巢穴']] : [[9e9, nm]];
-      MAPS[id] = { ...(id === 1 ? MAPS[1] : {}), name: `冰雪 ${l + 1}-${k + 1}・${nm}`, pal: ly.pal, home: 19, seg, ropes, spawns, zones, portals, start: 150,
+      MAPS[id] = { ...(id === old ? MAPS[old] : {}), name: `${area} ${l + 1}-${k + 1}・${nm}`, pal: ly.pal, home: vid, seg, ropes, spawns, zones, portals, start: 150,
         signs: k === 0 ? [[200, `${ly.n}`]] : [] };
     }));
-    // 霜鈴村 → 第 1 層；阿努克的各層捷徑（送到每層第 1 張，要先打倒前一層 Boss，每次收費）
-    MAPS[19].portals[1] = { x: 1440, to: ids[0][0], tx: 150, label: '雪原 →' }; MAPS[19].signs = MAPS[19].signs.map(sg => sg[0] > 700 ? [sg[0], '往雪原'] : sg);
-    LAYERS.snowback.maps = [1, 2, 3, 4].map(l => ({ to: ids[l][0], need: L[l - 1].boss }));
-  }
+    // 村莊 → 第 1 層；嚮導的各層捷徑（送到每層第 1 張，要先打倒前一層 Boss，每次收費）
+    const vp = MAPS[vid].portals.findIndex(pt => pt.x > 1000); MAPS[vid].portals[vp] = { x: 1440, to: ids[0][0], tx: 150, label: `${L[0].n} →` };
+    MAPS[vid].signs = (MAPS[vid].signs || []).map(sg => sg[0] > 700 ? [sg[0], '往' + L[0].n] : sg);
+    LAYERS[guide].maps = [1, 2, 3, 4].map(l => ({ to: ids[l][0], need: L[l - 1].boss }));
+    return ids; };
+  REGION({ area: '冰雪', vid: 19, vname: '霜鈴村', old: 1, nid: 28, guide: 'snowback', seed: 101, L: [
+    { n: '雪原', pal: 'snow', mobs: ['snowslime', 'frosthare', 'crystalbug'], boss: 'snowfox', maps: ['雪原入口', '白樺雪林', '雪狐丘'] },
+    { n: '冰柱林', pal: 'icewood', mobs: ['icewolf', 'iciclesprite', 'frostbeetle'], boss: 'iceent', maps: ['霜霧林道', '垂冰之森', '冰柱樹人的根'] },
+    { n: '冰河裂谷', pal: 'glacier', mobs: ['penguin', 'shardcrab', 'icebat'], boss: 'mammoth', maps: ['冰河灘', '裂谷冰橋', '猛瑪冰原'] },
+    { n: '暴風雪高原', pal: 'blizzard', mobs: ['blizzhawk', 'yeti', 'frostknight'], boss: 'frostwyrm', maps: ['風雪坡道', '冰甲哨站', '飛龍之巢'] },
+    { n: '冰晶宮殿', pal: 'crystal', mobs: ['crystalguard', 'frostwitch', 'icegolem'], boss: 'frost', maps: ['宮殿前庭', '冰晶迴廊', '冰霜巨人的王座'] } ] });
+  REGION({ area: '熔岩', vid: 20, vname: '焰舞村', old: 2, nid: 42, guide: 'lavaback', seed: 211, L: [
+    { n: '火山口', pal: 'lava', mobs: ['fireslime', 'emberbat', 'magmaworm'], boss: 'salamander', maps: ['火山口外圍', '焦岩坡', '火蜥蜴的溫床'] },
+    { n: '黑曜石洞窟', pal: 'obsidian', mobs: ['imp', 'obsidianbeetle', 'ashwraith'], boss: 'obscorp', maps: ['黑曜洞口', '玻璃岩廊', '巨蠍巢穴'] },
+    { n: '硫磺溫泉', pal: 'sulfur', mobs: ['sulfurtoad', 'steamsprite', 'magmasnake'], boss: 'hydra', maps: ['硫磺池畔', '蒸汽谷', '九頭蛇沼'] },
+    { n: '熔岩河', pal: 'magmariver', mobs: ['lavahound', 'golem', 'lavafish'], boss: 'lavacroc', maps: ['熔岩河岸', '浮石渡口', '巨鱷灣'] },
+    { n: '熔岩巨像核心', pal: 'core', mobs: ['magmaknight', 'coreguard', 'flamewisp'], boss: 'balrog', maps: ['巨像之腳', '巨像體內', '炎魔王的熔爐'] } ] });
   for (const g in LAYERS) { const L = LAYERS[g];
     L.maps.forEach((m, i) => { if (m && m.to != null) GUIDES[g].opts.push({ place: `${L.area}第 ${i + 2} 層`, to: m.to, tx: m.tx ?? 150, fee: L.fees[i], each: 1, need: m.need }); }); }
   // 強化材料與神話裝備：天空以後才會掉（sea：強化石／高級強化石，deep：神話強化石與神話裝備）
@@ -781,6 +814,10 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-29b', notes: [
+      ['🔥 熔岩五層', '熔岩區域擴建成 5 層、15 張地圖：火山口 → 黑曜石洞窟 → 硫磺溫泉 → 熔岩河 → 熔岩巨像核心。每層 Boss：火山蜥蜴王、黑曜巨蠍、熔岩九頭蛇、岩漿巨鱷，最深處是炎魔王的熔爐。'],
+      ['🐾 12 種新怪物', '餘燼蝙蝠、熔岩蠕蟲、黑曜甲蟲、灰燼幽魂、硫磺蟾蜍、蒸汽精靈、熔岩蛇、炎犬、熔岩飛魚、熔岩騎士、核心守衛、火靈。'],
+      ['💃 蕾拉妮的捷徑', '打倒每一層的 Boss 之後，焰舞村的蕾拉妮可以直接送你到下一層（每次收費）。'] ] },
     { v: '2026-11-29a', notes: [
       ['❄ 冰雪五層', '冰雪區域擴建成 5 層、15 張地圖：雪原 → 冰柱林 → 冰河裂谷 → 暴風雪高原 → 冰晶宮殿。每層第 3 張有 Boss：雪狐王、冰柱樹人、冰河猛瑪、暴風雪飛龍，最深處是冰霜巨人的王座。'],
       ['🐾 12 種新怪物', '雪原跳兔、冰晶蟲、冰柱精靈、霜甲蟲、冰河企鵝、碎冰蟹、冰翼蝙蝠、暴雪鷹、冰甲騎士、冰晶守衛、冰霜巫女、冰晶魔像。'],
