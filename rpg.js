@@ -912,13 +912,15 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       to = to === 11 ? 11 : 10; c.map = to; save(); ack && ack({ ok: true }); enter(to, D.MAPS[to].start);
     });
     // ---- 接待員：付一次，之後雙向免費 ----
-    socket.on('guide', ({ g } = {}, ack) => {
+    socket.on('guide', ({ g, i } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w) return no('');
       const G = D.GUIDES[g]; const npc = G && (D.MAPS[w.mi].npcs || []).find(n => n.kind === 'guide' && n.g === g);
       if (!npc) return no('這裡沒有這位接待員'); if (Math.abs(pl.x - npc.x) > 90) return no('離接待員太遠了');
-      c.guide ||= {}; const paid = c.guide[G.key];
-      if (!paid) { if (c.gold < G.fee) return no(`第一次搭乘需要 ${G.fee.toLocaleString()} 金幣`); c.gold -= G.fee; c.guide[G.key] = 1; }
-      c.map = G.to; save(); pushMe(uid); ack && ack({ ok: true, paid: !paid ? G.fee : 0 }); enter(G.to, G.tx ?? D.MAPS[G.to].start);
+      const o = G.opts[i | 0]; if (!o) return no('沒有這條路線');
+      if (o.need && !(c.slain || {})[o.need] && !isGM(uid)) return no(`要先打倒「${D.MON[o.need].name}」才能直接前往${o.place}`);
+      c.guide ||= {}; let paid = 0;
+      if (o.each || !c.guide[o.key]) { if (c.gold < o.fee) return no(`需要 ${o.fee.toLocaleString()} 金幣`); c.gold -= o.fee; paid = o.fee; if (!o.each) c.guide[o.key] = 1; }
+      c.map = o.to; save(); pushMe(uid); ack && ack({ ok: true, paid, each: o.each ? 1 : 0 }); enter(o.to, o.tx ?? D.MAPS[o.to].start);
     });
     // ---- 回城卷軸：唸 2 秒，回到這個區域的城鎮 ----
     const recallBlock = () => { if (!w) return '現在不能使用'; const mp = D.MAPS[w.mi]; if (mp.pvp || mp.trial) return '這裡不能使用回城卷軸';

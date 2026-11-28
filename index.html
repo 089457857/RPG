@@ -1415,13 +1415,15 @@ function drawTown(ox,gy){const M=MAPS[MI];
   if(M.sign){const sx=Math.round(M.sign[0]-ox);R(sx,gy-30,3,30,'#6b4423');R(sx-12,gy-34,28,12,'#a87a45')}
   if(M.station){for(const n of M.npcs){if(n.kind!=='guide')continue;const x=Math.round(n.x-ox);if(x<-40||x>IW+40)continue;const col={snow:'#9fd8ff',lava:'#ff8a4a',sea:'#4a9ad8',sky:'#fff2b0'}[n.g]||'#ccc';
     R(x-26,gy-46,3,46,'#6b4423');R(x+23,gy-46,3,46,'#6b4423');R(x-30,gy-52,60,8,col);R(x-30,gy-44,60,2,'#00000030')}}}
-function drawGuide(n,x,y){const g=n.g==='seaback'?'sea':n.g;R(x-6,y-1,12,2,'#0004');
+function drawGuide(n,x,y){const g=n.g.replace(/back$/,'');R(x-6,y-1,12,2,'#0004');
   if(g==='sky'){const fl=Math.sin(frame/8)*2;R(x-14,y-22+fl,7,10,'#ffffff');R(x-16,y-20+fl,4,7,'#e8f0ff');R(x+7,y-22+fl,7,10,'#ffffff');R(x+12,y-20+fl,4,7,'#e8f0ff')}
   const skin=g==='lava'?'#c98a5a':'#f4c79c';
   if(g==='snow'){R(x-6,y-13,12,13,'#7a5232');R(x-6,y-3,12,2,'#f4f4f4');R(x-1,y-12,2,10,'#5a3a20');R(x-7,y-26,14,6,'#7a5232');R(x-7,y-22,2,9,'#f4f4f4');R(x+5,y-22,2,9,'#f4f4f4');R(x-6,y-26,12,2,'#f4f4f4');R(x-5,y-21,10,8,skin);R(x+7,y-18,2,18,'#a8a8b0')}
   else if(g==='lava'){R(x-4,y-13,8,6,skin);for(let k=0;k<5;k++)R(x-6+k*3,y-7,2,7,k%2?'#4a9a3a':'#c8b040');R(x-5,y-14,10,2,'#ff4a6a');R(x-3,y-14,2,2,'#ffd23f');R(x+1,y-14,2,2,'#ffd23f');R(x-5,y-22,10,8,skin);R(x-6,y-25,12,4,'#1a1a1a');R(x-7,y-22,2,9,'#1a1a1a');R(x+5,y-22,2,9,'#1a1a1a');R(x+3,y-26,4,3,'#ff4a6a');
     const fl=frame%20<10;R(x+7,y-16,2,2,fl?'#ffd23f':'#ff8a3a');R(x+8,y-18,1,2,'#ff4a1a')}
   else if(g==='sea'){R(x-5,y-12,10,12,'#3a6ab0');R(x-3,y-12,6,4,'#e8e0d0');R(x-5,y-22,10,10,skin);R(x-9,y-24,18,3,'#e8c870');R(x-5,y-28,10,4,'#d8b860');R(x+7,y-30,1,28,'#8a6a4a');R(x+8,y-30,1,1,'#ccc')}
+  else if(g==='grave'){R(x-7,y-14,14,14,'#3a3448');R(x-7,y-2,14,2,'#2a2434');R(x-7,y-27,14,6,'#3a3448');R(x-8,y-23,2,10,'#3a3448');R(x+6,y-23,2,10,'#3a3448');R(x-5,y-21,10,8,'#d8cfc0');R(x+8,y-12,1,8,'#5a4a3a');const fl=frame%30<15;R(x+7,y-6,4,5,'#2a2a2a');R(x+8,y-5,2,3,fl?'#9affc8':'#5ad89a')}
+  else if(g==='nova'){R(x-6,y-13,12,13,'#3a2a7a');for(let k=0;k<4;k++)R(x-5+((k*7+frame/10|0)%10),y-12+k*3,1,1,'#fff6b0');R(x-6,y-13,12,2,'#9a7aff');R(x-5,y-22,10,9,'#f4dcc8');R(x-6,y-25,12,4,'#c8b8ff');R(x-7,y-22,2,7,'#c8b8ff');R(x+5,y-22,2,7,'#c8b8ff');R(x-1,y-29,2,3,'#fff6b0');R(x-2,y-28,4,1,'#fff6b0')}
   else{R(x-6,y-13,12,13,'#ffffff');R(x-6,y-13,12,2,'#ffd23f');R(x-1,y-11,2,9,'#f0e8d0');R(x-5,y-22,10,9,skin);R(x-6,y-25,12,4,'#ffe28a');R(x-5,y-30,10,2,'#ffd23f');R(x-6,y-29,2,1,'#ffd23f');R(x+4,y-29,2,1,'#ffd23f')}
   R(x-2,y-18,2,2,'#1a1a1a');R(x+2,y-18,2,2,'#1a1a1a');const by=y-40+Math.sin(frame/12+n.x)*1.5;R(x-10,by,20,10,'#fff');R(x-1,by+10,2,2,'#fff')}
 function drawNPC(n,ox,oy){if(n.kind==='guide'){const x=Math.round(n.x-ox),y=Math.round(GY-oy);if(x<-30||x>IW+30)return;drawGuide(n,x,y);return}const x=Math.round(n.x-ox),y=Math.round(GY-oy);if(x<-30||x>IW+30)return;const job=n.kind==='job';
@@ -1971,11 +1973,13 @@ $('#ptBtn').onclick=()=>{if(P&&$('#pop').hidden)openParty()};
 $('#ptYes').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:true},r=>{if(r&&!r.ok)toast(r.msg||'無法加入')});ptFrom=null;$('#ptReq').hidden=true};
 $('#ptNo').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:false});ptFrom=null;$('#ptReq').hidden=true};
 // ---------- 潮聲港碼頭 ----------
-function openGuide(n){const G=D.GUIDES[n.g];if(!G)return;const render=()=>{const paid=(P.guide||{})[G.key];
+function openGuide(n){const G=D.GUIDES[n.g];if(!G)return;const render=()=>{const gd=P.guide||{},sl=P.slain||{};
+  const opt=(o,i)=>{const lock=o.need&&!sl[o.need]&&!P.gmOk,paid=!o.each&&gd[o.key],cost=paid?0:o.fee;
+    return `<div class="job"><b>➜ ${o.place}</b><p>${lock?`要先打倒<b>${MON[o.need].name}</b>才能直接前往。`:o.each?`每次搭乘 <b>${o.fee.toLocaleString()}</b> 金幣。`:paid?'你已經付過費用，之後來回都免費。':`第一次搭乘需要 <b>${o.fee.toLocaleString()}</b> 金幣，付過之後來回都免費。`}</p><button class="btn pri sm" data-go="${i}" ${lock||P.gold<cost?'disabled':''}>${lock?'🔒 尚未開放':cost?`付 ${cost.toLocaleString()} 金出發`:'出發'}</button></div>`};
   openPop(`<h2>${esc(n.name)}</h2><p class="sub" style="margin:0;line-height:1.7">${G.d}</p>
-    <div class="jobs"><div class="job"><b>➜ ${G.place}</b><p>${paid?'你已經付過費用，之後來回都免費。':`第一次搭乘需要 <b>${G.fee.toLocaleString()}</b> 金幣，付過之後來回都免費。`}</p><button class="btn pri sm" data-go="1" ${!paid&&P.gold<G.fee?'disabled':''}>${paid?'出發':`付 ${G.fee.toLocaleString()} 金出發`}</button></div></div>
-    <div class="row"><button class="btn" data-close="1">下次再說</button></div>`,bt=>{if(bt.dataset.close){closePop();return}
-    if(bt.dataset.go){bt.disabled=true;sock.emit('guide',{g:n.g},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出發');bt.disabled=false;return}closePop();if(r.paid)toast(`支付 ${r.paid.toLocaleString()} 金幣，之後來回免費！`)})}})};render()}
+    ${G.opts.length?`<div class="jobs">${G.opts.map(opt).join('')}</div>`:''}
+    <div class="row"><button class="btn" data-close="1">${G.opts.length?'下次再說':'好的'}</button></div>`,bt=>{if(bt.dataset.close){closePop();return}
+    if(bt.dataset.go!=null){bt.disabled=true;sock.emit('guide',{g:n.g,i:+bt.dataset.go},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出發');bt.disabled=false;return}closePop();if(r.paid)toast(r.each?`支付 ${r.paid.toLocaleString()} 金幣`:`支付 ${r.paid.toLocaleString()} 金幣，之後來回免費！`)})}})};render()}
 let recall=null;
 function startRecall(){if(!P||P.dead||recall||!$('#pop').hidden)return;if(!((P.mat||{}).home>0)){toast('沒有回城卷軸，城鎮的雜貨商有賣');return}
   sock.emit('recallStart',{},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法使用');return}recall={t0:performance.now()};toast('📜 唸咒中……（被打會中斷）')})}
