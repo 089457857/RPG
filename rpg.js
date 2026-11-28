@@ -44,9 +44,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   // 也可以在專案裡放 gm.txt（一行一個暱稱），不用到 Render 設定環境變數
   const gmFile = (() => { try { return fs.readFileSync(path.join(dir, 'gm.txt'), 'utf8'); } catch (e) { return ''; } })();
   const GMS = new Set((String(process.env.RPG_GM || '') + '\n' + gmFile).split(/[,，\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean));
-  const isGM = uid => GMS.size > 0 && GMS.has(String(S.users[uid]?.name || '').toLowerCase());
+  const isGM = uid => GMS.size > 0 && (GMS.has(String(S.users[uid]?.name || '').toLowerCase()) || GMS.has(String(S.users[uid]?.login || '').toLowerCase()));
   // 角色名字：每個角色可以有自己的名字，沒取名就用帳號暱稱
-  const charName = (uid, c) => ((c && c.nm) || S.users[uid]?.name || '玩家') + (c && c.gm ? '［GM］' : '');
+  // 帳號只用來登入、別人看不到：沒取名的舊角色顯示舊暱稱（新帳號一律要取名）
+  const charName = (uid, c) => ((c && c.nm) || (S.users[uid]?.login ? '冒險者' : S.users[uid]?.name) || '玩家') + (c && c.gm ? '［GM］' : '');
   const nameOf = uid => charName(uid, S.rpg[uid]);
   const allChars = () => [...Object.entries(S.rpg), ...Object.entries(S.rpgAlt).flatMap(([u, a]) => a.slots.filter(Boolean).map(c => [u, c]))];
   const RENAME_GOLD = 50000;
@@ -55,7 +56,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     if (!/^[\p{L}\p{N}_\-]{2,16}$/u.test(nm)) return '名字需 2～16 個字，只能用文字、數字、底線或減號';
     const k = nm.toLowerCase();
     if (/gm/i.test(nm) && !isGM(uid)) return '名字不能包含 GM';
-    if (Object.entries(S.users).some(([u, x]) => u !== uid && String(x.name).toLowerCase() === k)) return '這個名字已經有人用了';
+    if (Object.entries(S.users).some(([u, x]) => u !== uid && !x.login && String(x.name).toLowerCase() === k)) return '這個名字已經有人用了';
     if (allChars().some(([, c]) => c !== self && c.nm && c.nm.toLowerCase() === k)) return '這個名字已經有人用了';
     return '';
   }
@@ -277,6 +278,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         setTimeout(() => { const k = ctl.get(uid); if (k && k.inTrial()) k.goRet(); }, 4500); }
       return;
     }
+    const fightU = m.fight ? new Set(m.fight.u) : null;   // Boss 戰的參戰者（含輔助）
     m.dead = d.boss ? 30 * D.BOSSRESPAWN : 30 * 7; m.hp = 0; if (m.fight) fightEnd(w, m, 'win');
     ns.to(w.room).emit('kill', { i: m.i });
     const y = D.MAPS[m.mi].seg[m.seg].y, now = Date.now(), news = [];
@@ -293,12 +295,15 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     ns.to(w.room).emit('drop', news);
     // 經驗：有出手的人，加上他們在同一張地圖的隊友（沒出手也有基本份額），一起打比較划算
     const total = Object.values(m.dmgBy).reduce((a, b) => a + b, 0) || 1, gain = new Set(Object.keys(m.dmgBy));
+    // 組隊：以「有出手的人」裡等級最高的為準；差 10 等內正常並有組隊加成，差越多分得越少（避免大號帶小號）
+    const topLv = Math.max(...Object.keys(m.dmgBy).map(u => (char(u) || {}).lv || 1)), gapMul = lv => { const g = topLv - lv; return g <= 10 ? 1 : g <= 15 ? .5 : g <= 20 ? .2 : .05; };
     for (const u of [...gain]) for (const v of partyMates(u)) if (w.players.has(v)) gain.add(v);
     for (const uid of gain) {
       const dmg = m.dmgBy[uid] || 0, c = char(uid); if (!c || !w.players.has(uid)) continue;
       const share = Math.min(1, dmg / total + .3), ld = d.lv - c.lv, ef = ld < -10 ? .3 : ld < -5 ? .65 : 1;
       // 低等玩家跟打高等怪：照樣有經驗，但單次最多約 1.5 級，避免一隻王直接衝十幾級
-      let e = Math.max(1, Math.round(d.exp * ef * share)); if (ld > 12) e = Math.min(e, Math.round(D.needExp(c.lv) * 1.5));
+      const mates = [...gain].filter(v => v !== uid && w.players.has(v) && Math.abs(((char(v) || {}).lv || 1) - c.lv) <= 10 && partyMates(uid).includes(v)).length;
+      let e = Math.max(1, Math.round(d.exp * ef * share * gapMul(c.lv) * (1 + .1 * Math.min(3, mates)))); if (ld > 12) e = Math.min(e, Math.round(D.needExp(c.lv) * 1.5));
       // 強化材料：海洋地圖
       if (D.MAPS[m.mi].sea || (d.boss && m.dark)) { const got = {}, give = (k2, v) => { if (v > 0) { c.mat[k2] = (c.mat[k2] || 0) + v; got[k2] = v; } }, mul = m.dark ? 5 : 1, deep = D.MAPS[m.mi].deep, sea = D.MAPS[m.mi].sea;
         if (d.boss) { if (sea) { give('s1', ri(5, 10) * mul); give('s2', ri(2, 4) * mul); if (deep) give('s3', ri(1, 3) * mul + Math.max(0, Math.floor((d.lv - 105) / 5))); if (Math.random() < .15) give('luck', 1); if (Math.random() < .1) give('guard', 1); }
@@ -323,8 +328,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     }
     if (d.boss) ns.to(w.room).emit('sys', { t: `${D.MON[m.t].name} 被打倒了！最後一擊：${nameOf(killer)}` });
     // 記錄打倒過的 Boss（地獄之門、虛空之門、之後的嚮導捷徑都看這個）
-    if (d.boss) for (const u of new Set([killer, ...gain])) {
-      const c = char(u); if (!c || !w.players.has(u)) continue; c.slain ||= {}; const first = !c.slain[m.t]; c.slain[m.t] = 1;
+    if (d.boss) for (const u of new Set([killer, ...gain, ...(fightU || [])])) {
+      const c = char(u); if (!c || !w.players.has(u)) continue; if (c.lv < d.lv - 10) { ns.to('u:' + u).emit('notice', { t: `等級和${d.name}差太多（要 Lv ${d.lv - 10} 以上），這次不算打倒過` }); continue; } c.slain ||= {}; const first = !c.slain[m.t]; c.slain[m.t] = 1;
       const gate = first && D.MAPS.some(mp => (mp.portals || []).some(p => p.gate === m.t)) && D.MAPS.flatMap(mp => mp.portals || []).find(p => p.gate === m.t);
       if (gate) ns.to('u:' + u).emit('notice', { t: `🚪 你打倒了${D.MON[m.t].name}，「${gate.label.replace(/ →$/, '')}」為你開啟了！` });
       pushMe(u);
@@ -388,6 +393,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   ns.use((socket, next) => {
     const uid = S.sessions[socket.handshake.auth?.token];
     if (!uid || !S.users[uid]) return next(new Error('auth'));
+    if (S.users[uid].frozen) return next(new Error('frozen'));
     if (S.maint && !isGM(uid)) return next(new Error('maint'));   // 維護中：只有 GM 能進
     socket.data.uid = uid; next();
   });
@@ -403,6 +409,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     // 所有減傷相乘，但總減傷最多 80%
     let red = (D.CL[tc.cls].dr || 1) * (tpl.mount ? 1 - ((D.MOUNTS[tpl.mount] || {}).dr || .25) : 1) * (now < (tpl.guardT || 0) ? .7 : 1) * (now < (tpl.shieldT || 0) ? .6 : 1) * (now < (tpl.wingT || 0) ? .5 : 1) * (ta ? 1 - ta.dr : 1);
     dmg *= Math.max(1 - D.AWK.drCap, red);
+    dmg = Math.min(dmg, (tpl.pmax || 1) * (fin ? D.PVPCAP_FIN : D.PVPCAP));   // 單次傷害上限：避免一擊秒殺
     return { dmg: Math.max(1, Math.round(dmg)), crit };
   }
   // ---- PVP 擊倒（直接攻擊或燒傷／中毒都會走這裡） ----
@@ -469,7 +476,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       // 同一個帳號只留一個連線在世界裡
       for (const w2 of allWorlds()) w2.players.delete(uid);
       w.players.set(uid, pl); socket.join(w.room);
-      if (isPvp(w)) { const st = D.stats(char(uid)); pl.pmax = st.hp; pl.php = st.hp; pl.prot = Date.now() + 2500; pl.hpPct = 100; }
+      if (isPvp(w)) { const st = D.stats(char(uid)); pl.pmax = st.hp * D.PVPHP; pl.php = pl.pmax; pl.prot = Date.now() + 2500; pl.hpPct = 100; }
       else { pl.php = null; }
       socket.emit('init', {
         map: mi, x: pl.x,
@@ -487,7 +494,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     ctl.set(uid, { pl, goRet, wmi: () => w ? w.mi : -1, inTrial: () => !!(w && trials.get(uid) === w), enter: (mi, x) => { saveRet(); enter(mi, x); } });
     function pvpHp(v) { pl.php = clamp(Math.round(v), 0, pl.pmax); pl.hpPct = Math.round(pl.php / pl.pmax * 100); socket.emit('php', { hp: pl.php, max: pl.pmax }); }
 
-    socket.emit('hello', { gm: isGM(uid) ? 1 : 0, me: me(uid), name: S.users[uid]?.name || '玩家', id: uid, list: slotList(uid), act: alt(uid).act });
+    socket.emit('hello', { gm: isGM(uid) ? 1 : 0, migrate: S.users[uid]?.login ? 0 : 1, me: me(uid), name: S.users[uid]?.login ? '' : (S.users[uid]?.name || ''), id: uid, list: slotList(uid), act: alt(uid).act });
     function leaveWorld() { if (pl.duel) { const du = duels.get(pl.duel); if (du) duelEnd(pl.duel, du.a === uid ? du.b : du.a, '對手離開'); } if (w) { w.players.delete(uid); ns.to(w.room).emit('pleave', { id: uid }); socket.leave(w.room); if (trials.get(uid) === w) trials.delete(uid); w = null; } ret = null; }
     // 切換到第 i 格（使用中的角色收回自己的格子）
     function swapTo(i) { const a = alt(uid); if (i === a.act) return; a.slots[a.act] = S.rpg[uid] || null; S.rpg[uid] = a.slots[i]; a.slots[i] = null; a.act = i; if (!S.rpg[uid]) delete S.rpg[uid]; }
@@ -501,7 +508,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (!D.CL[cls]) return ack && ack({ ok: false });
       if (!isGM(uid)) cls = 'novice';   // 新角色一律從戰五渣開始（GM 測試可以直接建立任何職業）
       if (D.HIDDEN[cls] && !isGM(uid)) return ack && ack({ ok: false, msg: '這個職業還沒開放' });
-      nm = String(nm || '').trim(); if (nm) { const er = nameErr(uid, nm, null); if (er) return ack && ack({ ok: false, msg: er }); }
+      nm = String(nm || '').trim(); if (!nm) return ack && ack({ ok: false, msg: '請幫角色取一個名字' }); { const er = nameErr(uid, nm, null); if (er) return ack && ack({ ok: false, msg: er }); }
       const a = alt(uid); slot = slot == null ? a.act : slot | 0; if (slot < 0 || slot >= MAXSLOT) return ack && ack({ ok: false });
       if ((slot === a.act ? S.rpg[uid] : a.slots[slot])) return ack && ack({ ok: false, msg: '這一格已經有角色了' });
       awSave(uid, pl); leaveWorld(); swapTo(slot); awLoad(uid, pl); S.rpg[uid] = D.newChar(cls); if (nm) S.rpg[uid].nm = nm; save(); ack && ack({ ok: true, me: me(uid) });
@@ -706,7 +713,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const now = Date.now();
       if (now - (potT[k] || 0) < D.POTCD - 250) return ack && ack({ ok: false, cd: 1, me: me(uid) }); // 留 250ms 給網路延遲
       potT[k] = now; c[k]--; save(); ack && ack({ ok: true, me: me(uid) });
-      if (k === 'pot' && isPvp(w) && pl.php > 0) { const st = D.stats(c); pvpHp(pl.php + (st.hp * .35 + 40) * (1 + (st.potB || 0))); }
+      if (k === 'pot' && isPvp(w) && pl.php > 0) { const st = D.stats(c); pvpHp(pl.php + (pl.pmax * .35 + 40) * (1 + (st.potB || 0))); }
     });
     socket.on('buy', ({ k, i, n } = {}, ack) => {
       const c = char(uid); if (!c) return ack && ack({ ok: false });
@@ -768,8 +775,21 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     });
     // ---- GM 測試角色：直接變成指定職業／轉數／等級，裝備給到該等級最好的（不列入任何排行榜） ----
     // ---------------- 鑽石：GM 手動發放（留紀錄）、商城購買 ----------------
-    const findUser = nm => { nm = String(nm || '').trim().toLowerCase(); if (!nm) return null; for (const [u, us] of Object.entries(S.users)) if (String(us.name || '').toLowerCase() === nm) return u;
+    const findUser = nm => { nm = String(nm || '').trim().toLowerCase(); if (!nm) return null; for (const [u, us] of Object.entries(S.users)) if (String(us.name || '').toLowerCase() === nm || String(us.login || '').toLowerCase() === nm) return u;
       for (const u of Object.keys(S.users)) if (String(nameOf(u) || '').toLowerCase() === nm) return u; return null; };
+    // ---- GM：帳號管理（查登入紀錄、凍結、重設密碼）----
+    socket.on('gmAcct', async ({ name, act } = {}, ack) => {
+      const no = msg => ack && ack({ ok: false, msg }); if (!isGM(uid)) return no('只有 GM 帳號可以使用');
+      const to = findUser(name); if (!to) return no('找不到這個玩家（帳號、舊暱稱或角色名稱）'); const us = S.users[to];
+      let pw = '';
+      if (act === 'freeze' || act === 'unfreeze') { if (to === uid) return no('不能凍結自己'); us.frozen = act === 'freeze' ? 1 : 0;
+        if (us.frozen) { for (const [t, id] of Object.entries(S.sessions)) if (id === to) delete S.sessions[t]; for (const s2 of ns.sockets.values()) if (s2.data.uid === to) { s2.emit('kicked', { why: 'frozen' }); s2.disconnect(true); } } }
+      else if (act === 'reset') { const A = 'abcdefghjkmnpqrstuvwxyz', N = '23456789'; pw = ''; for (let i = 0; i < 8; i++) pw += A[Math.floor(Math.random() * A.length)]; pw += N[Math.floor(Math.random() * N.length)] + N[Math.floor(Math.random() * N.length)];
+        us.hash = await require('bcryptjs').hash(pw, 10); for (const [t, id] of Object.entries(S.sessions)) if (id === to) delete S.sessions[t]; for (const s2 of ns.sockets.values()) if (s2.data.uid === to) { s2.emit('kicked', { why: 'pw' }); s2.disconnect(true); } }
+      if (act) save();
+      const chars = [S.rpg[to], ...((S.rpgAlt[to] || {}).slots || [])].filter(Boolean).map(c => `${c.nm || '（未取名）'} Lv${c.lv} ${D.jobName(c)}`);
+      ack && ack({ ok: true, acct: { login: us.login || '（舊帳號，尚未改新規則）', name: us.name, frozen: us.frozen ? 1 : 0, created: us.created || 0, logins: (us.logins || []).slice(0, 15), chars }, pw });
+    });
     socket.on('maint', ({ on } = {}, ack) => {   // GM：開關維護模式（開啟時把非 GM 玩家請出去）
       if (!isGM(uid)) return ack && ack({ ok: false, msg: '只有 GM 帳號可以使用' });
       if (on != null) {

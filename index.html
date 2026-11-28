@@ -194,22 +194,25 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;-webk
           <h2>登入冒險者帳號</h2>
           <p class="sub" style="margin:0 0 10px">用暱稱和密碼登入，沒有帳號可以直接註冊。角色存在伺服器上，換手機或電腦都能接著玩。</p>
           <form class="auth" id="authForm">
-            <input id="aName" placeholder="暱稱" autocomplete="username" required maxlength="16" aria-label="暱稱">
+            <input id="aName" placeholder="帳號（舊帳號用原本的暱稱登入）" autocomplete="username" required maxlength="16" aria-label="帳號">
             <input id="aPass" type="password" placeholder="密碼" autocomplete="current-password" required maxlength="64" aria-label="密碼">
+            <p class="keys" id="aRule" style="margin:0" hidden>帳號和密碼都要 8～16 碼，只能用英文字母和數字，而且兩種都要有。遊戲裡顯示的是角色名字，帳號別人看不到。</p>
             <div class="err" id="aErr"></div>
             <button class="btn pri" type="submit" id="aBtn">登入</button>
             <button class="btn" type="button" id="aSwitch">還沒有帳號？註冊</button>
+            <button class="btn sm" type="button" id="aRecover">忘記密碼／帳號被盜？</button>
           </form>
         </div>
         <div class="panel" id="charPanel" hidden>
           <h2>選擇角色</h2>
           <p class="sub" style="margin:0" id="charHi"></p>
           <div class="classes" id="slots"></div>
+          <div class="row" style="margin-top:10px"><button class="btn" type="button" id="acctBtn2">帳號設定</button><button class="btn red" type="button" id="logoutBtn">登出</button></div>
         </div>
         <div class="panel" id="clsPanel" hidden>
           <h2>建立新角色</h2>
           <p class="sub" style="margin:0" id="hiName"></p>
-          <label class="nmrow">角色名字 <input id="newNm" maxlength="16" placeholder="可留空，留空就用帳號暱稱" aria-label="角色名字"></label>
+          <label class="nmrow">角色名字 <input id="newNm" maxlength="16" placeholder="必填，可以用中文" aria-label="角色名字"></label>
           <div class="classes" id="classes"></div>
           <div class="row" style="margin-top:10px"><button class="btn" type="button" id="clsBack">返回角色列表</button></div>
         </div>
@@ -232,7 +235,7 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text;-webk
         <div class="b xp"><i id="uXp"></i><span id="uXpT"></span></div>
       </div>
       <button class="btn sm menub" id="menuBtn" type="button" aria-expanded="false" aria-label="選單">☰</button>
-      <div class="inv"><span class="g" id="uGold">0</span><span class="g" id="uDia" style="color:#7fd3ff">0 💎</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="slot" type="button" id="homeSlot" aria-label="回城卷軸"><b id="uHome">0</b>回城 H</button><button class="btn sm" id="pvpBtn">PVP</button><button class="btn sm" id="ptBtn">隊伍</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="bagBtn">背包</button><button class="btn sm" id="gearBtn2">裝備</button><button class="btn sm" id="cashBtn">💎 商城</button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><button class="btn sm" id="gmBtn" style="display:none">GM</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
+      <div class="inv"><span class="g" id="uGold">0</span><span class="g" id="uDia" style="color:#7fd3ff">0 💎</span><button class="slot" type="button" id="potSlot" aria-label="喝紅藥水"><b id="uPot">0</b>紅藥 A</button><button class="slot" type="button" id="ethSlot" aria-label="喝藍藥水"><b id="uEth">0</b>藍藥 S</button><button class="slot" type="button" id="homeSlot" aria-label="回城卷軸"><b id="uHome">0</b>回城 H</button><button class="btn sm" id="pvpBtn">PVP</button><button class="btn sm" id="ptBtn">隊伍</button><button class="btn sm" id="skBtn">技能</button><button class="btn sm" id="apBtn">能力<span class="badge" id="apBadge" hidden></span></button><button class="btn sm" id="bagBtn">背包</button><button class="btn sm" id="gearBtn2">裝備</button><button class="btn sm" id="cashBtn">💎 商城</button><button class="btn sm" id="petBtn">寵物</button><button class="btn sm" id="infoBtn">角色</button><button class="btn sm" id="fsBtn">全螢幕</button><button class="btn sm" id="resetBtn">換角</button><button class="btn sm" id="acctBtn">帳號</button><button class="btn sm" id="gmBtn" style="display:none">GM</button><span class="pwa-tip" id="pwaTip">想要沒有網址列的全螢幕？用 Safari／Chrome 開啟後選「加入主畫面」，從桌面圖示進入遊戲。</span></div>
     </div>
     <div class="chat" id="chat" hidden>
       <div class="log" id="log" aria-live="polite"></div>
@@ -2232,19 +2235,24 @@ function openGM(){const sel=(id,opts,v)=>`<select id="${id}">${opts.map(([k,n])=
   const render=(cls,job,lv,pet)=>{const c=CL[cls];openPop(`<h2>GM 測試角色</h2><p class="sub" style="margin:0">把目前這個角色直接變成指定的職業、轉數和等級，裝備自動換成該等級最好的（Lv 80 給傳說武器），附上所有可用坐騎、999 瓶藥水和 999 萬金幣（可以無限重置能力點）。GM 角色<b>不會出現在任何排行榜</b>，名字後面會顯示［GM］。</p>
     <div class="gmf"><label>職業 ${sel('gmCls',Object.keys(CL).map(k=>[k,CL[k].jobs[0]]),cls)}</label><label>轉數 ${sel('gmJob',c.jobs.map((j,i)=>[i,['初始','一轉','二轉','三轉','四轉'][i]+'　'+j]),job)}</label>
     <label>等級 <input id="gmLv" type="number" min="1" max="${D.MAXTOP}" value="${lv}"></label><label>寵物 ${sel('gmPet',[['','（無）'],...Object.entries(D.PETS).map(([k,p])=>[k,p.n])],pet)}</label></div>
-    <p class="keys" style="margin:6px 0 0">轉數會依等級自動調整（一轉 15、二轉 30、三轉 45、四轉 60）；寵物需要 Lv ${D.PETLV}。能力點會全部退回，請到「能力」自己配點。</p>
+    <p class="keys" style="margin:6px 0 0">轉數會依等級自動調整（一轉 25、二轉 40、三轉 55、四轉 70）；寵物需要 Lv ${D.PETLV}。能力點會全部退回，請到「能力」自己配點。</p>
     <h3 style="margin:12px 0 4px">🔧 維護模式</h3><p class="keys" style="margin:0 0 6px">開啟後只有 GM 帳號能進遊戲，線上的其他玩家會被請出去。目前：<b id="gmMaintSt">讀取中…</b></p><div class="row"><button class="btn red sm" data-gmaint="1">開始維護</button><button class="btn sm" data-gmaint="0">結束維護</button></div>
     <h3 style="margin:12px 0 4px">💎 發放鑽石</h3><div class="gmf"><label>玩家（帳號或角色名稱）<input id="gdName" maxlength="20"></label><label>數量（負數＝扣除）<input id="gdN" type="number" value="100"></label><label>備註<input id="gdNote" maxlength="40" placeholder="例如：轉帳 100 元"></label></div>
     <div class="row" style="margin:6px 0"><button class="btn pri sm" data-gdia="1">發放</button><button class="btn sm" data-glog="1">查看紀錄</button></div><div id="gdLog" class="keys" style="max-height:140px;overflow:auto"></div>
+    <h3 style="margin:12px 0 4px">👤 帳號管理（被盜處理）</h3><div class="gmf"><label>玩家（帳號、舊暱稱或角色名稱）<input id="gaName" maxlength="20"></label></div>
+    <div class="row" style="margin:6px 0;justify-content:flex-start"><button class="btn sm" data-gac="">查詢</button><button class="btn red sm" data-gac="freeze">凍結</button><button class="btn sm" data-gac="unfreeze">解凍</button><button class="btn sm" data-gac="reset">重設密碼</button></div><div id="gaOut" class="keys" style="max-height:180px;overflow:auto"></div>
     <div class="row"><button class="btn" data-close="1">關閉</button><button class="btn pri" data-gmgo="1">套用</button></div>`,bt=>{
     const showLog=log=>{$('#gdLog').innerHTML=(log||[]).map(e=>`${new Date(e.t).toLocaleString('zh-TW',{hour12:false})}　${esc(e.by)} → ${esc(e.to)}　${e.n>0?'+':''}${e.n} 💎（餘 ${e.bal}）${e.note?'　'+esc(e.note):''}`).join('<br>')||'（沒有紀錄）'};
     if(bt.dataset.glog){sock.emit('diaLog',{},r=>{if(r&&r.ok)showLog(r.log)});return}
+    if(bt.dataset.gac!=null){const act=bt.dataset.gac;if(act&&!confirm2(bt.dataset,act==='freeze'?'確定凍結這個帳號？':act==='reset'?'確定重設密碼？':'確定解凍？'))return;sock.emit('gmAcct',{name:$('#gaName').value.trim(),act},r=>{if(!r||!r.ok){toast(r&&r.msg||'失敗');return}const a=r.acct;
+      $('#gaOut').innerHTML=`帳號：<b>${esc(a.login)}</b>（暱稱 ${esc(a.name)}）　狀態：${a.frozen?'<b style="color:#ff8a8a">已凍結</b>':'正常'}${r.pw?`<br>新密碼：<b style="color:#ffd23f;user-select:all">${esc(r.pw)}</b>（請轉告玩家，登入後到「帳號」自己改）`:''}<br>角色：${a.chars.map(esc).join('、')||'（無）'}<br>最近登入：<br>${a.logins.map(l=>`${new Date(l.t).toLocaleString('zh-TW',{hour12:false})}　${esc(l.ip||'')}`).join('<br>')||'（沒有紀錄）'}`});return}
     if(bt.dataset.gmaint!=null){const on=bt.dataset.gmaint==='1';if(on&&!confirm2(bt.dataset,'確定開始維護？線上玩家會被請出去'))return;sock.emit('maint',{on},r=>{if(!r||!r.ok){toast(r&&r.msg||'失敗');return}$('#gmMaintSt').textContent=r.on?'維護中':'開放中';toast(r.on?`已開始維護（請出 ${r.kicked} 人）`:'已結束維護，玩家可以進來了')});return}
     if(bt.dataset.gdia){const nm=$('#gdName').value.trim(),n=+$('#gdN').value;if(!nm||!n){toast('請輸入玩家和數量');return}if(!confirm2(bt.dataset,`確定發給「${nm}」${n} 💎？`))return;sock.emit('giveDia',{name:nm,n,note:$('#gdNote').value},r=>{if(!r||!r.ok){toast(r&&r.msg||'失敗');return}toast(`已發給 ${r.to} ${n} 💎（餘額 ${r.bal}）`);showLog(r.log);sock.emit('diaLog',{},()=>{})});return}
     if(bt.dataset.gmgo){bt.disabled=true;sock.emit('gm',{cls:$('#gmCls').value,job:+$('#gmJob').value,lv:+$('#gmLv').value,pet:$('#gmPet').value},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法套用');bt.disabled=false;return}applyMe(r.me);P.hp=P.max.hp;P.mp=P.max.mp;ui();closePop();toast(`已切換為 ${CL[P.cls].jobs[P.job]} Lv ${P.lv}`)})}});
     $('#gmCls').onchange=()=>render($('#gmCls').value,+$('#gmJob').value,+$('#gmLv').value,$('#gmPet').value)};
   render(P.cls,P.job,P.lv,P.pet||'');sock.emit('maint',{},r=>{const e=$('#gmMaintSt');if(e&&r&&r.ok)e.textContent=r.on?'維護中':'開放中'})}
 $('#gmBtn').onclick=()=>{if(P&&$('#pop').hidden)openGM()};
+$('#acctBtn').onclick=()=>{if($('#pop').hidden)openAcct()};$('#acctBtn2').onclick=()=>openAcct();$('#logoutBtn').onclick=()=>logout();$('#aRecover').onclick=()=>openRecover();
 $('#skBtn').onclick=()=>{if(P&&$('#pop').hidden)openSkills()};
 $('#apBtn').onclick=()=>{if(P&&$('#pop').hidden)openAP()};
 $('#petBtn').onclick=()=>{if(P&&$('#pop').hidden)openPet()};$('#bagBtn').onclick=()=>{if(P&&$('#pop').hidden)openBag()};$('#gearBtn2').onclick=()=>{if(P&&$('#pop').hidden)openGear()};$('#cashBtn').onclick=()=>{if(P&&$('#pop').hidden)openCash()};
@@ -2257,10 +2265,10 @@ let token=null;try{token=localStorage.getItem('pyan-token')}catch(e){}
 let regMode=false;
 function maintScreen(){paused=true;$('#net').textContent='伺服器維護中';openPop(`<h2>🔧 伺服器維護中</h2><p class="sub" style="margin:0;line-height:1.7">屁眼王國正在進行大改版，暫時關閉。<br>更新完成後就會重新開放，請稍後再回來！</p><div class="row" style="margin-top:12px"><button class="btn pri" data-mretry="1">重新連線</button></div>`,bt=>{if(bt.dataset.mretry){closePop();connect()}})}
 function showPanel(id){for(const p of ['authPanel','charPanel','clsPanel','waitPanel'])$('#'+p).hidden=p!==id;$('#title').hidden=false;paused=true}
-$('#aSwitch').onclick=()=>{regMode=!regMode;$('#aBtn').textContent=regMode?'註冊並登入':'登入';$('#aSwitch').textContent=regMode?'已經有帳號？登入':'還沒有帳號？註冊';$('#aErr').textContent=''};
+$('#aSwitch').onclick=()=>{regMode=!regMode;$('#aRule').hidden=!regMode;$('#aBtn').textContent=regMode?'註冊並登入':'登入';$('#aSwitch').textContent=regMode?'已經有帳號？登入':'還沒有帳號？註冊';$('#aErr').textContent=''};
 $('#authForm').onsubmit=async e=>{e.preventDefault();$('#aErr').textContent='';$('#aBtn').disabled=true;
   try{const r=await fetch(regMode?'/api/register':'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('#aName').value,pass:$('#aPass').value})});const j=await r.json();if(!r.ok)throw new Error(j.error||'失敗');
-    token=j.token;try{localStorage.setItem('pyan-token',token)}catch(x){}connect()}catch(err){$('#aErr').textContent=err.message||'連線失敗，請稍後再試'}$('#aBtn').disabled=false};
+    token=j.token;try{localStorage.setItem('pyan-token',token)}catch(x){}if(j.rec){showRec(j.rec,connect);return}connect()}catch(err){$('#aErr').textContent=err.message||'連線失敗，請稍後再試'}$('#aBtn').disabled=false};
 $('#classes').innerHTML=Object.entries(CL).map(([k,c])=>`<button class="cls" data-cls="${k}"${k!=='novice'?' data-hid="1" style="display:none"':''}><canvas width="26" height="26" data-pc="${k}"></canvas><b style="color:${k==='rogue'?'#c9cde0':c.col}">${c.name}${D.HIDDEN[k]?'（GM 測試）':''}</b><span class="d">${c.desc}</span><span class="k">${k==='novice'?'Lv 10 到像素村拜師，選擇你的職業':`轉職：${c.jobs[1]} → ${c.jobs[2]}`}</span><span class="k">HP ${c.base.hp} · MP ${c.base.mp} · 攻擊 ${c.base.atk} · 爆擊 ${c.base.crit}%</span></button>`).join('');
 document.querySelectorAll('[data-pc]').forEach(pc=>{const k=pc.dataset.pc,c2=pc.getContext('2d');b.clearRect(0,0,26,26);drawBody({x:13,y:25,f:1,cls:k,ground:true,walk:0,act:0,rope:null,job:0,wep:0},0,0);c2.drawImage(buf,0,0,26,26,0,0,26,26)});
 $('#classes').addEventListener('click',e=>{const bt=e.target.closest('.cls');if(!bt||!sock)return;sock.emit('create',{cls:bt.dataset.cls,slot:curSlot,nm:$('#newNm').value.trim()},r=>{if(r&&r.ok){P=null;applyMe(r.me);enterWorld(true)}else toast(r&&r.msg||'建立失敗')})});
@@ -2276,14 +2284,43 @@ $('#slots').addEventListener('click',e=>{const bt=e.target.closest('button');if(
   if(bt.dataset.del!==undefined){if(!bt.dataset.sure){bt.dataset.sure=1;bt.textContent='確定刪除？';setTimeout(()=>{bt.dataset.sure='';bt.textContent='刪除'},3000);return}
     sock.emit('delSlot',{i:+bt.dataset.del},r=>{if(r&&r.ok)showChars(r.list,r.act)})}});
 $('#clsBack').onclick=()=>sock&&sock.emit('chars',{},r=>showChars(r.list,r.act));
-function enterWorld(fresh){showPanel('waitPanel');$('#waitTx').textContent='進入世界中…';sock.emit('enter',{},r=>{if(r&&r.ok){inWorld=true;$('#title').hidden=true;paused=false;if(fresh)toast('往右走去打怪吧！靠近繩子按 ↑ 可以往上爬')}})}
+function enterWorld(fresh){showPanel('waitPanel');$('#waitTx').textContent='進入世界中…';sock.emit('enter',{},r=>{if(r&&r.ok){inWorld=true;setTimeout(function chk(){if(needMig===1||!$('#pop').hidden){setTimeout(chk,1000);return}if(P&&!P.nm)needName()},1200);$('#title').hidden=true;paused=false;if(fresh)toast('往右走去打怪吧！靠近繩子按 ↑ 可以往上爬')}})}
+// ================= 帳號：復原碼、舊帳號轉換、修改密碼、登出 =================
+const ACC_RE=/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{8,16}$/,ACC_TIP='8～16 碼，只能用英文字母和數字，而且兩種都要有';
+const api=(p,b)=>fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,...b})}).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'失敗');return j});
+function showRec(rec,then){openPop(`<h2>🔑 你的復原碼</h2><p class="sub" style="margin:0;line-height:1.7">忘記密碼或帳號被盜時，可以用這組復原碼重設密碼。<b>請截圖或抄下來保存</b>，它只會顯示這一次。</p>
+  <p style="font:900 22px monospace;letter-spacing:2px;text-align:center;margin:14px 0;color:#ffd23f;user-select:all">${esc(rec)}</p><div class="row"><button class="btn pri" data-ok="1">我已經保存好了</button></div>`,bt=>{if(bt.dataset.ok){closePop();then&&then()}})}
+function logout(){try{localStorage.removeItem('pyan-token')}catch(x){}token=null;if(sock){sock.removeAllListeners();sock.disconnect();sock=null}inWorld=false;P=null;ready=false;closePop();$('#ui').hidden=true;$('#chat').hidden=true;$('#aPass').value='';showPanel('authPanel')}
+function openMigrate(then){const render=(err)=>openPop(`<h2>🔐 請設定新的帳號密碼</h2><p class="sub" style="margin:0;line-height:1.7">為了帳號安全，請改成新規則的帳號和密碼（${ACC_TIP}）。之後要用新帳號登入；遊戲裡顯示的是角色名字，帳號別人看不到。</p>
+  <div class="gmf"><label>新帳號<input id="mgL" maxlength="16" autocomplete="username"></label><label>新密碼<input id="mgP" type="password" maxlength="16" autocomplete="new-password"></label><label>再輸入一次<input id="mgP2" type="password" maxlength="16"></label></div>
+  <p class="err" style="color:#ff8a8a">${esc(err||'')}</p><div class="row"><button class="btn pri" data-mg="1">確定</button></div>`,bt=>{if(!bt.dataset.mg)return;const l=$('#mgL').value.trim(),p1=$('#mgP').value,p2=$('#mgP2').value;
+    if(!ACC_RE.test(l))return render('帳號需 '+ACC_TIP);if(!ACC_RE.test(p1))return render('密碼需 '+ACC_TIP);if(p1!==p2)return render('兩次密碼不一樣');bt.disabled=true;
+    api('/api/migrate',{login:l,pass:p1}).then(j=>{toast('帳號密碼已更新，下次請用新帳號登入');showRec(j.rec,then)}).catch(e=>render(e.message))});render()}
+function openRecover(){const render=(err)=>openPop(`<h2>🔑 用復原碼重設密碼</h2><p class="sub" style="margin:0;line-height:1.7">輸入帳號和註冊時拿到的復原碼，設定新密碼。成功後所有裝置都會被登出（盜用的人也會被踢掉）。沒有復原碼的話，請聯絡管理員。</p>
+  <div class="gmf"><label>帳號<input id="rcL" maxlength="16"></label><label>復原碼<input id="rcC" maxlength="20" placeholder="XXXX-XXXX-XXXX"></label><label>新密碼<input id="rcP" type="password" maxlength="16"></label></div>
+  <p class="err" style="color:#ff8a8a">${esc(err||'')}</p><div class="row"><button class="btn" data-close="1">取消</button><button class="btn pri" data-rc="1">重設密碼</button></div>`,bt=>{if(bt.dataset.close){closePop();return}if(!bt.dataset.rc)return;
+    const p1=$('#rcP').value;if(!ACC_RE.test(p1))return render('新密碼需 '+ACC_TIP);bt.disabled=true;
+    fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:$('#rcL').value.trim(),code:$('#rcC').value,pass:p1})}).then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j.error||'失敗');token=j.token;try{localStorage.setItem('pyan-token',token)}catch(x){}toast('密碼已重設');showRec(j.rec,connect)}).catch(e=>render(e.message))});render()}
+function openAcct(){const render=(msg)=>openPop(`<h2>👤 帳號設定</h2>${msg?`<p class="sub" style="color:#7dff9a">${esc(msg)}</p>`:''}
+  <h3>修改密碼</h3><p class="keys" style="margin:0">改完之後，其他裝置會自動登出。</p><div class="gmf"><label>舊密碼<input id="cpO" type="password" maxlength="64"></label><label>新密碼<input id="cpN" type="password" maxlength="16"></label><label>再輸入一次<input id="cpN2" type="password" maxlength="16"></label></div>
+  <div class="row" style="justify-content:flex-start"><button class="btn pri sm" data-cp="1">修改密碼</button></div>
+  <h3>復原碼</h3><p class="keys" style="margin:0">忘記之前的復原碼，可以輸入密碼重新產生一組（舊的會失效）。</p><div class="gmf"><label>密碼<input id="rgP" type="password" maxlength="64"></label></div><div class="row" style="justify-content:flex-start"><button class="btn sm" data-rg="1">重新產生復原碼</button></div>
+  <div class="row"><button class="btn" data-close="1">關閉</button><button class="btn red" data-lo="1">登出</button></div>`,bt=>{const d=bt.dataset;if(d.close){closePop();return}if(d.lo){logout();return}
+    if(d.cp){const n=$('#cpN').value;if(!ACC_RE.test(n))return toast('新密碼需 '+ACC_TIP);if(n!==$('#cpN2').value)return toast('兩次新密碼不一樣');bt.disabled=true;api('/api/password',{old:$('#cpO').value,pass:n}).then(()=>render('密碼已修改，其他裝置已登出')).catch(e=>{toast(e.message);bt.disabled=false})}
+    if(d.rg){bt.disabled=true;api('/api/reccode',{pass:$('#rgP').value}).then(j=>showRec(j.rec,()=>render())).catch(e=>{toast(e.message);bt.disabled=false})}});render()}
+// 沒取名的舊角色：進遊戲前先取名（免費）
+function needName(then){if(!P||P.nm){then&&then();return}const render=(err)=>openPop(`<h2>✏️ 幫角色取個名字</h2><p class="sub" style="margin:0;line-height:1.7">帳號改成只用來登入之後，遊戲裡會顯示角色名字。這次取名免費，可以用中文。</p>
+  <div class="gmf"><label>角色名字<input id="nnIn" maxlength="16"></label></div><p class="err" style="color:#ff8a8a">${esc(err||'')}</p><div class="row"><button class="btn pri" data-nn="1">確定</button></div>`,bt=>{if(!bt.dataset.nn)return;const nm=$('#nnIn').value.trim();if(!nm)return render('請輸入名字');bt.disabled=true;
+    sock.emit('rename',{nm},r=>{if(!r||!r.ok)return render(r&&r.msg||'取名失敗');applyMe(r.me);closePop();toast(`你的名字是「${nm}」`);then&&then()})});render()}
+let needMig=0;
 function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPanel('waitPanel');$('#waitTx').textContent='正在連上伺服器。如果伺服器在休眠，約需一分鐘喚醒。';
   sock=io('/rpg',{auth:{token}});
   sock.on('maint',()=>{sock.disconnect();maintScreen()});
-  sock.on('connect_error',e=>{if(e.message==='maint'){sock.disconnect();maintScreen();return}if(e.message==='auth'){try{localStorage.removeItem('pyan-token')}catch(x){}sock.disconnect();showPanel('authPanel')}else{$('#net').textContent='連線中斷，重新連線中…'}});
+  sock.on('kicked',d=>{const m=d&&d.why==='frozen'?'這個帳號已被管理員凍結':'帳號密碼已變更，請重新登入';logout();toast(m);$('#aErr').textContent=m});
+  sock.on('connect_error',e=>{if(e.message==='frozen'){logout();$('#aErr').textContent='這個帳號已被凍結，請聯絡管理員';return}if(e.message==='maint'){sock.disconnect();maintScreen();return}if(e.message==='auth'){try{localStorage.removeItem('pyan-token')}catch(x){}sock.disconnect();showPanel('authPanel')}else{$('#net').textContent='連線中斷，重新連線中…'}});
   sock.on('disconnect',r=>{$('#net').textContent=$('#afk').hidden?'連線中斷，重新連線中…':'已因掛機斷線';ready=false;if(r==='io server disconnect'&&$('#afk').hidden)setTimeout(()=>sock&&!sock.connected&&sock.connect(),1500)});
   sock.on('connect',()=>{$('#net').innerHTML='<b>●</b> 已連線'});
-  sock.on('hello',d=>{if(d.gm)document.querySelectorAll('.cls[data-hid]').forEach(e=>e.style.display='');myName=d.name;myId=d.id;if(inWorld&&d.me){P=null;applyMe(d.me);enterWorld(false)}else{P=null;inWorld=false;const first=d.list.findIndex(c=>!c);if(!d.list.some(Boolean)){curSlot=0;$('#hiName').textContent=`${d.name}，你還沒有角色，選一個職業開始冒險吧！`;$('#ui').hidden=true;$('#chat').hidden=true;showPanel('clsPanel')}else showChars(d.list,d.act)}});
+  sock.on('hello',d=>{if(d.gm)document.querySelectorAll('.cls[data-hid]').forEach(e=>e.style.display='');myName=d.name||'冒險者';if(d.migrate&&!needMig){needMig=1;setTimeout(()=>openMigrate(()=>{needMig=2}),300)}myId=d.id;if(inWorld&&d.me){P=null;applyMe(d.me);enterWorld(false)}else{P=null;inWorld=false;const first=d.list.findIndex(c=>!c);if(!d.list.some(Boolean)){curSlot=0;$('#hiName').textContent=`你還沒有角色，幫第一個角色取名字，開始冒險吧！`;$('#ui').hidden=true;$('#chat').hidden=true;showPanel('clsPanel')}else showChars(d.list,d.act)}});
   sock.on('init',d=>{if(P&&P.dead){P.dead=0;P.hp=P.max.hp;P.inv=120;heroRevived()}const prevMI=MI;MI=d.map;if(P&&MAPS[d.map].trial&&P.awT0!=null){P.awT0=null;P.awCdEnd=performance.now()+D.AWK.cd}if(P&&d.aw){const t=performance.now();P.awT0=d.aw.el>=0?t-d.aw.el:null;P.awCdEnd=t+d.aw.cd;P.finUsed=d.aw.fu;setTimeout(ui,0)}pvpT.clear();if(!d.pvp){duel=null}SEG=MAPS[MI].seg;ROPES=MAPS[MI].ropes;haz=[];others.clear();shots=[];fx=[];parts=[];hitQ=[];zoneName='';
     mons=d.mons.map((st,i)=>mkLocalMon(st.sp||MAPS[MI].spawns[i],i,st));BF={};for(const f of d.fights||[])setFight(f);drops=d.drops.map(x=>({...x,ty:x.y,vy:null}));for(const a of d.players)upsertOther(a);
     if(P){P.x=d.x;P.y=GY;P.vx=0;P.vy=0;P.ground=true;P.rope=null;P.inv=90;P.map=MI;cam.x=clamp(P.x-IW/2,0,(MAPS[MI].xr||WW)-IW);cam.y=clamp(P.y-IH*.62,-60,WH-IH);fx.push({t:'poof',x:P.x,y:P.y-12,life:20,big:1})}

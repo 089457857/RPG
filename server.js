@@ -66,28 +66,71 @@ const newId = () => (S.seq++).toString(36) + crypto.randomBytes(3).toString('hex
 
 // ---------------- HTTP ----------------
 const app = express();
+app.set('trust proxy', true);   // Render 在代理後面：記錄真正的 IP
 app.use(express.json({ limit: '10kb' }));
+// ---------------- 帳號規則：帳號與密碼都是 8～16 碼，必須同時有英文字母和數字 ----------------
+const ACC_RE = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{8,16}$/;
+const accErr = (login, pass) => !ACC_RE.test(login) ? '帳號需 8～16 碼，只能用英文字母和數字，而且兩種都要有' : !ACC_RE.test(pass) ? '密碼需 8～16 碼，只能用英文字母和數字，而且兩種都要有' : '';
+const loginTaken = (login, self) => Object.values(S.users).some(u => u !== self && ((u.login && u.login.toLowerCase() === login.toLowerCase()) || (!u.login && String(u.name).toLowerCase() === login.toLowerCase())));
+const newRecCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (const b of crypto.randomBytes(12)) c += A[b % A.length]; return c; };
+async function setRec(u) { const code = newRecCode(); u.rec = await bcrypt.hash(code, 10); return code.replace(/(.{4})(?=.)/g, '$1-'); }
+function logLogin(u, req) { (u.logins ||= []).unshift({ t: Date.now(), ip: req.ip }); u.logins.length = Math.min(u.logins.length, 20); }
+function newSession(u) { const token = crypto.randomBytes(24).toString('hex'); S.sessions[token] = u.id; return token; }
+const userOf = req => { const uid = S.sessions[String(req.body.token || '')]; return uid && S.users[uid]; };
+function kickOthers(u, keep) { for (const [t, id] of Object.entries(S.sessions)) if (id === u.id && t !== keep) delete S.sessions[t]; if (ioRef) for (const s of ioRef.of('/rpg').sockets.values()) if (s.data.uid === u.id && s.handshake.auth?.token !== keep) { s.emit('kicked', { why: 'pw' }); s.disconnect(true); } }
 const tries = {};
 function limited(ip) { const now = Date.now(); const t = (tries[ip] || []).filter(x => now - x < 60000); t.push(now); tries[ip] = t; return t.length > 15; }
 app.post('/api/register', async (req, res) => {
   if (limited(req.ip)) return res.status(429).json({ error: '嘗試太多次，請稍後再試' });
-  const name = String(req.body.name || '').trim(), pass = String(req.body.pass || '');
-  if (!/^[\p{L}\p{N}_\-]{2,16}$/u.test(name)) return res.status(400).json({ error: '暱稱需 2～16 個字，只能用文字、數字、底線或減號' });
-  if (pass.length < 4 || pass.length > 64) return res.status(400).json({ error: '密碼需 4～64 個字元' });
-  const lk = name.toLowerCase(), chars = [...Object.values(S.rpg || {}), ...Object.values(S.rpgAlt || {}).flatMap(a => a.slots || [])].filter(Boolean);
-  if (Object.values(S.users).some(u => u.name.toLowerCase() === lk) || chars.some(c => c.nm && c.nm.toLowerCase() === lk)) return res.status(400).json({ error: '這個暱稱已經有人用了' });
-  const u = { id: newId(), name, hash: await bcrypt.hash(pass, 10), created: Date.now() };
-  S.users[u.id] = u;
-  const token = crypto.randomBytes(24).toString('hex'); S.sessions[token] = u.id; save();
-  res.json({ token });
+  const login = String(req.body.name || '').trim(), pass = String(req.body.pass || '');
+  const er = accErr(login, pass); if (er) return res.status(400).json({ error: er });
+  if (loginTaken(login)) return res.status(400).json({ error: '這個帳號已經有人用了' });
+  const u = { id: newId(), name: login, login, hash: await bcrypt.hash(pass, 10), created: Date.now() };
+  const rec = await setRec(u); logLogin(u, req);
+  S.users[u.id] = u; const token = newSession(u); save();
+  res.json({ token, rec });
 });
 app.post('/api/login', async (req, res) => {
   if (limited(req.ip)) return res.status(429).json({ error: '嘗試太多次，請稍後再試' });
   const name = String(req.body.name || '').trim(), pass = String(req.body.pass || '');
-  const u = Object.values(S.users).find(x => x.name.toLowerCase() === name.toLowerCase());
-  if (!u || !(await bcrypt.compare(pass, u.hash))) return res.status(400).json({ error: '暱稱或密碼錯誤' });
-  const token = crypto.randomBytes(24).toString('hex'); S.sessions[token] = u.id; save();
-  res.json({ token });
+  const lk = name.toLowerCase(), u = Object.values(S.users).find(x => x.login ? x.login.toLowerCase() === lk : x.name.toLowerCase() === lk);
+  if (!u || !(await bcrypt.compare(pass, u.hash))) return res.status(400).json({ error: '帳號或密碼錯誤' });
+  if (u.frozen) return res.status(403).json({ error: '這個帳號已被凍結，請聯絡管理員' });
+  logLogin(u, req); const token = newSession(u); save();
+  res.json({ token, migrate: u.login ? 0 : 1 });   // 舊帳號：登入後要先改成新規則的帳號密碼
+});
+// 舊帳號換成新規則的帳號密碼（只能做一次）
+app.post('/api/migrate', async (req, res) => {
+  const u = userOf(req); if (!u) return res.status(401).json({ error: '請重新登入' }); if (u.login) return res.status(400).json({ error: '已經設定過了' });
+  const login = String(req.body.login || '').trim(), pass = String(req.body.pass || '');
+  const er = accErr(login, pass); if (er) return res.status(400).json({ error: er });
+  if (loginTaken(login, u)) return res.status(400).json({ error: '這個帳號已經有人用了' });
+  u.login = login; u.hash = await bcrypt.hash(pass, 10); const rec = await setRec(u); kickOthers(u, String(req.body.token)); save();
+  res.json({ ok: 1, rec });
+});
+// 修改密碼：改完之後其他裝置自動登出
+app.post('/api/password', async (req, res) => {
+  if (limited(req.ip)) return res.status(429).json({ error: '嘗試太多次，請稍後再試' });
+  const u = userOf(req); if (!u) return res.status(401).json({ error: '請重新登入' });
+  if (!(await bcrypt.compare(String(req.body.old || ''), u.hash))) return res.status(400).json({ error: '舊密碼錯誤' });
+  const pass = String(req.body.pass || ''); if (!ACC_RE.test(pass)) return res.status(400).json({ error: '新密碼需 8～16 碼，只能用英文字母和數字，而且兩種都要有' });
+  u.hash = await bcrypt.hash(pass, 10); kickOthers(u, String(req.body.token)); save(); res.json({ ok: 1 });
+});
+// 重新產生復原碼（要輸入密碼）
+app.post('/api/reccode', async (req, res) => {
+  const u = userOf(req); if (!u) return res.status(401).json({ error: '請重新登入' });
+  if (!(await bcrypt.compare(String(req.body.pass || ''), u.hash))) return res.status(400).json({ error: '密碼錯誤' });
+  const rec = await setRec(u); save(); res.json({ rec });
+});
+// 用復原碼重設密碼（忘記密碼或被盜用）：成功後所有裝置登出，並換一組新的復原碼
+app.post('/api/recover', async (req, res) => {
+  if (limited(req.ip)) return res.status(429).json({ error: '嘗試太多次，請稍後再試' });
+  const login = String(req.body.login || '').trim().toLowerCase(), code = String(req.body.code || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase(), pass = String(req.body.pass || '');
+  const u = Object.values(S.users).find(x => x.login && x.login.toLowerCase() === login);
+  if (!u || !u.rec || !(await bcrypt.compare(code, u.rec))) return res.status(400).json({ error: '帳號或復原碼錯誤' });
+  if (!ACC_RE.test(pass)) return res.status(400).json({ error: '新密碼需 8～16 碼，只能用英文字母和數字，而且兩種都要有' });
+  u.hash = await bcrypt.hash(pass, 10); kickOthers(u, null); const rec = await setRec(u); logLogin(u, req); const token = newSession(u); save();
+  res.json({ token, rec });
 });
 app.get('/healthz', (_, res) => res.send('ok'));
 
