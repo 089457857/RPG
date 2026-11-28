@@ -1282,6 +1282,10 @@ const MSTATE={};
 function masterLine(cls){const M=D.MASTERS[cls];if(!P)return M.low[0];const pick=a=>a[Math.floor(Math.random()*a.length)];
   if(P.cls==='novice')return cls==='dragon'?((P.items||{}).egg?pick(M.ready):pick(M.low)):pick(P.lv>=D.NOVLV?M.ready:M.low);
   return pick(P.cls===cls?M.mine:M.other)}
+// 船長老海：玩家走近碼頭就會碎碎念
+const CAPST={near:0,last:-9999};
+function captainTick(){if(!P||MI!==9)return;const n=(MAPS[9].npcs||[]).find(x=>x.kind==='boat');if(!n)return;const d=Math.abs(P.x-n.x);
+  if(d<90&&!CAPST.near){CAPST.near=1;if(frame-CAPST.last>480){CAPST.last=frame;npcSay(n,D.CAPTAIN[Math.floor(Math.random()*D.CAPTAIN.length)])}}else if(d>140)CAPST.near=0}
 function masterTick(){if(!P||MI!==0)return;for(const n of MAPS[0].npcs){if(n.kind!=='master')continue;const s=MSTATE[n.cls]||(MSTATE[n.cls]={near:0,last:-9999,t:0,say:''});const d=Math.abs(P.x-n.x);
   if(d<70&&!s.near){s.near=1;if(frame-s.last>420){s.say=masterLine(n.cls);s.t=210;s.last=frame}}else if(d>110)s.near=0;if(s.t>0)s.t--}}
 function drawMaster(n,x,y){const k=n.cls;R(x-6,y-1,12,2,'#0004');const skin='#f4c79c';
@@ -1749,7 +1753,7 @@ function draw(){drawWorld();ctx.drawImage(buf,0,0,IW*S,IH*S);
 
 // ================= 主迴圈 =================
 let last=performance.now(),acc=0,posT=0;
-function step(){frame++;if(P&&ready){updHero();masterTick();updMons();updOthers();updShots();updDrops();if(P.chatT>0)P.chatT--;
+function step(){frame++;if(P&&ready){updHero();masterTick();captainTick();updMons();updOthers();updShots();updDrops();if(P.chatT>0)P.chatT--;
   if(hitQ.length){sock.emit('hit',hitQ.splice(0,20))}
   if(pvpQ.length){sock.emit('phit',pvpQ.splice(0,20))}
   if(++posT>=6){posT=0;sock.emit('pos',{x:P.x,y:P.y,f:P.f,act:P.act>0,rope:!!P.rope,dead:!!P.dead,hp:P.hp/P.max.hp*100,clone:P.clone>0,fk:P.fake>0,mount:!!P.mount,gy:P.ground||P.rope?Math.round(P.y):undefined})}
@@ -2148,7 +2152,7 @@ function cancelRecall(msg){if(!recall)return;recall=null;sock.emit('recallCancel
 function recallTick(){const el=$('#homeSlot');if(!recall){return}const p=Math.min(1,(performance.now()-recall.t0)/D.HOMESCROLL.cast);if(el)el.style.background=`linear-gradient(90deg,#7fd3ffaa ${p*100}%,transparent 0)`;
   if(P&&P.dead){cancelRecall();return}if(p>=1){recall=null;if(el)el.style.background='';sock.emit('recall',{},r=>{if(!r||!r.ok)toast(r&&r.msg||'回城失敗')})}}
 function openBoat(){const ok=true;
-  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，免費載你出海！':`海上太危險了，只有突破極限的冒險者才能出海。<br>打倒<b>虛空之主</b>（有出手的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
+  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?esc(D.CAPTAIN[Math.floor(Math.random()*D.CAPTAIN.length)])+'<br>……咳，海象不錯，免費載你出海！':`海上太危險了，只有突破極限的冒險者才能出海。<br>打倒<b>虛空之主</b>（有出手的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
     <div class="jobs"><div class="job"><b>🪸 珊瑚王國</b><p>Lv 46～66 · 五片海域：珊瑚王國 → 深淵海溝 → 沉沒古城 → 冰封海淵 → 海底火山，每片 3 張圖，最深處各有一隻海域霸主。打倒霸主之後，碼頭邊的漁夫阿潮可以直接載你到下一片海域。</p><button class="btn pri sm" data-sail="11" ${ok?'':'disabled'}>⚓ 出海</button></div></div>
     <div class="row"><button class="btn" data-close="1">下次再說</button></div>`,bt=>{if(bt.dataset.close){closePop();return}
     if(bt.dataset.sail){bt.disabled=true;sock.emit('sail',{to:+bt.dataset.sail},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出海');bt.disabled=false;return}closePop()})}})}

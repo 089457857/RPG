@@ -127,6 +127,17 @@
   const reqMiss = (c, cls) => Object.entries(REQ[cls] || {}).filter(([k, v]) => ((c.st || {})[k] || 0) < v).map(([k, v]) => `${STN[k]}還差 ${v - ((c.st || {})[k] || 0)}`);
   const FREERESET = '2026-11-29';   // 改版補償：每個角色各一次免費重置能力值（用過會記在 c.frV）
   const resetCost = c => !c || c.cls === 'novice' || c.frV !== FREERESET ? 0 : APRESET;
+  // 船長老海的閒話：玩家走近時隨機說一句
+  const CAPTAIN = ['開發者改版改了這麼多次，就是懶得讓我退休……',
+    '我這把老骨頭，從遊戲開服就站在這個碼頭了。',
+    '年輕人，你知道我在這裡等了幾個版本嗎？',
+    '聽說風語驛站的接待員都有新衣服，我連一頂新帽子都沒有。',
+    '腰好痛……等開發者想起我，我大概已經變成海底的古城守護神了。',
+    '出海免費啦！反正我也拿不到薪水。',
+    '每次改版都說「下次讓你退休」，結果呢？',
+    '你看那個漁夫阿潮，年輕力壯又有捷徑可以收錢，我只能免費載人。',
+    '我年輕的時候也是打過人魚女王的……好吧，是人魚女王打我。',
+    '要是哪天我不在碼頭，那就代表我終於退休了，別找我。'];
   const EGG = { maps: [15, 16, 17], rate: { slime: .03, shroom: .06, stump: .1, king: .4 }, pity: 3 };
   // 像素村的師傅：low 未滿 10 等的戰五渣、ready 可以拜師的戰五渣、mine 自己的徒弟、other 別家的徒弟
   const MASTERS = {
@@ -970,6 +981,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { SEASTART, FREERESET, REQ, STN, reqMiss, resetCost, ITEMS, NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { CAPTAIN, SEASTART, FREERESET, REQ, STN, reqMiss, resetCost, ITEMS, NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
