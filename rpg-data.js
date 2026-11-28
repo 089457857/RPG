@@ -375,7 +375,7 @@
     { name: '像素村', pal: 'forest', town: true, safe: true, home: 0, spawns: [], xr: 1500, houses: [40, 400, 900, 1180],
       seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 560, x2: 760, y: 240 }], ropes: [{ x: 580, y1: 240, y2: GY }],
       npcs: [{ x: 300, kind: 'job', name: '轉職教官 艾倫' }, { x: 640, kind: 'shop', name: '商人 老陳' }, { x: 820, kind: 'smith', name: '鐵匠 老錘' }],
-      zones: [[9e9, '像素村']], portals: [{ x: 1440, to: 15, tx: 150, label: '蘑菇森林 →' }], start: 200, sign: [1340, '往蘑菇森林 →'] },
+      zones: [[9e9, '像素村']], portals: [{ x: 1440, to: 15, tx: 150, label: '蘑菇森林 →' }], start: 200, signs: [[1400, '往蘑菇森林']] },
     { name: '冰雪山谷', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 330, x2: 480, y: 262 }, { x1: 450, x2: 640, y: 224 }, { x1: 700, x2: 860, y: 262 }, { x1: 830, x2: 1000, y: 224 }, { x1: 970, x2: 1160, y: 186 }, { x1: 1250, x2: 1420, y: 262 }, { x1: 1390, x2: 1580, y: 224 }, { x1: 1550, x2: 1760, y: 186 }, { x1: 1730, x2: 1960, y: 148 }, { x1: 1950, x2: 2090, y: 110 }]], ropes: [{ x: 2000, y1: 110, y2: GY }, { x: 1120, y1: 186, y2: GY }], pal: 'snow', spawns: layout('snowslime', 'icewolf', 'yeti', 'frost'), zones: [[260, '山谷入口'], [700, '雪原'], [1200, '冰柱林'], [2100, '暴風雪坡'], [9e9, '冰霜巨人之巔']],
       portals: [{ x: 60, to: 19, tx: 1340, label: '← 霜鈴村' }], start: 150, home: 19 },
     { name: '熔岩深淵', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 330, x2: 450, y: 230 }, { x1: 380, x2: 560, y: 160 }, { x1: 700, x2: 820, y: 240 }, { x1: 860, x2: 1000, y: 190 }, { x1: 1020, x2: 1170, y: 130 }, { x1: 1230, x2: 1360, y: 230 }, { x1: 1400, x2: 1540, y: 170 }, { x1: 1570, x2: 1740, y: 110 }, { x1: 1800, x2: 2050, y: 220 }]], ropes: [{ x: 350, y1: 230, y2: GY }, { x: 420, y1: 160, y2: 230 }, { x: 720, y1: 240, y2: GY }, { x: 880, y1: 190, y2: GY }, { x: 1040, y1: 130, y2: GY }, { x: 1250, y1: 230, y2: GY }, { x: 1420, y1: 170, y2: GY }, { x: 1590, y1: 110, y2: GY }, { x: 1820, y1: 220, y2: GY }], pal: 'lava', spawns: layout('fireslime', 'imp', 'golem', 'balrog'), zones: [[260, '深淵入口'], [700, '焦土'], [1200, '熔岩河'], [2100, '惡魔迴廊'], [9e9, '炎魔王的王座']],
@@ -399,7 +399,7 @@
       seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 420, x2: 600, y: 250 }, { x1: 900, x2: 1100, y: 240 }, { x1: 1400, x2: 1560, y: 250 }],
       ropes: [{ x: 440, y1: 250, y2: GY }, { x: 1080, y1: 240, y2: GY }, { x: 1420, y1: 250, y2: GY }],
       npcs: [{ x: 120, kind: 'guide', g: 'seaback', name: '漁夫 阿潮' }, { x: 300, kind: 'shop', name: '雜貨商 阿珠' }, { x: 760, kind: 'smith', name: '鐵匠 老鐵' }, { x: 2330, kind: 'boat', name: '船長 老海' }], dock: 2240,
-      zones: [[700, '港口入口'], [1800, '漁村市集'], [9e9, '碼頭']], portals: [{ x: 40, to: 26, tx: 2490, label: '← 海岸小徑' }], start: 200 },
+      zones: [[700, '港口入口'], [1800, '漁村市集'], [9e9, '碼頭']], portals: [{ x: 40, to: 26, tx: 2490, label: '← 海岸小徑' }], signs: [[80, '往海岸小徑']], start: 200 },
     // ---- 第 8 張地圖：深淵海溝（Lv 101～105）----
     { name: '深淵海溝', pal: 'abyss', sea: 1, home: 9, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 500, y: 236 }, { x1: 520, x2: 680, y: 176 }, { x1: 720, x2: 880, y: 246 }, { x1: 900, x2: 1040, y: 186 }, { x1: 1060, x2: 1200, y: 126 }, { x1: 1240, x2: 1400, y: 236 }, { x1: 1420, x2: 1580, y: 176 }, { x1: 1600, x2: 1760, y: 120 }, { x1: 1800, x2: 2060, y: 206 }]],
       ropes: [{ x: 340, y1: 236, y2: GY }, { x: 540, y1: 176, y2: 236 }, { x: 740, y1: 246, y2: GY }, { x: 920, y1: 186, y2: GY }, { x: 1080, y1: 126, y2: 186 }, { x: 1260, y1: 236, y2: GY }, { x: 1440, y1: 176, y2: 236 }, { x: 1620, y1: 120, y2: 176 }, { x: 1820, y1: 206, y2: GY }],
@@ -447,25 +447,25 @@
   MAPS[18] = { name: '風語驛站', pal: 'forest', town: true, safe: true, home: 18, spawns: [], xr: 1800, houses: [70], station: 1,
     seg: [{ x1: 0, x2: WW, y: GY, g: 1 }], ropes: [],
     npcs: [{ x: 250, kind: 'shop', name: '雜貨商 阿福' }, { x: 380, kind: 'smith', name: '鐵匠 老錘' },
-      { x: 560, kind: 'guide', g: 'snow', name: '冰原嚮導 阿努克' }, { x: 860, kind: 'guide', g: 'lava', name: '火舞女郎 蕾拉妮' },
-      { x: 1160, kind: 'guide', g: 'sea', name: '漁夫 阿潮' }, { x: 1460, kind: 'guide', g: 'sky', name: '天使 賽拉菲' }],
-    signs: [[620, '❄ 冰雪小徑 → 霜鈴村'], [920, '🔥 熔岩小徑 → 焰舞村'], [1220, '🌊 海岸小徑 → 潮聲港'], [1520, '☁ 雲端小徑 → 雲頂村']],
+      { x: 600, kind: 'guide', g: 'snow', name: '冰原嚮導 阿努克' }, { x: 900, kind: 'guide', g: 'lava', name: '火舞女郎 蕾拉妮' },
+      { x: 1200, kind: 'guide', g: 'sea', name: '漁夫 阿潮' }, { x: 1500, kind: 'guide', g: 'sky', name: '天使 賽拉菲' }],
+    signs: [[100, '往蘑菇森林'], [650, '往冰雪', '#9fd8ff'], [950, '往熔岩', '#ff8a4a'], [1250, '往海岸', '#4a9ad8'], [1550, '往雲端', '#fff2b0']],
     zones: [[9e9, '風語驛站']], portals: [{ x: 60, to: 17, tx: 2490, label: '← 蘑菇森林' },
       { x: 680, to: 24, tx: 150, label: '入口' }, { x: 980, to: 25, tx: 150, label: '入口' }, { x: 1280, to: 26, tx: 150, label: '入口' }, { x: 1580, to: 27, tx: 150, label: '入口' }], start: 150 };
   // ---- 四條路徑：從驛站走到村莊，景色一路漸變；走過一次才能請接待員直送 ----
   const PATH = (name, to, blend, mob, n, unlock, sign, extra = {}) => ({ name, pal: blend[1], blend, home: 18, path: unlock,
-    spawns: [...G(mob, n, 700, 2300)], zones: [[9e9, name]], signs: [[200, sign]],
-    portals: [{ x: 60, to: 18, tx: { snow: 680, lava: 980, sea: 1280, sky: 1580 }[unlock], label: '← 風語驛站' }, { x: 2560, to, tx: 150, unlock, label: sign }], start: 150, ...extra });
-  MAPS[24] = PATH('冰雪小徑', 19, ['forest', 'snow'], 'snowslime', 5, 'snow', '霜鈴村 →');
-  MAPS[25] = PATH('熔岩小徑', 20, ['forest', 'lava'], 'fireslime', 5, 'lava', '焰舞村 →');
-  MAPS[26] = PATH('海岸小徑', 9, ['forest', 'harbor'], 'puffer', 4, 'sea', '潮聲港 →');
-  MAPS[27] = PATH('雲端小徑', 21, ['forest', 'sky'], 'seraph', 4, 'sky', '雲頂村 →', {
+    spawns: [...G(mob, n, 700, 2300)], zones: [[9e9, name]], signs: [[100, '往風語驛站'], [2520, sign]],
+    portals: [{ x: 60, to: 18, tx: { snow: 720, lava: 1020, sea: 1320, sky: 1620 }[unlock], label: '← 風語驛站' }, { x: 2560, to, tx: 150, unlock, label: sign }], start: 150, ...extra });
+  MAPS[24] = PATH('冰雪小徑', 19, ['forest', 'snow'], 'snowslime', 5, 'snow', '往霜鈴村');
+  MAPS[25] = PATH('熔岩小徑', 20, ['forest', 'lava'], 'fireslime', 5, 'lava', '往焰舞村');
+  MAPS[26] = PATH('海岸小徑', 9, ['forest', 'harbor'], 'puffer', 4, 'sea', '往潮聲港');
+  MAPS[27] = PATH('雲端小徑', 21, ['forest', 'sky'], 'seraph', 4, 'sky', '往雲頂村', {
     seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 500, x2: 760, y: 254 }, { x1: 820, x2: 1080, y: 212 }, { x1: 1140, x2: 1400, y: 170 }, { x1: 1460, x2: 1720, y: 128 }, { x1: 1780, x2: 2040, y: 170 }, { x1: 2100, x2: 2360, y: 212 }],
     ropes: [{ x: 520, y1: 254, y2: GY }, { x: 840, y1: 212, y2: 254 }, { x: 1160, y1: 170, y2: 212 }, { x: 1480, y1: 128, y2: 170 }, { x: 2340, y1: 212, y2: GY }] });
   // ---- 各區域的村莊（雜貨商、鐵匠、重生點；之後各層捷徑由村裡的嚮導負責）----
   const VIL = (name, pal, shop, smith, guide, portals, extra = {}) => ({ name, pal, town: true, safe: true, spawns: [], xr: 1500, houses: [100, 900],
     seg: [{ x1: 0, x2: WW, y: GY, g: 1 }], ropes: [], npcs: [{ x: 300, kind: 'shop', name: shop }, { x: 460, kind: 'smith', name: smith }, ...(guide ? [{ x: 660, kind: 'guide', g: guide[0], name: guide[1] }] : [])],
-    zones: [[9e9, name]], portals, start: 200, ...extra });
+    zones: [[9e9, name]], portals, start: 200, signs: portals.map(p => [p.x < 700 ? p.x + 40 : p.x - 40, '往' + p.label.replace(/^← |（.*|\s*→$/g, '')]), ...extra });
   MAPS[19] = VIL('霜鈴村', 'snow', '雜貨商 圖雅', '鐵匠 巴克', ['snowback', '冰原嚮導 阿努克'], [{ x: 60, to: 24, tx: 2490, label: '← 冰雪小徑' }, { x: 1440, to: 1, tx: 150, label: '冰雪山谷 →' }], { home: 19 });
   MAPS[20] = VIL('焰舞村', 'lava', '雜貨商 卡伊', '鐵匠 熔爐', ['lavaback', '火舞女郎 蕾拉妮'], [{ x: 60, to: 25, tx: 2490, label: '← 熔岩小徑' }, { x: 1440, to: 2, tx: 150, label: '熔岩深淵 →' }], { home: 20 });
   MAPS[21] = VIL('雲頂村', 'sky', '雜貨商 艾拉', '鐵匠 雷斯', ['skyback', '天使 賽拉菲'], [{ x: 60, to: 27, tx: 2490, label: '← 雲端小徑' }, { x: 1440, to: 4, tx: 150, label: '天空聖域 →' }], { home: 21 });
@@ -476,17 +476,17 @@
   // 接待員：付一次（key 相同的共用），之後雙向免費
   // 接待員／嚮導：opts 每一項是一個目的地。key：付一次後雙向免費（同 key 共用）；each：每次都收費；need：要先打倒的 Boss
   const GUIDES = {
-    snow: { walk: '嘿！我是阿努克。冰雪小徑你得先自己走一趟，認得路了，我的狗雪橇才能載你喔！', d: '嘿！我是冰原嚮導阿努克。我的狗雪橇可以帶你穿過暴風雪，直達霜鈴村。', opts: [{ place: '霜鈴村', to: 19, tx: 660, fee: 1000, key: 'snow' }] },
-    lava: { walk: 'Aloha～熔岩小徑要先自己走過一次，熟悉了火山的路，我再帶你跳過去！', d: 'Aloha～我是火舞女郎蕾拉妮！跟著我的火舞，就能穿過火山口，抵達焰舞村。', opts: [{ place: '焰舞村', to: 20, tx: 660, fee: 3000, key: 'lava' }] },
+    snow: { walk: '嘿！我是阿努克。冰雪小徑你得先自己走一趟，認得路了，我的狗雪橇才能載你喔！', d: '嘿！我是冰原嚮導阿努克。我的狗雪橇可以帶你穿過暴風雪，直達霜鈴村。', opts: [{ place: '霜鈴村', to: 19, tx: 620, fee: 1000, key: 'snow' }] },
+    lava: { walk: 'Aloha～熔岩小徑要先自己走過一次，熟悉了火山的路，我再帶你跳過去！', d: 'Aloha～我是火舞女郎蕾拉妮！跟著我的火舞，就能穿過火山口，抵達焰舞村。', opts: [{ place: '焰舞村', to: 20, tx: 620, fee: 3000, key: 'lava' }] },
     sea: { walk: '海岸小徑你還沒走過吧？先自己沿著海岸走一趟，下次我再開船載你。', d: '我是漁夫阿潮，我的漁船往返風語驛站和潮聲港。大海那頭還有好多冒險喔。', opts: [{ place: '潮聲港', to: 9, tx: 200, fee: 8000, key: 'sea' }] },
-    sky: { walk: '雲端小徑要靠你自己一步一步爬上去。走過一次之後，我就能帶你飛。', d: '我是天使賽拉菲。我可以帶你飛上雲端，前往雲頂村。天空之後，就是地獄與虛空……', opts: [{ place: '雲頂村', to: 21, tx: 660, fee: 15000, key: 'sky' }] },
-    snowback: { d: '要回風語驛站嗎？雪橇隨時可以出發。冰雪深處更多的路，之後我也會帶你去。', opts: [{ place: '風語驛站', to: 18, tx: 560, fee: 1000, key: 'snow' }] },
-    lavaback: { d: '想回風語驛站休息一下嗎？火山更深的地方，之後我再帶你去～', opts: [{ place: '風語驛站', to: 18, tx: 860, fee: 3000, key: 'lava' }] },
-    seaback: { d: '要回風語驛站嗎？搭過一次我的船，之後來回都免費。', opts: [{ place: '風語驛站', to: 18, tx: 1160, fee: 8000, key: 'sea' }] },
+    sky: { walk: '雲端小徑要靠你自己一步一步爬上去。走過一次之後，我就能帶你飛。', d: '我是天使賽拉菲。我可以帶你飛上雲端，前往雲頂村。天空之後，就是地獄與虛空……', opts: [{ place: '雲頂村', to: 21, tx: 620, fee: 15000, key: 'sky' }] },
+    snowback: { d: '要回風語驛站嗎？雪橇隨時可以出發。冰雪深處更多的路，之後我也會帶你去。', opts: [{ place: '風語驛站', to: 18, tx: 540, fee: 1000, key: 'snow' }] },
+    lavaback: { d: '想回風語驛站休息一下嗎？火山更深的地方，之後我再帶你去～', opts: [{ place: '風語驛站', to: 18, tx: 840, fee: 3000, key: 'lava' }] },
+    seaback: { d: '要回風語驛站嗎？搭過一次我的船，之後來回都免費。', opts: [{ place: '風語驛站', to: 18, tx: 1140, fee: 8000, key: 'sea' }] },
     skyback: { d: '我可以帶你回風語驛站。打倒過天穹泰坦或黑龍王的勇者，我也能直接送你穿過那兩道門。', opts: [
-      { place: '風語驛站', to: 18, tx: 1460, fee: 15000, key: 'sky' },
-      { place: '冥火鎮', to: 22, tx: 660, fee: 15000, each: 1, need: 'titan' },
-      { place: '虛空前哨', to: 23, tx: 660, fee: 25000, each: 1, need: 'dragon' }] },
+      { place: '風語驛站', to: 18, tx: 1440, fee: 15000, key: 'sky' },
+      { place: '冥火鎮', to: 22, tx: 620, fee: 15000, each: 1, need: 'titan' },
+      { place: '虛空前哨', to: 23, tx: 620, fee: 25000, each: 1, need: 'dragon' }] },
     grave: { d: '……活人很少走到這裡。暗黑神殿更深的地方，等那些路打開了，我會帶你去。', opts: [] },
     nova: { d: '我在星與星之間旅行。虛空的深處還有更多裂縫，等它們穩定下來，我再帶你過去。', opts: [] },
   };
