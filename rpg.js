@@ -522,7 +522,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('apreset', (_, ack) => {
       const c = char(uid); if (!c) return ack && ack({ ok: false });
       const used = Object.values(c.st).reduce((a, b) => a + b, 0); if (!used) return ack && ack({ ok: false, msg: '還沒有分配任何點數' });
-      if (c.gold < D.APRESET) return ack && ack({ ok: false, msg: `重置需要 ${D.APRESET} 金幣` }); c.gold -= D.APRESET; c.ap += used; c.st = { str: 0, vit: 0, int: 0, dex: 0 }; save(); ack && ack({ ok: true, me: me(uid) });
+      const cost = D.resetCost(c); if (c.gold < cost) return ack && ack({ ok: false, msg: `重置需要 ${cost} 金幣` }); c.gold -= cost; if (c.cls !== 'novice') c.frV = D.FREERESET; c.ap += used; c.st = { str: 0, vit: 0, int: 0, dex: 0 }; save(); ack && ack({ ok: true, me: me(uid) });
     });
     socket.on('enter', (_, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); if (D.MAPS[c.map || 0]?.pvp || D.MAPS[c.map || 0]?.trial) c.map = 0; if (!D.MAPS[c.map || 0]) c.map = 0; enter(c.map || 0); ack && ack({ ok: true });
       if (D.VERSION && S.users[uid] && S.users[uid].seenVer !== D.VERSION) socket.emit('news', { v: D.VERSION, list: D.newsSince(S.users[uid].seenVer) });
@@ -968,6 +968,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (w.mi !== 0) return no('要在像素村找師傅');
       const npc = (D.MAPS[0].npcs || []).find(n => n.kind === 'master' && n.cls === cls); if (!npc || Math.abs(pl.x - npc.x) > 90) return no('離師傅太遠了');
       if (D.HIDDEN[cls] && !isGM(uid)) return no('龍蛋還沒孵化，再等等吧');
+      { const miss = D.reqMiss(c, cls); if (miss.length && !isGM(uid)) return no(`能力值不足：${miss.join('、')}`); }
       if (cls === 'dragon' && !(c.items || {}).egg && !isGM(uid)) return no('沒有龍蛋，龍是不會認你的');
       // 能力值依新職業重新計算（等於這個職業從 1 等練到現在）
       const gr = D.CL[cls].grow, b = { ...D.CL[cls].base }; for (let l = 1; l < c.lv; l++) { b.hp += gr.hp; b.mp += gr.mp; b.atk = Math.round((b.atk + gr.atk) * 10) / 10; b.def = Math.round((b.def + gr.def) * 10) / 10; }

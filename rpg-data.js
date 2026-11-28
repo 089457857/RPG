@@ -121,6 +121,12 @@
   // 龍蛋：只有戰五渣在蘑菇森林打怪會掉；接了龍語者的「尋找龍蛋」任務後，巨菇王第 3 次必掉
   // 物品欄：任務道具、特殊物品（之後各村莊 NPC 的蒐集任務也放這裡）
   const ITEMS = { egg: { n: '龍蛋', icon: '🥚', d: '帶著它，10 等後去像素村找龍語者。', max: 1 } };
+  // 拜師的能力值門檻（已分配的點數）；戰五渣重置能力值永久免費
+  const REQ = { warrior: { str: 15 }, brawler: { str: 12, vit: 6 }, mage: { int: 15 }, angel: { int: 12, vit: 6 }, rogue: { dex: 15 }, archer: { dex: 12, str: 6 }, mech: { str: 9, int: 9 }, demon: { str: 9, vit: 9 }, dragon: { int: 12, dex: 6 } };
+  const STN = { str: '力量', vit: '體質', int: '智慧', dex: '敏捷' };
+  const reqMiss = (c, cls) => Object.entries(REQ[cls] || {}).filter(([k, v]) => ((c.st || {})[k] || 0) < v).map(([k, v]) => `${STN[k]}還差 ${v - ((c.st || {})[k] || 0)}`);
+  const FREERESET = '2026-11-29';   // 改版補償：每個角色各一次免費重置能力值（用過會記在 c.frV）
+  const resetCost = c => !c || c.cls === 'novice' || c.frV !== FREERESET ? 0 : APRESET;
   const EGG = { maps: [15, 16, 17], rate: { slime: .03, shroom: .06, stump: .1, king: .4 }, pity: 3 };
   // 像素村的師傅：low 未滿 10 等的戰五渣、ready 可以拜師的戰五渣、mine 自己的徒弟、other 別家的徒弟
   const MASTERS = {
@@ -438,11 +444,37 @@
     { t: B, s: 0, a: 700, b: 1200 }, { t: B, s: 0, a: 700, b: 1200 }, { t: B, s: 0, a: 700, b: 1200 }, { t: B, s: 3 }, { t: B, s: 3 }, { t: B, s: 4 }, { t: B, s: 4 }, { t: B, s: 5 }, { t: B, s: 5 },
     { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 6 }, { t: C, s: 6 }, { t: B, s: 7 }, { t: C, s: 7 }, { t: C, s: 8 }, { t: C, s: 8 }, { t: C, s: 9 }, { t: C, s: 9 },
     { t: boss, s: 0, a: 2140, b: 2460 }];
+  // ===== 冰雪五層的新怪物（以雪怪／冰霜巨人原本的數值當樣板，再由 LVMAP 換算到目標等級）=====
+  { const Y = { lv: 24, hp: 740, atk: 100, exp: 128, gold: [55, 80] }, F = { lv: 28, hp: 13000, atk: 150, exp: 2600, gold: [1500, 2000] };
+    const mob = (name, m, o) => ({ name, tpl: 1, lv: Y.lv, hp: Math.round(Y.hp * m), atk: Y.atk, exp: Math.round(Y.exp * (m > 1 ? 1 + (m - 1) * .6 : 1)), gold: Y.gold, ...o });
+    const boss = (name, m, o) => ({ name, tpl: 1, boss: true, lv: F.lv, hp: Math.round(F.hp * m), atk: F.atk, exp: F.exp, gold: F.gold, ...o });
+    Object.assign(MON, {
+      frosthare: mob('雪原跳兔', .8, { w: 12, h: 10, spd: .8, sp: { k: 'roll', r: 80, dist: 90, n: '跳跳撞' } }),
+      crystalbug: mob('冰晶蟲', .9, { w: 14, h: 9, spd: .45, sp: { k: 'homing', r: 110, n: '冰晶彈' } }),
+      iciclesprite: mob('冰柱精靈', .85, { w: 12, h: 16, spd: .6, sp: { k: 'rain', r: 90, n: '冰柱雨' } }),
+      frostbeetle: mob('霜甲蟲', 1.3, { w: 18, h: 12, spd: .4, sp: { k: 'roll', r: 80, dist: 80, n: '硬殼衝撞' } }),
+      penguin: mob('冰河企鵝', 1, { w: 14, h: 16, spd: .7, sp: { k: 'roll', r: 90, dist: 110, n: '肚子滑行' } }),
+      shardcrab: mob('碎冰蟹', 1.2, { w: 20, h: 12, spd: .45, sp: { k: 'quake', r: 60, rad: 60, n: '鉗擊震地' } }),
+      icebat: mob('冰翼蝙蝠', .8, { w: 16, h: 10, spd: .8, sp: { k: 'homing', r: 120, n: '寒霜音波' } }),
+      blizzhawk: mob('暴雪鷹', .95, { w: 20, h: 14, spd: .8, sp: { k: 'rain', r: 100, n: '暴雪羽刃' } }),
+      frostknight: mob('冰甲騎士', 1.3, { w: 16, h: 22, spd: .5, sp: { k: 'breath', r: 70, len: 75, n: '冰槍突刺' } }),
+      crystalguard: mob('冰晶守衛', 1.5, { w: 20, h: 24, spd: .35, sp: { k: 'quake', r: 65, rad: 65, n: '晶盾重擊' } }),
+      frostwitch: mob('冰霜巫女', 1, { w: 14, h: 22, spd: .5, sp: { k: 'homing', r: 120, n: '冰魄追蹤' } }),
+      icegolem: mob('冰晶魔像', 1.4, { w: 22, h: 24, spd: .35, sp: { k: 'icering', r: 60, rad: 65, n: '寒晶爆裂' } }),
+      snowfox: boss('雪狐王', .8, { w: 40, h: 34, spd: .7, sk: ['charge', 'split', 'icering'], skn: { charge: '雪原疾奔（往旁邊跳開）', split: '狐火分散（找縫隙躲）', icering: '冰晶綻放（離開牠身邊）' } }),
+      iceent: boss('冰柱樹人', .9, { w: 44, h: 52, spd: .3, sk: ['pillars', 'slam', 'pull'], skn: { pillars: '冰柱林（站在空隙）', slam: '樹幹重壓（看落點躲開）', pull: '寒根纏繞（往外跑）' } }),
+      mammoth: boss('冰河猛瑪', 1, { w: 56, h: 44, spd: .45, sk: ['charge', 'quake', 'bounce'], skn: { charge: '猛瑪衝鋒（往旁邊閃）', quake: '踏地震波（跳過震波）', bounce: '冰塊彈跳（看落點躲開）' } }),
+      frostwyrm: boss('暴風雪飛龍', 1, { w: 54, h: 40, spd: .55, sk: ['frostbreath', 'rain', 'orbit'], skn: { frostbreath: '暴雪吐息（會被減速，繞到背後）', rain: '冰雹墜落（避開紅點）', orbit: '冰晶環繞（保持移動）' } }),
+    }); }
   // ===== 2026-11-28 主線改版：依新順序重新分配怪物等級 =====
   // 蘑菇 1–10 → 冰雪 12–28 → 熔岩 30–46 → 海洋 46–66 → 天空 68–84 → 暗黑 86–102 → 虛空 104–120
   // 血量／攻擊／經驗／金幣照「現有怪物的等級曲線」換算：調到幾等，就換成原本同等級怪物的水準
   const LVMAP = {
-    snowslime: 12, icewolf: 18, yeti: 24, frost: 28,
+    snowslime: 12, frosthare: 13, crystalbug: 14, snowfox: 15,
+    icewolf: 16, iciclesprite: 16, frostbeetle: 17, iceent: 18,
+    penguin: 19, shardcrab: 20, icebat: 21, mammoth: 22,
+    blizzhawk: 22, yeti: 23, frostknight: 24, frostwyrm: 25,
+    crystalguard: 25, frostwitch: 26, icegolem: 27, frost: 28,
     fireslime: 30, imp: 36, golem: 42, balrog: 46,
     puffer: 46, seahorse: 47, coralguard: 48, mermqueen: 50,
     siren: 50, crab: 51, pirate: 52, kraken: 54,
@@ -453,13 +485,13 @@
     knight: 86, gargoyle: 91, reaper: 96, dragon: 102,
     voidling: 104, chaosknight: 110, abyssmage: 116, voidking: 120,
   };
-  { const KEYS = ['hp', 'atk', 'exp'], curve = boss => { const pts = {}; for (const k in MON) { const m = MON[k]; if (!!m.boss !== boss || m.trial || m.rival || k.startsWith('trial') || !(m.lv > 0)) continue; (pts[m.lv] ||= []).push(m); }
+  { const KEYS = ['hp', 'atk', 'exp'], curve = boss => { const pts = {}; for (const k in MON) { const m = MON[k]; if (!!m.boss !== boss || m.tpl || m.trial || m.rival || k.startsWith('trial') || !(m.lv > 0)) continue; (pts[m.lv] ||= []).push(m); }
       const lvs = Object.keys(pts).map(Number).sort((a, b) => a - b), at = {}; for (const l of lvs) { at[l] = {}; for (const f of [...KEYS, 'gold']) at[l][f] = pts[l].reduce((a, m) => a + Math.log(f === 'gold' ? (m.gold[0] + m.gold[1]) / 2 || 1 : m[f] || 1), 0) / pts[l].length; }
       return (lv, f) => { if (lv <= lvs[0]) return at[lvs[0]][f]; if (lv >= lvs[lvs.length - 1]) return at[lvs[lvs.length - 1]][f]; let i = 0; while (lvs[i + 1] < lv) i++; const a = lvs[i], b = lvs[i + 1], t = (lv - a) / (b - a); return at[a][f] + (at[b][f] - at[a][f]) * t; }; };
     const CN = curve(false), CB = curve(true);
-    for (const k in LVMAP) { const m = MON[k]; if (!m) continue; const C = m.boss ? CB : CN, o = m.lv, n = LVMAP[k]; if (o === n) continue;
+    for (const k in LVMAP) { const m = MON[k]; if (!m) continue; const C = m.boss ? CB : CN, o = m.lv, n = LVMAP[k]; if (o === n) { delete m.tpl; continue; }
       for (const f of KEYS) m[f] = Math.max(1, Math.round(m[f] * Math.exp(C(n, f) - C(o, f))));
-      const gm = Math.exp(C(n, 'gold') - C(o, 'gold')); m.gold = m.gold.map(g => Math.max(1, Math.round(g * gm))); m.lv = n; } }
+      const gm = Math.exp(C(n, 'gold') - C(o, 'gold')); m.gold = m.gold.map(g => Math.max(1, Math.round(g * gm))); m.lv = n; delete m.tpl; } }
   const MAPS = [
     // ---- 第 0 張：像素村（新手村；重生點、轉職教官、商店、鐵匠）----
     { name: '像素村', pal: 'forest', town: true, safe: true, home: 0, spawns: [], xr: 2100, houses: [40, 1200, 1640],
@@ -590,10 +622,43 @@
     grave: { area: '暗黑', fees: [16000, 18000, 20000, 22000], maps: [null, null, null, null] },
     nova: { area: '虛空', fees: [26000, 28000, 31000, 35000], maps: [null, null, null, null] },
   };
+  Object.assign(MAPS[4], { sea: 1 }); Object.assign(MAPS[3], { sea: 1, deep: 1 }); Object.assign(MAPS[5], { sea: 1, deep: 1 });
+  // ===== 冰雪五層：每層 3 張（第 3 張有 Boss）。冰雪山谷（MAPS[1]）改成第 5 層第 3 張：冰霜巨人的王座 =====
+  { let sd = 7; const rnd2 = () => (sd = (sd * 9301 + 49297) % 233280) / 233280;
+    // 平台產生器：一路往右排，高度一層一層變化，高的平台放繩子；Boss 圖右邊留給 Boss 戰場
+    const lay = (seed, boss) => { sd = seed; const seg = [{ x1: 0, x2: WW, y: GY, g: 1 }], ropes = [], Y = [262, 224, 186, 148]; let x = 300, t = 0;
+      while (x < (boss ? 1850 : 2300)) { const w = 140 + Math.round(rnd2() * 90); seg.push({ x1: x, x2: x + w, y: Y[t] });
+        if (t >= 2 && rnd2() < .7) ropes.push({ x: x + 20, y1: Y[t], y2: GY });
+        const up = t < 3 && rnd2() < .55, nt = t === 0 ? (rnd2() < .7 ? 1 : 0) : up ? t + 1 : Math.max(0, t - 1 - (rnd2() < .3 ? 1 : 0));
+        x += nt > t ? w - 30 : w + 50 + Math.round(rnd2() * 60); t = nt; }
+      return { seg, ropes }; };
+    const L = [
+      { n: '雪原', pal: 'snow', mobs: ['snowslime', 'frosthare', 'crystalbug'], boss: 'snowfox', maps: ['雪原入口', '白樺雪林', '雪狐丘'] },
+      { n: '冰柱林', pal: 'icewood', mobs: ['icewolf', 'iciclesprite', 'frostbeetle'], boss: 'iceent', maps: ['霜霧林道', '垂冰之森', '冰柱樹人的根'] },
+      { n: '冰河裂谷', pal: 'glacier', mobs: ['penguin', 'shardcrab', 'icebat'], boss: 'mammoth', maps: ['冰河灘', '裂谷冰橋', '猛瑪冰原'] },
+      { n: '暴風雪高原', pal: 'blizzard', mobs: ['blizzhawk', 'yeti', 'frostknight'], boss: 'frostwyrm', maps: ['風雪坡道', '冰甲哨站', '飛龍之巢'] },
+      { n: '冰晶宮殿', pal: 'crystal', mobs: ['crystalguard', 'frostwitch', 'icegolem'], boss: 'frost', maps: ['宮殿前庭', '冰晶迴廊', '冰霜巨人的王座'] },
+    ];
+    const ids = []; let nid = 28; for (let l = 0; l < 5; l++) { ids.push([]); for (let k = 0; k < 3; k++) ids[l].push(l === 4 && k === 2 ? 1 : nid++); }
+    L.forEach((ly, l) => ly.maps.forEach((nm, k) => {
+      const id = ids[l][k], isB = k === 2, { seg, ropes } = id === 1 ? { seg: MAPS[1].seg, ropes: MAPS[1].ropes } : lay(101 + l * 17 + k * 5, isB);
+      const [a, b2, c] = ly.mobs, main = [a, b2, c][k], side = [b2, c, a][k], plat = seg.map((_, i) => i).filter(i => i > 0 && (!isB || seg[i].x2 < 2050));
+      const spawns = [...G(main, isB ? 6 : 9, 200, isB ? 1950 : 2350), ...G(side, isB ? 3 : 4, 300, isB ? 1950 : 2350), ...plat.slice(0, 9).map((s2, i) => ({ t: i % 3 === 2 ? side : main, s: s2 }))];
+      if (isB) spawns.push({ t: ly.boss, s: 0, a: 2140, b: 2460 });
+      const prev = k > 0 ? ids[l][k - 1] : l > 0 ? ids[l - 1][2] : 19, next = k < 2 ? ids[l][k + 1] : l < 4 ? ids[l + 1][0] : null;
+      const portals = [{ x: 60, to: prev, tx: prev === 19 ? 1340 : 2490, label: prev === 19 ? '← 霜鈴村' : '←' }];
+      if (next != null) portals.push({ x: 2560, to: next, tx: 150, label: k < 2 ? '→' : `${L[l + 1].n} →`, ...(isB ? { gate: ly.boss } : {}) });
+      const zones = isB ? [[2100, nm], [9e9, MON[ly.boss].name + '的巢穴']] : [[9e9, nm]];
+      MAPS[id] = { ...(id === 1 ? MAPS[1] : {}), name: `冰雪 ${l + 1}-${k + 1}・${nm}`, pal: ly.pal, home: 19, seg, ropes, spawns, zones, portals, start: 150,
+        signs: k === 0 ? [[200, `${ly.n}`]] : [] };
+    }));
+    // 霜鈴村 → 第 1 層；阿努克的各層捷徑（送到每層第 1 張，要先打倒前一層 Boss，每次收費）
+    MAPS[19].portals[1] = { x: 1440, to: ids[0][0], tx: 150, label: '雪原 →' }; MAPS[19].signs = MAPS[19].signs.map(sg => sg[0] > 700 ? [sg[0], '往雪原'] : sg);
+    LAYERS.snowback.maps = [1, 2, 3, 4].map(l => ({ to: ids[l][0], need: L[l - 1].boss }));
+  }
   for (const g in LAYERS) { const L = LAYERS[g];
     L.maps.forEach((m, i) => { if (m && m.to != null) GUIDES[g].opts.push({ place: `${L.area}第 ${i + 2} 層`, to: m.to, tx: m.tx ?? 150, fee: L.fees[i], each: 1, need: m.need }); }); }
   // 強化材料與神話裝備：天空以後才會掉（sea：強化石／高級強化石，deep：神話強化石與神話裝備）
-  Object.assign(MAPS[4], { sea: 1 }); Object.assign(MAPS[3], { sea: 1, deep: 1 }); Object.assign(MAPS[5], { sea: 1, deep: 1 });
   for (const k in MASTERS) MAPS[0].npcs.push({ x: MASTERS[k].x, kind: 'master', cls: k, name: MASTERS[k].name });
   const HOMESCROLL = { price: 2000, cast: 2000 };   // 回城卷軸：雜貨商販售，唸 2 秒，被打會中斷
   // 升級經驗：前期和以前差不多，後期大幅變難（滿等總經驗約為舊版的 4 倍）
@@ -716,6 +781,11 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-29a', notes: [
+      ['❄ 冰雪五層', '冰雪區域擴建成 5 層、15 張地圖：雪原 → 冰柱林 → 冰河裂谷 → 暴風雪高原 → 冰晶宮殿。每層第 3 張有 Boss：雪狐王、冰柱樹人、冰河猛瑪、暴風雪飛龍，最深處是冰霜巨人的王座。'],
+      ['🐾 12 種新怪物', '雪原跳兔、冰晶蟲、冰柱精靈、霜甲蟲、冰河企鵝、碎冰蟹、冰翼蝙蝠、暴雪鷹、冰甲騎士、冰晶守衛、冰霜巫女、冰晶魔像。'],
+      ['🛷 阿努克的捷徑', '打倒每一層的 Boss 之後，霜鈴村的阿努克可以直接送你到下一層（每次收費）。沒打倒 Boss 前，往下一層的門不會打開。'],
+      ['💬 對話與能力值', '接待員的台詞改成顯示在頭上的對話泡泡；拜師要先把能力值點到師傅的要求，戰五渣重置能力值永遠免費，其他角色也各送一次免費重置。'] ] },
     { v: '2026-11-28n', notes: [
       ['💩 新職業：戰五渣', '新角色一律從「戰五渣」開始：拿著插了大便的樹枝，有敲大便、亂揮，30 等丟大便、50 等裝死、70 等「戰五渣的逆襲」。10 等之後經驗減半，但也可以一路當戰五渣到底。'],
       ['🎓 像素村師傅街', '轉職教官退休了！像素村來了九位師傅，各自教一個職業。10 等的戰五渣找師傅拜師就能選職業；之後在 25、40、55、70 等回去找自己的師傅接受轉職試煉。路過時師傅還會跟你聊天。'],
@@ -723,6 +793,7 @@
       ['🏚 冥火鎮・虛空前哨', '守墓人葛雷夫、星界旅人諾娃也能送你回風語驛站了（付一次之後來回免費）。'],
       ['👑 傳說中的戰五渣', '撐到 100 等的戰五渣會成為「傳說中的戰五渣」：攻擊 ×2.2、HP ×2，逆襲每次都成功，所有職業中最強。80 等一樣有守護靈——頭上頂著大便的那種。'],
       ['🔁 舊角色', '已經有職業的角色維持原樣，不會被打回戰五渣。'],
+      ['🎁 免費重置能力值', '改版補償：每個角色都送一次免費的能力值重置。戰五渣則是永遠免費——拜師要先把能力值點到師傅要求的程度。'],
       ['🗺 等級重新分配', '主線改成：蘑菇 1–10 → 冰雪 12–28 → 熔岩 30–46 → 海洋 46–66 → 天空 68–84 → 暗黑 86–102 → 虛空 104–120。船長不用突破上限就能出海。'],
       ['⛓ 突破等級上限', '打倒天穹泰坦：上限 80 → 100；打倒黑龍王：上限 → 120。虛空之主是最終 Boss。'],
       ['💎 強化材料', '強化石改成天空聖域以後才會掉；神話強化石和神話裝備改由暗黑神殿、虛空裂隙掉落。'] ] },
@@ -849,6 +920,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { ITEMS, NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { FREERESET, REQ, STN, reqMiss, resetCost, ITEMS, NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
