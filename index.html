@@ -1974,15 +1974,17 @@ function openGM(){const sel=(id,opts,v)=>`<select id="${id}">${opts.map(([k,n])=
     <div class="gmf"><label>職業 ${sel('gmCls',Object.keys(CL).map(k=>[k,CL[k].jobs[0]]),cls)}</label><label>轉數 ${sel('gmJob',c.jobs.map((j,i)=>[i,['初始','一轉','二轉','三轉','四轉'][i]+'　'+j]),job)}</label>
     <label>等級 <input id="gmLv" type="number" min="1" max="${D.MAXTOP}" value="${lv}"></label><label>寵物 ${sel('gmPet',[['','（無）'],...Object.entries(D.PETS).map(([k,p])=>[k,p.n])],pet)}</label></div>
     <p class="keys" style="margin:6px 0 0">轉數會依等級自動調整（一轉 15、二轉 30、三轉 45、四轉 60）；寵物需要 Lv ${D.PETLV}。能力點會全部退回，請到「能力」自己配點。</p>
+    <h3 style="margin:12px 0 4px">🔧 維護模式</h3><p class="keys" style="margin:0 0 6px">開啟後只有 GM 帳號能進遊戲，線上的其他玩家會被請出去。目前：<b id="gmMaintSt">讀取中…</b></p><div class="row"><button class="btn red sm" data-gmaint="1">開始維護</button><button class="btn sm" data-gmaint="0">結束維護</button></div>
     <h3 style="margin:12px 0 4px">💎 發放鑽石</h3><div class="gmf"><label>玩家（帳號或角色名稱）<input id="gdName" maxlength="20"></label><label>數量（負數＝扣除）<input id="gdN" type="number" value="100"></label><label>備註<input id="gdNote" maxlength="40" placeholder="例如：轉帳 100 元"></label></div>
     <div class="row" style="margin:6px 0"><button class="btn pri sm" data-gdia="1">發放</button><button class="btn sm" data-glog="1">查看紀錄</button></div><div id="gdLog" class="keys" style="max-height:140px;overflow:auto"></div>
     <div class="row"><button class="btn" data-close="1">關閉</button><button class="btn pri" data-gmgo="1">套用</button></div>`,bt=>{
     const showLog=log=>{$('#gdLog').innerHTML=(log||[]).map(e=>`${new Date(e.t).toLocaleString('zh-TW',{hour12:false})}　${esc(e.by)} → ${esc(e.to)}　${e.n>0?'+':''}${e.n} 💎（餘 ${e.bal}）${e.note?'　'+esc(e.note):''}`).join('<br>')||'（沒有紀錄）'};
     if(bt.dataset.glog){sock.emit('diaLog',{},r=>{if(r&&r.ok)showLog(r.log)});return}
+    if(bt.dataset.gmaint!=null){const on=bt.dataset.gmaint==='1';if(on&&!confirm2(bt.dataset,'確定開始維護？線上玩家會被請出去'))return;sock.emit('maint',{on},r=>{if(!r||!r.ok){toast(r&&r.msg||'失敗');return}$('#gmMaintSt').textContent=r.on?'維護中':'開放中';toast(r.on?`已開始維護（請出 ${r.kicked} 人）`:'已結束維護，玩家可以進來了')});return}
     if(bt.dataset.gdia){const nm=$('#gdName').value.trim(),n=+$('#gdN').value;if(!nm||!n){toast('請輸入玩家和數量');return}if(!confirm2(bt.dataset,`確定發給「${nm}」${n} 💎？`))return;sock.emit('giveDia',{name:nm,n,note:$('#gdNote').value},r=>{if(!r||!r.ok){toast(r&&r.msg||'失敗');return}toast(`已發給 ${r.to} ${n} 💎（餘額 ${r.bal}）`);showLog(r.log);sock.emit('diaLog',{},()=>{})});return}
     if(bt.dataset.gmgo){bt.disabled=true;sock.emit('gm',{cls:$('#gmCls').value,job:+$('#gmJob').value,lv:+$('#gmLv').value,pet:$('#gmPet').value},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法套用');bt.disabled=false;return}applyMe(r.me);P.hp=P.max.hp;P.mp=P.max.mp;ui();closePop();toast(`已切換為 ${CL[P.cls].jobs[P.job]} Lv ${P.lv}`)})}});
     $('#gmCls').onchange=()=>render($('#gmCls').value,+$('#gmJob').value,+$('#gmLv').value,$('#gmPet').value)};
-  render(P.cls,P.job,P.lv,P.pet||'')}
+  render(P.cls,P.job,P.lv,P.pet||'');sock.emit('maint',{},r=>{const e=$('#gmMaintSt');if(e&&r&&r.ok)e.textContent=r.on?'維護中':'開放中'})}
 $('#gmBtn').onclick=()=>{if(P&&$('#pop').hidden)openGM()};
 $('#skBtn').onclick=()=>{if(P&&$('#pop').hidden)openSkills()};
 $('#apBtn').onclick=()=>{if(P&&$('#pop').hidden)openAP()};
@@ -1994,6 +1996,7 @@ $('#chatIn').addEventListener('keydown',e=>{if(e.key==='Escape'){$('#chatIn').va
 // ================= 帳號與連線 =================
 let token=null;try{token=localStorage.getItem('pyan-token')}catch(e){}
 let regMode=false;
+function maintScreen(){paused=true;$('#net').textContent='伺服器維護中';openPop(`<h2>🔧 伺服器維護中</h2><p class="sub" style="margin:0;line-height:1.7">屁眼王國正在進行大改版，暫時關閉。<br>更新完成後就會重新開放，請稍後再回來！</p><div class="row" style="margin-top:12px"><button class="btn pri" data-mretry="1">重新連線</button></div>`,bt=>{if(bt.dataset.mretry){closePop();connect()}})}
 function showPanel(id){for(const p of ['authPanel','charPanel','clsPanel','waitPanel'])$('#'+p).hidden=p!==id;$('#title').hidden=false;paused=true}
 $('#aSwitch').onclick=()=>{regMode=!regMode;$('#aBtn').textContent=regMode?'註冊並登入':'登入';$('#aSwitch').textContent=regMode?'已經有帳號？登入':'還沒有帳號？註冊';$('#aErr').textContent=''};
 $('#authForm').onsubmit=async e=>{e.preventDefault();$('#aErr').textContent='';$('#aBtn').disabled=true;
@@ -2017,7 +2020,8 @@ $('#clsBack').onclick=()=>sock&&sock.emit('chars',{},r=>showChars(r.list,r.act))
 function enterWorld(fresh){showPanel('waitPanel');$('#waitTx').textContent='進入世界中…';sock.emit('enter',{},r=>{if(r&&r.ok){inWorld=true;$('#title').hidden=true;paused=false;if(fresh)toast('往右走去打怪吧！靠近繩子按 ↑ 可以往上爬')}})}
 function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPanel('waitPanel');$('#waitTx').textContent='正在連上伺服器。如果伺服器在休眠，約需一分鐘喚醒。';
   sock=io('/rpg',{auth:{token}});
-  sock.on('connect_error',e=>{if(e.message==='auth'){try{localStorage.removeItem('pyan-token')}catch(x){}sock.disconnect();showPanel('authPanel')}else{$('#net').textContent='連線中斷，重新連線中…'}});
+  sock.on('maint',()=>{sock.disconnect();maintScreen()});
+  sock.on('connect_error',e=>{if(e.message==='maint'){sock.disconnect();maintScreen();return}if(e.message==='auth'){try{localStorage.removeItem('pyan-token')}catch(x){}sock.disconnect();showPanel('authPanel')}else{$('#net').textContent='連線中斷，重新連線中…'}});
   sock.on('disconnect',r=>{$('#net').textContent=$('#afk').hidden?'連線中斷，重新連線中…':'已因掛機斷線';ready=false;if(r==='io server disconnect'&&$('#afk').hidden)setTimeout(()=>sock&&!sock.connected&&sock.connect(),1500)});
   sock.on('connect',()=>{$('#net').innerHTML='<b>●</b> 已連線'});
   sock.on('hello',d=>{if(d.gm)document.querySelectorAll('.cls[data-hid]').forEach(e=>e.style.display='');myName=d.name;myId=d.id;if(inWorld&&d.me){P=null;applyMe(d.me);enterWorld(false)}else{P=null;inWorld=false;const first=d.list.findIndex(c=>!c);if(!d.list.some(Boolean)){curSlot=0;$('#hiName').textContent=`${d.name}，你還沒有角色，選一個職業開始冒險吧！`;$('#ui').hidden=true;$('#chat').hidden=true;showPanel('clsPanel')}else showChars(d.list,d.act)}});

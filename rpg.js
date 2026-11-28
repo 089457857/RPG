@@ -370,6 +370,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   ns.use((socket, next) => {
     const uid = S.sessions[socket.handshake.auth?.token];
     if (!uid || !S.users[uid]) return next(new Error('auth'));
+    if (S.maint && !isGM(uid)) return next(new Error('maint'));   // 維護中：只有 GM 能進
     socket.data.uid = uid; next();
   });
   // ---------------- PVP：決鬥與競技場（血量與傷害都由伺服器判定） ----------------
@@ -743,6 +744,14 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     // ---------------- 鑽石：GM 手動發放（留紀錄）、商城購買 ----------------
     const findUser = nm => { nm = String(nm || '').trim().toLowerCase(); if (!nm) return null; for (const [u, us] of Object.entries(S.users)) if (String(us.name || '').toLowerCase() === nm) return u;
       for (const u of Object.keys(S.users)) if (String(nameOf(u) || '').toLowerCase() === nm) return u; return null; };
+    socket.on('maint', ({ on } = {}, ack) => {   // GM：開關維護模式（開啟時把非 GM 玩家請出去）
+      if (!isGM(uid)) return ack && ack({ ok: false, msg: '只有 GM 帳號可以使用' });
+      if (on != null) {
+        S.maint = on ? 1 : 0; save();
+        if (S.maint) { let n = 0; for (const s2 of ns.sockets.values()) { if (isGM(s2.data.uid)) continue; n++; s2.emit('maint', {}); setTimeout(() => s2.disconnect(true), 300); } return ack && ack({ ok: true, on: 1, kicked: n }); }
+      }
+      ack && ack({ ok: true, on: S.maint ? 1 : 0 });
+    });
     socket.on('giveDia', ({ name, n, note } = {}, ack) => {
       const no = msg => ack && ack({ ok: false, msg }); if (!isGM(uid)) return no('只有 GM 帳號可以使用');
       n = Math.round(Number(n) || 0); if (!n || Math.abs(n) > 1000000) return no('數量錯誤'); const to = findUser(name); if (!to) return no('找不到這個玩家（帳號名稱或角色名稱）');
