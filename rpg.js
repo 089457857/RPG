@@ -542,7 +542,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     // ---------------- 鐵匠 老鐵：強化、移植、賣卷軸（只在潮聲港） ----------------
     const atSmith = () => { if (!w || w.mi !== 9) return '要在潮聲港找鐵匠 老鐵'; const n = D.MAPS[9].npcs.find(x => x.kind === 'smith'); return Math.abs(pl.x - n.x) > 90 ? '離鐵匠太遠了' : ''; };
     const gearName = (c, k, i) => (gearList(c, k)[i] || ['?'])[0];
-    socket.on('enh', ({ k, i, luck, guard } = {}, ack) => {
+    // 打鐵小遊戲（+6 以上）：先領開始單，敲完再送 enh；伺服器檢查時間合不合理
+    socket.on('enhStart', ({ k, i } = {}, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); { const e = atSmith(); if (e) return ack && ack({ ok: false, msg: e }); }
+      pl.enhTok = { k, i: i | 0, t: Date.now() }; ack && ack({ ok: true }); });
+    socket.on('enh', ({ k, i, luck, guard, perf, auto, skip } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); { const e = atSmith(); if (e) return no(e); }
       i = i | 0; if (!c.own[k].includes(i)) return no('沒有這件裝備');
       const cur = D.enhOf(c, k, i), n = cur + 1; if (n > D.ENHMAX) return no(`已經強化到 +${D.ENHMAX} 了`);
@@ -550,7 +553,11 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (luck && luck !== 'luck' && luck !== 'luck2') luck = null; if (luck && !(m[luck] > 0)) return no(`沒有${D.MATN[luck]}`);
       guard = !!guard && n >= 11; if (guard && !(m.guard > 0)) return no('沒有守護卷軸');
       m[E.mat] -= E.num; c.gold -= E.gold; if (luck) m[luck]--; if (guard) m.guard--;
-      const rate = Math.min(1, E.rate + (luck ? D.SCROLL[luck].add : 0)), nm = gearName(c, k, i), t = tierOf(c, k, i);
+      // 敲擊加成：完美 1 次 +1%、2 次 +3%、3 次 +5%；5 秒沒敲自動敲時隨機 0／1／3／5%（60／20／15／5%）；跳過 0%
+      let hb = 0; if (n >= 6) { const tk = pl.enhTok, okT = tk && tk.k === k && tk.i === i && Date.now() - tk.t < 120000; pl.enhTok = null;
+        if (okT && !skip) { if (auto) { const r = Math.random(); hb = r < .6 ? 0 : r < .8 ? .01 : r < .95 ? .03 : .05; }
+          else { let p = Math.max(0, Math.min(3, perf | 0)); if (Date.now() - tk.t < 700 * p) p = 0; hb = [0, .01, .03, .05][p]; } } }
+      const rate = Math.min(1, E.rate + (luck ? D.SCROLL[luck].add : 0) + hb), nm = gearName(c, k, i), t = tierOf(c, k, i);
       let res;
       if (Math.random() < rate) { c.enh[k][i] = n; res = { r: 'ok', n };
         if (n >= 10) ns.emit('sys', { t: `🔥 ${nameOf(uid)} 成功把「${nm}」強化到 +${n}！` }); }
@@ -558,7 +565,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         if (t) { c.enh[k][i] = 0; res = { r: 'reset', n: 0 }; ns.emit('sys', { t: `💥 ${nameOf(uid)} 的「${nm}」在強化 +${n} 時失敗，被打回 +0……` }); }
         else { loseGear(c, k, i); res = { r: 'broke' }; ns.emit('sys', { t: `💥 ${nameOf(uid)} 的「${nm}」在強化 +${n} 時碎掉了……` }); }
       } else { const nn = E.down ? Math.max(0, cur - 1) : cur; c.enh[k][i] = nn; res = { r: 'fail', n: nn, down: nn < cur, saved: !!(E.brk && guard) }; }
-      save(); ack && ack({ ok: true, ...res, me: me(uid) });
+      save(); ack && ack({ ok: true, ...res, hb: Math.round(hb * 100), rate: Math.round(rate * 100), me: me(uid) });
     });
     socket.on('xfer', ({ k, from, to } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); { const e = atSmith(); if (e) return no(e); }

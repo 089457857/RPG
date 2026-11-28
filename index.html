@@ -1628,16 +1628,23 @@ let gearTab='w';
 function forgeAnim(o,getRes,done){let ov=document.getElementById('forgeOv');if(ov)ov.remove();ov=document.createElement('div');ov.id='forgeOv';
   ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#000a;cursor:pointer';
   const cv=document.createElement('canvas');cv.width=320;cv.height=180;cv.style.cssText='width:min(92vw,720px);image-rendering:pixelated;border-radius:12px;box-shadow:0 0 40px #ff7a2a55';ov.appendChild(cv);
-  const tip=document.createElement('div');tip.textContent='點一下跳過';tip.style.cssText='position:absolute;bottom:6%;color:#fff9;font:700 13px "Noto Sans TC",sans-serif';ov.appendChild(tip);document.body.appendChild(ov);
-  const c=cv.getContext('2d'),W=320,H=180,dur=o.slow?3000:1500,hits=o.slow?[.2,.45,.88]:[.25,.55,.85],parts=[],t0=performance.now();let skip=false,resT=0,res=null,shake=0,lastHit=-1,fin=false;
-  ov.onclick=()=>{skip=true};
+  const tip=document.createElement('div');tip.textContent=o.game?'點畫面敲擊！外圈和金色圈重疊時敲下去算「完美」':'點一下跳過';tip.style.cssText='position:absolute;bottom:6%;color:#fff9;font:700 13px "Noto Sans TC",sans-serif';ov.appendChild(tip);const sk=document.createElement('button');sk.textContent='跳過 ▶';sk.style.cssText='position:absolute;right:5%;bottom:5%;padding:8px 16px;border-radius:999px;border:1px solid #fff6;background:#000a;color:#fff;font:800 14px "Noto Sans TC",sans-serif';ov.appendChild(sk);document.body.appendChild(ov);
+  const c=cv.getContext('2d'),W=320,H=180,dur=o.slow?3000:1500,hits=o.slow?[.2,.45,.88]:[.25,.55,.85],parts=[];let t0=performance.now();let skip=false,resT=0,res=null,shake=0,lastHit=-1,fin=false;
+  const G=o.game?{hits:[],ring0:performance.now()+300,idle0:performance.now(),swing:0,pop:null,end:false,SH:o.slow?800:1000,WIN:o.slow?80:100}:null,R0=72,TR=16;
+  const ringR=now=>R0*(1-Math.min(1.25,(now-G.ring0)/G.SH)),bonusOf=n=>[0,1,3,5][n];
+  const gEnd=(now,how)=>{if(G.end)return;G.end=true;G.how=how;const perf=G.hits.filter(Boolean).length;tip.textContent='';o.onEnd({perf,auto:how==='auto',skip:how==='skip'});t0=now-dur*.86;lastHit=hits.length-1};
+  const gHit=(now,auto)=>{if(!G||G.end||G.hits.length>=3)return;G.idle0=now;G.swing=now;const tHit=(R0-TR)/R0*G.SH,dt=Math.abs((now-G.ring0)-tHit),pf=!auto&&now>=G.ring0&&dt<=G.WIN,gd=!auto&&now>=G.ring0&&dt<=G.WIN*2.2;
+    G.hits.push(pf);G.pop={t:now,txt:auto?'自動':pf?'完美！':gd?'好':'偏了',col:pf?'#ffd23f':gd?'#fff':'#c8c8c8'};shake=pf?7:3.5;spark(170,118,pf?36:14,pf?['#ffd23f','#ffffff','#ffe680']:['#ffb04a','#c8c8c8']);G.ring0=now+380;if(G.hits.length>=3)gEnd(now,auto?'auto':'play')};
+  ov.onclick=e=>{if(e.target===sk)return;if(G&&!G.end)gHit(performance.now(),false);else skip=true};
+  sk.onclick=e=>{e.stopPropagation();if(G&&!G.end)gEnd(performance.now(),'skip');else skip=true};
+  ov._key=e=>{if(e.code==='Space'){e.preventDefault();ov.onclick({target:ov})}};addEventListener('keydown',ov._key);
   const Rr=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))};
   const spark=(x,y,n,cols,sp=3)=>{for(let k=0;k<n;k++){const a=Math.random()*Math.PI*2,v=.5+Math.random()*sp;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.5,l:30+Math.random()*25,c:cols[k%cols.length]})}};
   // 裝備圖示：武器畫成劍、防具畫成胸甲
   const item=(x,y,col,alpha=1,split=0)=>{c.globalAlpha=alpha;if(o.isW){Rr(x-26-split,y-3,30,6,'#d8dde6');Rr(x-26-split,y-3,30,2,'#ffffff');Rr(x-30-split,y-2,4,4,'#d8dde6');Rr(x+4+split,y-3,22,6,'#d8dde6');Rr(x+4+split,y-3,22,2,'#ffffff');Rr(x+26+split,y-8,4,16,col);Rr(x+30+split,y-2,12,4,'#6b4423');Rr(x+42+split,y-3,4,6,col)}
     else{Rr(x-18-split,y-14,16,26,col);Rr(x+2+split,y-14,16,26,col);Rr(x-22-split,y-16,10,8,col);Rr(x+12+split,y-16,10,8,col);Rr(x-14-split,y-10,12,3,'#ffffff80');Rr(x-2,y-14,4,26,split?'#0000':'#00000040')}c.globalAlpha=1};
   const ITEMY=118;
-  function frame2(now){if(fin)return;const t=now-t0;res=res||getRes();
+  function frame2(now){if(fin)return;if(G&&!G.end)t0=now;const t=now-t0;res=res||getRes();
     if(skip&&res&&!resT)resT=now;if(!resT&&t>=dur&&res)resT=now;const rt=resT?now-resT:0;
     const sx=shake>0?(Math.random()-.5)*shake:0,sy=shake>0?(Math.random()-.5)*shake:0;shake*=.85;c.save();c.translate(sx,sy);
     // 背景：鍛造坊、火爐
@@ -1649,15 +1656,27 @@ function forgeAnim(o,getRes,done){let ov=document.getElementById('forgeOv');if(o
     // 標題
     c.font='900 15px "Noto Sans TC",sans-serif';c.textAlign='center';c.fillStyle='#ffd23f';c.fillText(o.kind==='enh'?`+${o.from} → +${o.to}`:`移植 +${o.from} → +${o.to}`,W/2,24);
     const glowA=resT?0:Math.min(1,t/dur);
-    if(o.kind==='enh'){
+    if(o.kind==='enh'&&G&&!G.end){
+      const nP=G.hits.filter(Boolean).length;c.font='800 11px "Noto Sans TC",sans-serif';c.fillStyle='#fff';c.fillText(`成功率 ${o.base}%${nP?` + 敲擊加成 ${bonusOf(nP)}%`:''}`,W/2,40);
+      for(let i=0;i<3;i++){const x=W-74+i*22,h=G.hits[i];Rr(x,14,16,10,h===undefined?'#3a3a44':h?'#ffd23f':'#8a8a8a');Rr(x+3,10,10,4,h===undefined?'#4a4a54':h?'#ffe680':'#a8a8a8')}
+      c.globalAlpha=.25;Rr(120,ITEMY-16,100,32,o.col);c.globalAlpha=1;item(170,ITEMY,o.col);
+      const r=ringR(now);c.lineWidth=3;c.strokeStyle='#ffd23f';c.beginPath();c.arc(170,ITEMY,TR,0,Math.PI*2);c.stroke();
+      if(now>=G.ring0&&r>0){const near=Math.abs(r-TR)<6;c.lineWidth=near?4:2.5;c.strokeStyle=near?'#ffffff':'#ff8a3a';c.beginPath();c.arc(170,ITEMY,Math.max(1,r),0,Math.PI*2);c.stroke()}
+      if(now-G.ring0>G.SH*1.25)G.ring0=now+200;
+      const idle=(now-G.idle0)/5000;Rr(110,166,120,5,'#0008');Rr(110,166,120*Math.min(1,idle),5,idle>.7?'#ff5a3a':'#ffb04a');c.font='700 9px "Noto Sans TC",sans-serif';c.fillStyle='#fff9';c.fillText('5 秒沒敲會自動敲',W/2,163);
+      if(idle>=1){while(!G.end)gHit(now,true)}
+      const sw=now-G.swing,ang=G.swing&&sw<260?(sw<90?.6-.6*(sw/90):(sw-90)/170*.6):.6;c.save();c.translate(253,ITEMY-15);c.rotate(ang);Rr(-78,-3,80,6,'#8a5a3a');Rr(-92,-12,18,24,'#9aa0a8');Rr(-92,-12,18,4,'#c8ccd4');c.restore();
+      if(G.pop&&now-G.pop.t<700){const k=(now-G.pop.t)/700;c.globalAlpha=1-k;c.font='900 20px "Noto Sans TC",sans-serif';c.fillStyle=G.pop.col;c.fillText(G.pop.txt,170,ITEMY-34-k*16);c.globalAlpha=1}}
+    else if(o.kind==='enh'){
+      if(G&&res&&res.rate!=null){c.font='800 11px "Noto Sans TC",sans-serif';c.fillStyle='#fff';c.fillText(`成功率 ${res.rate}%${res.hb?`（含敲擊加成 ${res.hb}%）`:''}`,W/2,40)}
       // 敲擊
       if(!resT){for(let i=0;i<hits.length;i++){if(t>=hits[i]*dur&&lastHit<i){lastHit=i;shake=i===hits.length-1&&o.slow?6:3.5;spark(170,ITEMY,i===hits.length-1?28:16,['#ffe680','#ffb04a','#ffffff'])}}}
-      const nh=hits.find(h=>t<h*dur),ph=nh!==undefined?nh*dur-t:999,ang=resT?-1.1:ph<120?-1.1*(ph/120):Math.min(-.1,-1.1);
+      const nh=hits.find(h=>t<h*dur),ph=nh!==undefined?nh*dur-t:999,since=lastHit>=0?t-hits[lastHit]*dur:999,ang=resT?.6:ph<120?.6*(ph/120):since<160?.6*(since/160):.6;   // 舉起 0.9；敲下時錘頭剛好落在裝備上
       // 物品（成功後發光；毀損時裂開）
       const broke=res&&res.r==='broke'&&resT,split=broke?Math.min(40,rt/18):0;
       if(!broke||rt<1200){c.globalAlpha=.25+.35*glowA;Rr(120,ITEMY-16,100,32,o.col);c.globalAlpha=1;item(170,ITEMY,o.col,broke?Math.max(0,1-rt/1000):1,split)}
       // 鐵鎚（右上方揮下來）
-      if(!resT){c.save();c.translate(250,70);c.rotate(ang);Rr(-78,-3,80,6,'#8a5a3a');Rr(-92,-12,18,24,'#9aa0a8');Rr(-92,-12,18,4,'#c8ccd4');c.restore()}
+      if(!resT){c.save();c.translate(253,ITEMY-15);c.rotate(ang);Rr(-78,-3,80,6,'#8a5a3a');Rr(-92,-12,18,24,'#9aa0a8');Rr(-92,-12,18,4,'#c8ccd4');c.restore()}
       if(resT&&res){const R0=res.r;
         if(R0==='ok'){c.globalAlpha=Math.max(0,.6-rt/800);Rr(0,0,W,H,'#ffe680');c.globalAlpha=1;for(let k=0;k<12;k++){const a=k/12*Math.PI*2+rt/600;c.strokeStyle='#ffd23f88';c.lineWidth=2;c.beginPath();c.moveTo(170,ITEMY);c.lineTo(170+Math.cos(a)*90,ITEMY+Math.sin(a)*60);c.stroke()}
           if(rt<40)spark(170,ITEMY,40,['#ffd23f','#ffffff','#ffe680'],4);c.font='900 34px "Noto Sans TC",sans-serif';c.fillStyle='#ffd23f';c.fillText(`+${res.n}！`,W/2,72+Math.max(0,10-rt/20));c.font='900 14px "Noto Sans TC",sans-serif';c.fillStyle='#fff';c.fillText('強化成功',W/2,94)}
@@ -1674,7 +1693,7 @@ function forgeAnim(o,getRes,done){let ov=document.getElementById('forgeOv');if(o
     for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.l--;Rr(p.x,p.y,2,2,p.c)}for(let i=parts.length-1;i>=0;i--)if(parts[i].l<=0)parts.splice(i,1);
     if(!resT&&t>=dur&&!res){c.font='700 12px "Noto Sans TC",sans-serif';c.fillStyle='#fff9';c.fillText('……',W/2,46)}
     c.restore();
-    if(resT&&(rt>(skip?700:1500))){fin=true;ov.remove();done(res);return}
+    if(resT&&(rt>(skip?700:1500))){fin=true;removeEventListener('keydown',ov._key);ov.remove();done(res);return}
     requestAnimationFrame(frame2)}
   requestAnimationFrame(frame2)}
 
@@ -1710,9 +1729,10 @@ function openSmith(){const render=()=>{const own=P.own||{w:[],a:[]},m=P.mat||{},
       if(d.lc!=null){smLuck=d.lc;return render()}if(d.gd){smGuard=!smGuard;return render()}
       if(d.buy){bt.disabled=true;sock.emit('buyScroll',{s:d.buy,n:+d.n},r=>{if(!r||!r.ok)toast(r&&r.msg||'失敗');else{applyMe(r.me);toast('買好了！');ui()}render()});return}
       if(d.go){const e0=D.enhOf(P,smK,smI),E=D.ENH[e0+1];if(E&&E.brk&&!smGuard&&!confirm2(d,`+${e0+1} 失敗有 ${Math.round(E.brk*100)}% 機率毀損，確定不用守護卷軸嗎？`))return;bt.disabled=true;
-        const L0=smK==='w'?WEAPONS[P.cls]:ARMORS,t0=L0[smI][smK==='w'?4:5]||0,isW=smK==='w';let got=null,bad=false;
-        sock.emit('enh',{k:smK,i:smI,luck:smLuck||null,guard:smGuard},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();return render()}got=r});
-        forgeAnim({kind:'enh',isW,col:t0>=2?'#7affea':t0>=1?'#ff7ae0':'#bfe8ff',from:e0,to:e0+1,slow:e0+1>=11},()=>bad?{r:'fail'}:got,r=>{if(bad||!got)return;applyMe(r.me);if(smLuck&&!(P.mat[smLuck]>0))smLuck='';if(smGuard&&!(P.mat.guard>0))smGuard=false;
+        const L0=smK==='w'?WEAPONS[P.cls]:ARMORS,t0=L0[smI][smK==='w'?4:5]||0,isW=smK==='w',game=e0+1>=6,k0=smK,i0=smI,lc0=smLuck||null,gd0=smGuard;let got=null,bad=false;
+        const send=g=>sock.emit('enh',{k:k0,i:i0,luck:lc0,guard:gd0,...g},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();return render()}got=r});
+        if(game)sock.emit('enhStart',{k:k0,i:i0},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();render()}});else send({});
+        forgeAnim({kind:'enh',isW,col:t0>=2?'#7affea':t0>=1?'#ff7ae0':'#bfe8ff',from:e0,to:e0+1,slow:e0+1>=11,game,base:Math.round(Math.min(1,E.rate+(smLuck?D.SCROLL[smLuck].add:0))*100),onEnd:send},()=>bad?{r:'fail'}:got,r=>{if(bad||!got)return;applyMe(r.me);if(smLuck&&!(P.mat[smLuck]>0))smLuck='';if(smGuard&&!(P.mat.guard>0))smGuard=false;
           fx.push({t:'lvup',x:P.x,y:P.y,life:r.r==='ok'?60:20});toast(r.r==='ok'?`✨ 強化成功！變成 +${r.n}`:r.r==='broke'?'💥 裝備碎掉了……':r.r==='reset'?'💥 強化失敗，被打回 +0……':r.down?`強化失敗，降到 +${r.n}${r.saved?'（守護卷軸保住了裝備）':''}`:'強化失敗，材料沒了');ui();render()});return}
       if(d.xf){if(!confirm2(d,'移植失敗時原本那件會歸零，確定要移植嗎？'))return;bt.disabled=true;const fe=D.enhOf(P,smK,smFrom),L0=smK==='w'?WEAPONS[P.cls]:ARMORS,t0=L0[smFrom][smK==='w'?4:5]||0;let got=null,bad=false;
         sock.emit('xfer',{k:smK,from:smFrom,to:smI},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();return render()}got=r});
