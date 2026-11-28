@@ -118,8 +118,10 @@
   const NOVLV = 10, NOVEXP = 0.5, LEGLV = 100, LEGATK = 2.2, LEGHP = 2.0;   // 10 等可拜師；10 等後經驗減半；100 等「傳說中的戰五渣」
   const legendNov = c => !!c && c.cls === 'novice' && c.lv >= LEGLV;
   const jobName = c => legendNov(c) ? '傳說中的戰五渣' : CL[c.cls].jobs[c.job || 0];
-  // 龍蛋：只有戰五渣在蘑菇森林打怪會掉；巨菇王第 5 次必掉
-  const EGG = { maps: [15, 16, 17], rate: { slime: .01, shroom: .03, stump: .05, king: .2 }, pity: 5 };
+  // 龍蛋：只有戰五渣在蘑菇森林打怪會掉；接了龍語者的「尋找龍蛋」任務後，巨菇王第 3 次必掉
+  // 物品欄：任務道具、特殊物品（之後各村莊 NPC 的蒐集任務也放這裡）
+  const ITEMS = { egg: { n: '龍蛋', icon: '🥚', d: '帶著它，10 等後去像素村找龍語者。', max: 1 } };
+  const EGG = { maps: [15, 16, 17], rate: { slime: .03, shroom: .06, stump: .1, king: .4 }, pity: 3 };
   // 像素村的師傅：low 未滿 10 等的戰五渣、ready 可以拜師的戰五渣、mine 自己的徒弟、other 別家的徒弟
   const MASTERS = {
     warrior: { name: '鐵壁 老岩', x: 300, intro: '劍要拿得穩，人要站得直。跟著我，把你練成一面打不倒的牆！',
@@ -616,7 +618,7 @@
   function mainAtk(cls, s) { const m = MAIN[cls] || ['str']; const k = m.length > 1 ? .75 : 1; return m.reduce((a, x) => a + eff(s[x]) * 1.3 * k, 0); }
   function newChar(cls) { return { slots: cls === 'novice' ? ['s1', 's2', 's3', 's4', '', ''] : [...DEFSLOTS], cls, lv: 1, exp: 0, gold: 20, pot: 5, eth: 3, base: { ...CL[cls].base }, job: 0, wep: 0, arm: 0, map: 0, ap: 0, apv: 2, xv: 2, st: { str: 0, vit: 0, int: 0, dex: 0 } }; }
   // 舊存檔補上能力值（依目前等級補發點數）
-  function fix(c) { gearOk(c); if (c && c.cls === 'dragon') { c.pet = c.lv >= PETLV && ELEM[c.elem] ? ELEM[c.elem].pet : null; if (!c.mounts) c.mounts = []; const has = c.mounts.includes('mydragon'); if (c.job >= 4 && !has) c.mounts.push('mydragon'); if (c.job < 4 && has) { c.mounts = c.mounts.filter(x => x !== 'mydragon'); if (c.mnt === 'mydragon') c.mnt = c.mounts[0] || 'horse'; } } if (c && c.xv !== 2) { c.xv = 2; if (c.exp > 0 && c.lv < capOf(c)) c.exp = Math.min(needExp(c.lv) - 1, Math.floor(c.exp / needExpOld(c.lv) * needExp(c.lv))); } if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
+  function fix(c) { if (c && c.egg) { (c.items ||= {}).egg = 1; delete c.egg; } gearOk(c); if (c && c.cls === 'dragon') { c.pet = c.lv >= PETLV && ELEM[c.elem] ? ELEM[c.elem].pet : null; if (!c.mounts) c.mounts = []; const has = c.mounts.includes('mydragon'); if (c.job >= 4 && !has) c.mounts.push('mydragon'); if (c.job < 4 && has) { c.mounts = c.mounts.filter(x => x !== 'mydragon'); if (c.mnt === 'mydragon') c.mnt = c.mounts[0] || 'horse'; } } if (c && c.xv !== 2) { c.xv = 2; if (c.exp > 0 && c.lv < capOf(c)) c.exp = Math.min(needExp(c.lv) - 1, Math.floor(c.exp / needExpOld(c.lv) * needExp(c.lv))); } if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
   // 寵物：65 等解鎖，四選一；之後可花金幣更換
   const PETLV = 65, PETSWAP = 30000;
   const PETS = {
@@ -717,7 +719,7 @@
     { v: '2026-11-28n', notes: [
       ['💩 新職業：戰五渣', '新角色一律從「戰五渣」開始：拿著插了大便的樹枝，有敲大便、亂揮，30 等丟大便、50 等裝死、70 等「戰五渣的逆襲」。10 等之後經驗減半，但也可以一路當戰五渣到底。'],
       ['🎓 像素村師傅街', '轉職教官退休了！像素村來了九位師傅，各自教一個職業。10 等的戰五渣找師傅拜師就能選職業；之後在 25、40、55、70 等回去找自己的師傅接受轉職試煉。路過時師傅還會跟你聊天。'],
-      ['🥚 龍蛋', '戰五渣在蘑菇森林打怪，有機會撿到龍蛋（巨菇王更容易掉）。帶著龍蛋去找龍語者，才能成為巨龍使者——巨龍使者正式開放！'],
+      ['🥚 龍蛋', '戰五渣在蘑菇森林打怪，有機會撿到龍蛋（史萊姆 3%、蘑菇 6%、樹墩 10%、巨菇王 40%）。帶著龍蛋去找龍語者，才能成為巨龍使者——巨龍使者正式開放！也可以先找龍語者接「尋找龍蛋」任務：打倒巨菇王 3 次，第 3 次一定會掉。'],
       ['🏚 冥火鎮・虛空前哨', '守墓人葛雷夫、星界旅人諾娃也能送你回風語驛站了（付一次之後來回免費）。'],
       ['👑 傳說中的戰五渣', '撐到 100 等的戰五渣會成為「傳說中的戰五渣」：攻擊 ×2.2、HP ×2，逆襲每次都成功，所有職業中最強。80 等一樣有守護靈——頭上頂著大便的那種。'],
       ['🔁 舊角色', '已經有職業的角色維持原樣，不會被打回戰五渣。'],
@@ -847,6 +849,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { ITEMS, NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);

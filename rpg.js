@@ -307,10 +307,14 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         else { if (Math.random() < .08) give('s1', 1); if (deep && Math.random() < .02) give('s2', 1); if (Math.random() < .01) give('luck2', 1); }
         if (Object.keys(got).length) ns.to('u:' + uid).emit('mat', got); }
       if (c.cls === 'novice' && c.lv >= D.NOVLV) e = Math.max(1, Math.round(e * D.NOVEXP));   // 戰五渣 10 等之後經驗減半
-      // 龍蛋：只有戰五渣在蘑菇森林打怪會掉，巨菇王第 5 次必掉（不公告）
-      if (c.cls === 'novice' && !c.egg && D.EGG.maps.includes(m.mi) && D.EGG.rate[m.t]) {
-        if (m.t === 'king') c.eggK = (c.eggK || 0) + 1;
-        if (Math.random() < D.EGG.rate[m.t] || (m.t === 'king' && c.eggK >= D.EGG.pity)) { c.egg = 1; ns.to('u:' + uid).emit('notice', { t: '🥚 你撿到了一顆溫熱的龍蛋！10 等之後帶去像素村找「龍語者」' }); }
+      // 龍蛋：只有戰五渣在蘑菇森林打怪會掉；接了龍語者任務後巨菇王第 3 次必掉（不公告）
+      // 龍蛋掉在地上，只有這位戰五渣看得到、撿得到
+      if (c.cls === 'novice' && !(c.items || {}).egg && D.EGG.maps.includes(m.mi) && D.EGG.rate[m.t] && ![...w.drops.values()].some(x => x.own === uid && x.t === 'item:egg')) {
+        if (m.t === 'king' && c.eggQ) c.eggK = (c.eggK || 0) + 1;
+        if (Math.random() < D.EGG.rate[m.t] || (m.t === 'king' && c.eggQ && c.eggK >= D.EGG.pity)) {
+          const id = w.dseq++, dr = { id, t: 'item:egg', v: 1, x: clamp(m.x - 14, 10, D.WW - 10), y, until: now + 90000, fy: y - m.w * .5, own: uid }; w.drops.set(id, dr);
+          ns.to('u:' + uid).emit('drop', [dr]); ns.to('u:' + uid).emit('notice', { t: '🥚 怪物掉出了一顆發光的龍蛋！快去撿起來' });
+        }
       }
       const lv0 = c.lv, up = D.addExp(c, e);
       ns.to('u:' + uid).emit('gain', { exp: e, lv: c.lv, up, newJob: up && D.JOBLV.some(j => j > lv0 && j <= c.lv) });
@@ -472,7 +476,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         mons: w.mons.map(m => ({ i: m.i, x: m.x, hop: m.hop, f: m.f, hp: m.hp, max: m.max, dead: m.dead ? 1 : 0, sp: m.sp, dark: m.dark ? 1 : 0 })),
         fights: w.mons.filter(m => m.fight).map(fightPub),
         pvp: D.MAPS[mi].pvp || null, php: pl.php, pmax: pl.pmax, aw: awPub(pl, Date.now()),
-        drops: [...w.drops.values()], players: [...w.players.values()].filter(p => p.uid !== uid).map(playerPub), online: online(),
+        drops: [...w.drops.values()].filter(d => !d.own || d.own === uid), players: [...w.players.values()].filter(p => p.uid !== uid).map(playerPub), online: online(),
       });
       ns.to(w.room).emit('sys', { t: `${nameOf(uid)} 來到了${D.MAPS[mi].name}`, quiet: 1 });
     }
@@ -673,7 +677,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     });
     socket.on('pick', ({ id } = {}, ack) => {
       const c = char(uid); if (!w || !c) return;
-      const d = w.drops.get(id); if (!d) return ack && ack({ ok: false });
+      const d = w.drops.get(id); if (!d || (d.own && d.own !== uid)) return ack && ack({ ok: false });
       if (Math.abs(d.x - pl.x) > 60 || Math.abs(d.y - pl.y) > 60) return ack && ack({ ok: false });
       if ((d.t === 'pot' || d.t === 'eth') && (c[d.t] || 0) >= D.POTMAX) return ack && ack({ ok: false, full: 1, msg: `${d.t === 'pot' ? '紅' : '藍'}藥水最多帶 ${D.POTMAX} 瓶` });
       w.drops.delete(id);
@@ -690,6 +694,9 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         else { const it = pool[ri(0, pool.length - 1)]; let name;
           if (it.k === 'w') { c.own.w.push(it.i); name = D.WEAPONS[c.cls][it.i][0]; } else if (it.k === 'a') { c.own.a.push(it.i); name = D.ARMORS[it.i][0]; } else if (it.k === 'h') { c.own.h.push(it.i); name = D.HELMS[it.i][0]; } else if (it.k === 'c') { c.own.c.push(it.i); name = D.CAPES[it.i][0]; } else { c.mounts.push(it.id); name = D.MOUNTS[it.id].n; }
           leg = { name, tier, kind: it.k }; ns.emit('sys', { t: `${tier === 2 ? '🌌' : '✦'} ${nameOf(uid)} 獲得了${tn}${({ w: '武器', a: '防具', h: '頭盔', c: '披風' })[it.k] || '坐騎'}「${name}」！` }); }
+      } else if (d.t.startsWith('item:')) {
+        const k = d.t.slice(5), it = D.ITEMS[k]; c.items ||= {}; c.items[k] = Math.min(it ? it.max || 999 : 999, (c.items[k] || 0) + d.v);
+        if (k === 'egg') delete c.eggQ;
       } else c[d.t] = (c[d.t] || 0) + 1;
       ns.to(w.room).emit('dgone', { id, by: uid }); save(); pushMe(uid); ack && ack({ ok: true, t: d.t, v: d.v, leg });
     });
@@ -946,6 +953,13 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('newsSeen', ({ v } = {}) => { const u = S.users[uid]; if (u && v === D.VERSION) { u.seenVer = D.VERSION; save(); } });
     // ---- 轉職試煉 ----
     // ---- 戰五渣拜師：10 等後找像素村的師傅選職業（巨龍使者要有龍蛋）----
+    // ---- 龍語者的任務：尋找龍蛋 ----
+    socket.on('eggQuest', (_, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w) return no('');
+      if (c.cls !== 'novice') return no('只有戰五渣能接這個任務'); if ((c.items || {}).egg) return no('你已經有龍蛋了'); if (c.eggQ) return no('任務已經接過了');
+      const npc = (D.MAPS[0].npcs || []).find(n => n.kind === 'master' && n.cls === 'dragon'); if (w.mi !== 0 || !npc || Math.abs(pl.x - npc.x) > 90) return no('離龍語者太遠了');
+      c.eggQ = 1; c.eggK = 0; save(); pushMe(uid); ack && ack({ ok: true, me: me(uid) });
+    });
     socket.on('apprentice', ({ cls } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w) return no('');
       if (c.cls !== 'novice') return no('你已經有師父了');
@@ -954,11 +968,11 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (w.mi !== 0) return no('要在像素村找師傅');
       const npc = (D.MAPS[0].npcs || []).find(n => n.kind === 'master' && n.cls === cls); if (!npc || Math.abs(pl.x - npc.x) > 90) return no('離師傅太遠了');
       if (D.HIDDEN[cls] && !isGM(uid)) return no('龍蛋還沒孵化，再等等吧');
-      if (cls === 'dragon' && !c.egg && !isGM(uid)) return no('沒有龍蛋，龍是不會認你的');
+      if (cls === 'dragon' && !(c.items || {}).egg && !isGM(uid)) return no('沒有龍蛋，龍是不會認你的');
       // 能力值依新職業重新計算（等於這個職業從 1 等練到現在）
       const gr = D.CL[cls].grow, b = { ...D.CL[cls].base }; for (let l = 1; l < c.lv; l++) { b.hp += gr.hp; b.mp += gr.mp; b.atk = Math.round((b.atk + gr.atk) * 10) / 10; b.def = Math.round((b.def + gr.def) * 10) / 10; }
       c.cls = cls; c.job = 0; c.base = b; c.slots = [...D.DEFSLOTS]; if (!D.WEAPONS[cls][c.wep]) c.wep = 0; if (c.lookW != null && !D.WEAPONS[cls][c.lookW]) delete c.lookW;
-      if (cls === 'dragon') delete c.egg;
+      if (cls === 'dragon' && c.items) delete c.items.egg;
       D.fix(c); save(); pushMe(uid); ack && ack({ ok: true, me: me(uid) });
       ns.to(w.room).emit('sys', { t: cls === 'dragon' ? `🐉 ${nameOf(uid)} 的龍蛋孵化了！拜入龍語者門下，成為「巨龍使者」！` : `🎓 ${nameOf(uid)} 拜入${D.MASTERS[cls].name}門下，成為「${D.CL[cls].jobs[0]}」！` });
     });
