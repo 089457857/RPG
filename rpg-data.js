@@ -166,6 +166,58 @@
   const CASH = [{ id: 's1x10', n: '強化石 ×10', mat: 's1', q: 10, price: 5 }, { id: 's2x5', n: '高級強化石 ×5', mat: 's2', q: 5, price: 10 }, { id: 'guard', n: '守護卷軸', mat: 'guard', q: 1, price: 3 },
     { id: 'luck', n: '加成卷軸', mat: 'luck', q: 1, price: 2 }, { id: 'luck2', n: '高級加成卷軸', mat: 'luck2', q: 1, price: 6 }, { id: 'nodown', n: '防降級卷軸', mat: 'nodown', q: 1, price: 10 }];
   const cashPrice = it => it.price * CASHMUL;
+  // ---- 外觀（2026-11-28l）：k = fashion 時裝／wlook 武器外觀／clook 披風外觀／hlook 頭盔外觀／dragon 龍的配色；src: shop 商城販售、gacha 轉蛋限定 ----
+  // 外觀只改變樣子，不影響數值；買過就是帳號永久擁有
+  const COS = {
+    // 時裝（整套）：body 上衣、body2 下擺／配色、hat 帽子造型
+    f_school: { k: 'fashion', n: '學院制服', price: 50, src: 'shop', body: '#f4f4f4', body2: '#2a3a6a', tie: '#c8302a', hat: null },
+    f_yukata: { k: 'fashion', n: '和風浴衣', price: 50, src: 'shop', body: '#5a8ad8', body2: '#ffd8e8', tie: '#c8302a', hat: 'flower', hc: '#ff9ad8' },
+    f_suit: { k: 'fashion', n: '紳士禮服', price: 50, src: 'shop', body: '#1a1a24', body2: '#f4f4f4', tie: '#c8302a', hat: 'tophat', hc: '#1a1a24' },
+    f_bear: { k: 'fashion', n: '熊熊玩偶裝', price: 50, src: 'shop', body: '#a86a3a', body2: '#f0d0a0', tie: null, hat: 'bear', hc: '#a86a3a' },
+    f_pirate: { k: 'fashion', n: '海盜船長', price: 50, src: 'shop', body: '#8a1a1a', body2: '#ffd23f', tie: '#f4f4f4', hat: 'tricorne', hc: '#1a1a24' },
+    f_santa: { k: 'fashion', n: '聖誕老人', price: 50, src: 'shop', body: '#d8302a', body2: '#ffffff', tie: '#1a1a1a', hat: 'santa', hc: '#d8302a' },
+    // 武器外觀：把武器換成這個配色和光效
+    w_ice: { k: 'wlook', n: '冰晶武器', price: 20, src: 'shop', c1: '#bfe8ff', c2: '#ffffff', fx: 'frost' },
+    w_flame: { k: 'wlook', n: '烈焰武器', price: 25, src: 'shop', c1: '#ff6a2a', c2: '#ffd23f', fx: 'flame' },
+    w_thunder: { k: 'wlook', n: '雷光武器', price: 25, src: 'shop', c1: '#7fa8ff', c2: '#ffe64a', fx: 'holy' },
+    w_sakura: { k: 'wlook', n: '櫻花武器', price: 30, src: 'shop', c1: '#ffb0d0', c2: '#ffffff', fx: 'star' },
+    w_shadow: { k: 'wlook', n: '暗影武器', price: 30, src: 'shop', c1: '#3a1a4a', c2: '#b46aff', fx: 'void' },
+    w_gold: { k: 'wlook', n: '黃金武器', price: 35, src: 'shop', c1: '#ffd23f', c2: '#fff6c0', fx: 'holy' },
+    w_rainbow: { k: 'wlook', n: '彩虹武器', price: 40, src: 'shop', c1: '#00ffd5', c2: '#ff6a2a', fx: 'prism' },
+    w_galaxy: { k: 'wlook', n: '星空武器', price: 40, src: 'shop', c1: '#3a1a8a', c2: '#ffe680', fx: 'cosmos' },
+    // 披風外觀：shape cape 一般披風／wing 翅膀
+    c_flame: { k: 'clook', n: '炎龍披風', price: 25, src: 'shop', shape: 'cape', c1: '#c8302a', c2: '#ffd23f', fx: 'flame' },
+    c_frost: { k: 'clook', n: '冰霜披風', price: 25, src: 'shop', shape: 'cape', c1: '#7fd3ff', c2: '#ffffff', fx: 'frost' },
+    c_sakura: { k: 'clook', n: '櫻花披風', price: 30, src: 'shop', shape: 'cape', c1: '#ff9ad8', c2: '#ffffff', fx: 'star' },
+    c_galaxy: { k: 'clook', n: '星空斗篷', price: 35, src: 'shop', shape: 'cape', c1: '#1a1a5a', c2: '#ffe680', fx: 'cosmos' },
+    c_angel: { k: 'clook', n: '天使之翼', price: 45, src: 'shop', shape: 'wing', c1: '#ffffff', c2: '#ffe680', fx: 'holy' },
+    c_demon: { k: 'clook', n: '惡魔之翼', price: 45, src: 'shop', shape: 'bat', c1: '#2a0a2a', c2: '#ff2a6a', fx: 'chaos' },
+    // 頭盔外觀：shape 決定造型
+    h_crown: { k: 'hlook', n: '黃金皇冠', price: 30, src: 'shop', shape: 'crown', c1: '#ffd23f', c2: '#ff2a4a' },
+    h_cat: { k: 'hlook', n: '貓耳', price: 15, src: 'shop', shape: 'cat', c1: '#3a3a44', c2: '#ffb0c0' },
+    h_wizard: { k: 'hlook', n: '魔法帽', price: 20, src: 'shop', shape: 'wizard', c1: '#4b2c9a', c2: '#ffd23f' },
+    h_flower: { k: 'hlook', n: '花冠', price: 15, src: 'shop', shape: 'flower', c1: '#2ec48a', c2: '#ff9ad8' },
+    h_horn: { k: 'hlook', n: '惡魔角', price: 20, src: 'shop', shape: 'horn', c1: '#2a0a1a', c2: '#ff2a6a' },
+    h_halo: { k: 'hlook', n: '天使光環', price: 25, src: 'shop', shape: 'halo', c1: '#ffe680', c2: '#ffffff' },
+    h_bunny: { k: 'hlook', n: '兔耳', price: 15, src: 'shop', shape: 'bunny', c1: '#ffffff', c2: '#ffb0c0' },
+    h_samurai: { k: 'hlook', n: '武士頭盔', price: 30, src: 'shop', shape: 'samurai', c1: '#1a1a24', c2: '#ffd23f' },
+    // 龍的配色（巨龍使者開放後上架）
+    d_obsidian: { k: 'dragon', n: '黑曜', price: 50, src: 'shop', hidden: 1 }, d_platinum: { k: 'dragon', n: '白金', price: 50, src: 'shop', hidden: 1 },
+    d_jade: { k: 'dragon', n: '翡翠', price: 50, src: 'shop', hidden: 1 }, d_crimson: { k: 'dragon', n: '血紅', price: 50, src: 'shop', hidden: 1 },
+    // 轉蛋限定
+    g_galaxywing: { k: 'clook', n: '銀河之翼', src: 'gacha', grade: 2, shape: 'wing', c1: '#3a1a8a', c2: '#7fd3ff', fx: 'cosmos', glow: 1 },
+    g_holycrown: { k: 'hlook', n: '神聖光冠', src: 'gacha', grade: 2, shape: 'halocrown', c1: '#ffd23f', c2: '#ffffff', glow: 1 },
+    g_blackgold: { k: 'wlook', n: '黑金武器', src: 'gacha', grade: 1, c1: '#1a1a1a', c2: '#ffd23f', fx: 'chaos' },
+    g_aurora: { k: 'clook', n: '極光披風', src: 'gacha', grade: 1, shape: 'cape', c1: '#2ec48a', c2: '#b46aff', fx: 'prism' },
+    g_fox: { k: 'hlook', n: '九尾狐耳', src: 'gacha', grade: 1, shape: 'fox', c1: '#ff8a3a', c2: '#ffffff' },
+    g_idol: { k: 'fashion', n: '偶像舞台裝', src: 'gacha', grade: 1, body: '#ff4fd8', body2: '#ffffff', tie: '#ffe680', hat: 'star', hc: '#ffe680' },
+  };
+  const COSK = { fashion: '時裝', wlook: '武器外觀', clook: '披風外觀', hlook: '頭盔外觀', dragon: '龍的配色' };
+  // ---- 轉蛋：機率（公開）、50 抽保底 ----
+  const GACHA = { price1: 5, price10: 45, pity: 50, pool: [
+    { r: .005, cos: 'g_galaxywing', g: 2 }, { r: .005, cos: 'g_holycrown', g: 2 },
+    { r: .01, cos: 'g_blackgold', g: 1 }, { r: .01, cos: 'g_aurora', g: 1 }, { r: .01, cos: 'g_fox', g: 1 }, { r: .01, cos: 'g_idol', g: 1 },
+    { r: .05, mat: 'nodown', q: 1 }, { r: .10, mat: 'luck2', q: 1 }, { r: .20, mat: 'guard', q: 2 }, { r: .25, mat: 's2', q: 3 }, { r: .35, mat: 's1', q: 10 }] };
   const SHOPW = [0, 1, 2, 3, 4, 5, 6, 7, 9, 10];   // 商店武器的升級順序
   const TIERN = ['', '傳說', '神話'];
   const BONUSN = { crit: v => `爆擊率 +${v}%`, critD: v => `爆擊傷害 +${Math.round(v * 100)}%`, skillB: v => `技能傷害 +${Math.round(v * 100)}%`, cdr: v => `冷卻縮短 ${Math.round(v * 100)}%`,
@@ -493,6 +545,11 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-28l', notes: [
+      ['👗 外觀上架', '「💎 商城」的外觀頁開放：時裝 6 套、武器外觀 8 款、披風外觀 6 款（含天使之翼、惡魔之翼）、頭盔外觀 8 款（皇冠、貓耳、兔耳、魔法帽……）。可以先試穿再買，買了就是帳號永久擁有。外觀只改變樣子，不影響數值。'],
+      ['🧥 衣櫃', '在「裝備」的時裝欄位或「背包」的時裝分頁打開衣櫃，就能換上或卸下已擁有的外觀，每個角色可以穿不同的。'],
+      ['🎰 轉蛋', '商城新增轉蛋（一抽 5 💎、十抽 45 💎），有轉蛋限定的傳說和稀有外觀，以及強化道具。轉蛋頁面公開完整機率；連續 50 抽沒抽到傳說級外觀，第 50 抽必中。'],
+    ] },
     { v: '2026-11-28k', notes: [
       ['🪖 新裝備欄位：頭盔、披風', '村莊商店多了「頭盔」和「披風」分頁，各 8 階（Lv 5～100）。頭盔加防禦和 HP，披風加爆擊率，高階披風還有「閃避」（被攻擊時有機率完全不受傷，最高 15%）。Boss 也會掉落傳說／神話版本，都可以在鐵匠那裡強化。'],
       ['🧍 新的裝備介面', '「裝備」改成紙娃娃介面：中間是你的角色，四周是武器、防具、頭盔、披風等欄位，點一下就能換裝。'],
@@ -603,6 +660,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);

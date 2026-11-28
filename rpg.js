@@ -59,7 +59,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     if (allChars().some(([, c]) => c !== self && c.nm && c.nm.toLowerCase() === k)) return '這個名字已經有人用了';
     return '';
   }
-  function me(uid) { const c = char(uid); return c ? { ...c, max: D.stats(c), gmOk: isGM(uid), dia: (S.users[uid] && S.users[uid].dia) || 0 } : null; }
+  function me(uid) { const c = char(uid); return c ? { ...c, max: D.stats(c), gmOk: isGM(uid), dia: (S.users[uid] && S.users[uid].dia) || 0, cos: (S.users[uid] && S.users[uid].cos) || [], pity: (S.users[uid] && S.users[uid].pity) || 0, wear: c.wear || {} } : null; }
   const pushMe = uid => ns.to('u:' + uid).emit('me', me(uid));
 
   // ---------------- 模擬 ----------------
@@ -253,7 +253,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ns.to(w.room).volatile.emit('st', { m, p });   // 網路塞住時丟掉舊的狀態，不要排隊造成延遲
     }
   }, 100);
-  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now()), c.lookW ?? c.wep ?? 0, c.lookA ?? c.arm ?? 0, c.elem || '', c.helm || 0, c.cape || 0]; }
+  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now()), c.lookW ?? c.wep ?? 0, c.lookA ?? c.arm ?? 0, c.elem || '', c.helm || 0, c.cape || 0, ...['fashion', 'wlook', 'clook', 'hlook', 'dragon'].map(k => (c.wear && c.wear[k]) || '')]; }
 
   // ---------------- 擊殺與經驗 ----------------
   function kill(w, m, killer) {
@@ -758,6 +758,36 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       (S.cashLog = S.cashLog || []).push({ t: Date.now(), u: us.name, id, n, cost }); if (S.cashLog.length > 5000) S.cashLog.splice(0, S.cashLog.length - 5000);
       save(); ack && ack({ ok: true, me: me(uid) });
     });
+    // ---------------- 外觀：購買（帳號永久）、穿上／卸下 ----------------
+    socket.on('cosBuy', ({ id } = {}, ack) => {
+      const c = char(uid), us = S.users[uid], no = msg => ack && ack({ ok: false, msg }); if (!c || !us) return no('');
+      const it = D.COS[id]; if (!it || it.src !== 'shop') return no('這個外觀買不到'); if (it.hidden && !isGM(uid) && D.HIDDEN.dragon) return no('還沒開放');
+      us.cos = us.cos || []; if (us.cos.includes(id)) return no('已經擁有了'); const cost = D.cashPrice(it); if ((us.dia || 0) < cost) return no(`鑽石不足（需要 ${cost} 💎）`);
+      us.dia -= cost; us.cos.push(id); c.wear = c.wear || {}; c.wear[it.k] = id;
+      (S.cashLog = S.cashLog || []).push({ t: Date.now(), u: us.name, id, n: 1, cost }); save(); ack && ack({ ok: true, me: me(uid) });
+    });
+    socket.on('wear', ({ k, id } = {}, ack) => {
+      const c = char(uid), us = S.users[uid], no = msg => ack && ack({ ok: false, msg }); if (!c || !us || !D.COSK[k]) return no('');
+      c.wear = c.wear || {}; if (!id) { delete c.wear[k]; save(); return ack && ack({ ok: true, me: me(uid) }); }
+      const it = D.COS[id]; if (!it || it.k !== k || !(us.cos || []).includes(id)) return no('還沒有這個外觀'); c.wear[k] = id; save(); ack && ack({ ok: true, me: me(uid) });
+    });
+    // ---------------- 轉蛋：公開機率、50 抽保底（50 抽內沒抽到傳說級外觀，第 50 抽必中） ----------------
+    socket.on('gacha', ({ n } = {}, ack) => {
+      const c = char(uid), us = S.users[uid], no = msg => ack && ack({ ok: false, msg }); if (!c || !us) return no('');
+      const G = D.GACHA; n = n === 10 ? 10 : 1; const cost = (n === 10 ? G.price10 : G.price1) * D.CASHMUL; if ((us.dia || 0) < cost) return no(`鑽石不足（需要 ${cost} 💎）`);
+      us.dia -= cost; us.cos = us.cos || []; const res = [];
+      for (let k = 0; k < n; k++) {
+        us.pity = (us.pity || 0) + 1; let it;
+        if (us.pity >= G.pity) { const L = G.pool.filter(x => x.g === 2); it = L[ri(0, L.length - 1)]; }
+        else { let r = Math.random(); it = G.pool[G.pool.length - 1]; for (const x of G.pool) { if (r < x.r) { it = x; break; } r -= x.r; } }
+        if (it.g === 2) us.pity = 0;
+        if (it.cos) { if (us.cos.includes(it.cos)) { c.mat.luck2 = (c.mat.luck2 || 0) + 2; res.push({ cos: it.cos, g: it.g, dup: 1 }); } else { us.cos.push(it.cos); res.push({ cos: it.cos, g: it.g }); }
+          if (it.g === 2) ns.emit('sys', { t: `🎰 ${nameOf(uid)} 從轉蛋抽中了傳說外觀「${D.COS[it.cos].n}」！` }); }
+        else { c.mat[it.mat] = (c.mat[it.mat] || 0) + it.q; res.push({ mat: it.mat, q: it.q }); }
+      }
+      (S.gachaLog = S.gachaLog || []).push({ t: Date.now(), u: us.name, n, cost, res: res.map(x => x.cos || `${x.mat}x${x.q}`) }); if (S.gachaLog.length > 5000) S.gachaLog.splice(0, S.gachaLog.length - 5000);
+      save(); ack && ack({ ok: true, res, pity: us.pity, me: me(uid) });
+    });
     socket.on('gm', ({ cls, job, lv, pet } = {}, ack) => {
       const no = msg => ack && ack({ ok: false, msg });
       if (!isGM(uid)) return no('只有 GM 帳號可以使用');
@@ -771,7 +801,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const mounts = Object.keys(D.MOUNTS).filter(k => (D.MOUNTS[k].lv || 0) <= lv); if (!mounts.length) mounts.push('horse');
       Object.assign(c, { gm: 1, lv, job, exp: 0, wep, arm, gold: 9999999, pot: 999, eth: 999, ap: (lv - 1) * D.APL, map: w ? w.mi : (old.map || 0), mounts,
         mnt: mounts.includes(old.mnt) ? old.mnt : mounts[mounts.length - 1], pet: lv >= D.PETLV && D.PETS[pet] ? pet : null });
-      if (old.nm) c.nm = old.nm; if (old.rnN) c.rnN = old.rnN; { const cp = Math.max(old.cap || 0, lv > 110 ? 120 : lv > 100 ? 110 : lv > D.MAXLV ? 100 : 0); if (cp) c.cap = cp; } if (lv >= D.AWK.lv && job >= 4) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
+      if (old.nm) c.nm = old.nm; if (old.wear) c.wear = old.wear; if (old.rnN) c.rnN = old.rnN; { const cp = Math.max(old.cap || 0, lv > 110 ? 120 : lv > 100 ? 110 : lv > D.MAXLV ? 100 : 0); if (cp) c.cap = cp; } if (lv >= D.AWK.lv && job >= 4) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
       // 套用每一級的能力成長（和正常升級一樣），GM 角色的強度才會等於真正練到這個等級的角色
       const gr = D.CL[cls].grow; for (let l = 1; l < lv; l++) { c.base.hp += gr.hp; c.base.mp += gr.mp; c.base.atk = Math.round((c.base.atk + gr.atk) * 10) / 10; c.base.def = Math.round((c.base.def + gr.def) * 10) / 10; }
       S.rpg[uid] = c; save();
