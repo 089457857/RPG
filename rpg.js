@@ -115,12 +115,16 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     if (m.frozen > 0) { m.frozen -= 2; m.kx = 0; }
     else if (m.kx) { m.x += m.kx * 1.6; m.kx *= .64; if (Math.abs(m.kx) < .1) m.kx = 0; }
     else if (m.hurt < 6 && !(m.warn > 0) && !(m.dash > 0) && !(m.root > 0)) {
-      const tp = m.aggro && m.target ? w.players.get(m.target) : null;
-      if (tp && !tp.dead && Math.abs(tp.y - seg.y) < 60) { m.f = tp.x < m.x ? -1 : 1; m.vx = d.spd * 1.5 * m.f; }
+      const tp = m.aggro && m.target ? w.players.get(m.target) : null, home = m.x < m.a ? 1 : m.x > m.b ? -1 : 0;
+      // 仇恨中的小怪可以追出自己的區域（最多 LEASH 像素）；目標跑太遠就放棄，走回原本的區域
+      if (tp && !d.boss && (tp.x < m.a - LEASH - 160 || tp.x > m.b + LEASH + 160)) { m.aggro = 0; m.target = null; }
+      if (tp && !tp.dead && m.aggro && Math.abs(tp.y - seg.y) < 60) { m.f = tp.x < m.x ? -1 : 1; m.vx = d.spd * 1.5 * m.f; }
+      else if (home && !d.boss) { m.vx = d.spd * home; m.f = home; m.think = ri(60, 120); }
       else if ((m.think -= 2) <= 0) { m.think = ri(60, 180); const r = Math.random(); m.vx = r < .3 ? 0 : d.spd * (Math.random() < .5 ? -1 : 1); if (m.vx) m.f = Math.sign(m.vx); }
       m.x += m.vx * 2 * (m.slow > 0 ? .5 : 1);
     }
-    let lo = Math.max(seg.x1 + m.w / 2, m.a), hi = Math.min(seg.x2 - m.w / 2, m.b);
+    const lsh = d.boss ? 0 : LEASH; let lo = Math.max(seg.x1 + m.w / 2, m.a - lsh), hi = Math.min(seg.x2 - m.w / 2, m.b + lsh);
+    if (!m.aggro && !d.boss) { if (m.x >= m.a) lo = Math.max(lo, m.a); if (m.x <= m.b) hi = Math.min(hi, m.b); }   // 沒在追人：回到區域後就不再走出去
     if (m.fight) { lo = Math.max(lo, m.fight.x1 + m.w / 2); hi = Math.min(hi, m.fight.x2 - m.w / 2); }
     m.x = clamp(m.x, lo, hi); if ((m.x <= lo + .1 || m.x >= hi - .1) && m.vx) { m.vx = -m.vx; m.f = Math.sign(m.vx); }
     if (!m.frozen) {
@@ -131,6 +135,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     else if (d.sp && !(m.frozen > 0)) mobAI(w, m, d);
   }
   // 小怪特殊攻擊：被打過（仇恨中）、目標在射程內而且站在同一層才出招；出招前原地蓄力，預警時間足夠閃開
+  const LEASH = 150;
   function mobAI(w, m, d) {
     if (m.warn > 0) { m.warn -= 2; m.vx = 0; return; }
     if (!m.aggro || m.hop < 0) return;
