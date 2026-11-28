@@ -164,7 +164,22 @@
   const LOOT = { leg: .005, myth: .001, legLv: 55, mythMap: 10, darkMul: 5 };
   // 每位玩家擁有的傳說／神話裝備：c.own = { w: [武器索引], a: [防具索引] }；商店買到的最好裝備：c.shopW / c.shopA；外觀：c.lookW / c.lookA
   function gearOk(c) { if (!c) return c; if (!c.own) { c.own = { w: [], a: [] }; if (c.wep === LEGI) c.own.w.push(LEGI); c.shopW = c.wep === LEGI ? 7 : (c.wep || 0); c.shopA = c.arm || 0; }
-    if (c.shopW == null) c.shopW = 0; if (c.shopA == null) c.shopA = 0; return c; }
+    if (c.shopW == null) c.shopW = 0; if (c.shopA == null) c.shopA = 0;
+    // 2026-11-28f：商店裝備也改成收藏制（舊存檔把目前最好的商店裝備放進背包）
+    if (!c.own.v2) { c.own.v2 = 1; if (!c.own.w.includes(c.shopW)) c.own.w.push(c.shopW); if (!c.own.a.includes(c.shopA)) c.own.a.push(c.shopA); }
+    if (!c.enh) c.enh = { w: {}, a: {} }; if (!c.mat) c.mat = {};
+    return c; }
+  // ---- 裝備強化（潮聲港的鐵匠 老鐵） ----
+  // ENH[n]：強化到 +n 的成功率、這一級的加成、需要的材料和金幣、失敗是否降級、失敗時的毀損機率
+  const ENH = [null];
+  for (let n = 1; n <= 15; n++) ENH.push({ rate: n <= 5 ? 1 : n <= 7 ? .7 : n <= 10 ? .4 : [.3, .25, .2, .15, .1][n - 11], add: n <= 5 ? .05 : n <= 7 ? .06 : n <= 10 ? .08 : .4,
+    mat: n <= 7 ? 's1' : n <= 10 ? 's2' : 's3', num: n <= 5 ? 1 : n <= 7 ? 2 : 1, gold: n <= 5 ? 5000 * n : n <= 7 ? 30000 : n <= 10 ? 80000 : 200000, down: n >= 8, brk: n >= 11 ? [.1, .15, .2, .25, .3][n - 11] : 0 });
+  const ENHMAX = 15, enhB = n => { let t = 0; for (let k = 1; k <= Math.min(ENHMAX, n | 0); k++) t += ENH[k].add; return Math.round(t * 100) / 100; };
+  const MATN = { s1: '強化石', s2: '高級強化石', s3: '神話強化石', luck: '加成卷軸', luck2: '高級加成卷軸', guard: '守護卷軸' };
+  const SCROLL = { luck: { add: .1, price: 200000 }, luck2: { add: .2, price: 0 }, guard: { price: 500000 } };
+  const XFER = { lose: 3, rate: .7, gold: 50000 };   // 移植：等級 -3、成功率 70%、金幣 50,000 × 原本的強化等級；失敗時原本那件歸零
+  const SELLR = .3;   // 賣商店裝備：拿回 30%
+  const enhOf = (c, k, i) => (c && c.enh && c.enh[k] && c.enh[k][i]) || 0;
   function legPool(c, tier) { gearOk(c); const ws = WEAPONS[c.cls].map((w, i) => w[4] === tier ? i : -1).filter(i => i >= 0 && !c.own.w.includes(i)).map(i => ({ k: 'w', i }));
     const as = ARMORS.map((a, i) => a[5] === tier ? i : -1).filter(i => i >= 0 && !c.own.a.includes(i)).map(i => ({ k: 'a', i }));
     const ms = Object.keys(MOUNTS).filter(id => MOUNTS[id].tier === tier && !(c.mounts || []).includes(id)).map(id => ({ k: 'm', id }));
@@ -302,34 +317,34 @@
     { name: '潮聲港', pal: 'harbor', town: true, safe: true, spawns: [], home: 9,
       seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 420, x2: 600, y: 250 }, { x1: 900, x2: 1100, y: 240 }, { x1: 1400, x2: 1560, y: 250 }],
       ropes: [{ x: 440, y1: 250, y2: GY }, { x: 1080, y1: 240, y2: GY }, { x: 1420, y1: 250, y2: GY }],
-      npcs: [{ x: 300, kind: 'shop', name: '雜貨商 阿珠' }, { x: 2330, kind: 'boat', name: '船長 老海' }], dock: 2240,
+      npcs: [{ x: 300, kind: 'shop', name: '雜貨商 阿珠' }, { x: 760, kind: 'smith', name: '鐵匠 老鐵' }, { x: 2330, kind: 'boat', name: '船長 老海' }], dock: 2240,
       zones: [[700, '港口入口'], [1800, '漁村市集'], [9e9, '碼頭']], portals: [{ x: 60, to: 5, tx: 2490, label: '← 虛空裂隙' }], start: 150 },
     // ---- 第 8 張地圖：深淵海溝（Lv 101～105）----
-    { name: '深淵海溝', pal: 'abyss', home: 9, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 500, y: 236 }, { x1: 520, x2: 680, y: 176 }, { x1: 720, x2: 880, y: 246 }, { x1: 900, x2: 1040, y: 186 }, { x1: 1060, x2: 1200, y: 126 }, { x1: 1240, x2: 1400, y: 236 }, { x1: 1420, x2: 1580, y: 176 }, { x1: 1600, x2: 1760, y: 120 }, { x1: 1800, x2: 2060, y: 206 }]],
+    { name: '深淵海溝', pal: 'abyss', sea: 1, home: 9, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 500, y: 236 }, { x1: 520, x2: 680, y: 176 }, { x1: 720, x2: 880, y: 246 }, { x1: 900, x2: 1040, y: 186 }, { x1: 1060, x2: 1200, y: 126 }, { x1: 1240, x2: 1400, y: 236 }, { x1: 1420, x2: 1580, y: 176 }, { x1: 1600, x2: 1760, y: 120 }, { x1: 1800, x2: 2060, y: 206 }]],
       ropes: [{ x: 340, y1: 236, y2: GY }, { x: 540, y1: 176, y2: 236 }, { x: 740, y1: 246, y2: GY }, { x: 920, y1: 186, y2: GY }, { x: 1080, y1: 126, y2: 186 }, { x: 1260, y1: 236, y2: GY }, { x: 1440, y1: 176, y2: 236 }, { x: 1620, y1: 120, y2: 176 }, { x: 1820, y1: 206, y2: GY }],
       spawns: layout('siren', 'crab', 'pirate', 'kraken'), zones: [[260, '沉船淺灘'], [700, '珊瑚礁'], [1200, '海盜船骸'], [2100, '深淵斷崖'], [9e9, '海皇的巢穴']],
       portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }, { x: 2560, to: 12, tx: 150, cap: 110, label: '沉沒古城' }], start: 150, deep: 1, need: 100 },
     // ---- 第 9 張海洋地圖：珊瑚王國（Lv 90～100；和虛空裂隙並行，搭船前往）----
     // bubbles：上升氣泡柱，站進去會被托上高處
-    { name: '珊瑚王國', pal: 'coral', home: 9, need: 100, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 230 }, { x1: 520, x2: 700, y: 160 }, { x1: 740, x2: 900, y: 240 }, { x1: 920, x2: 1080, y: 170 }, { x1: 1100, x2: 1220, y: 110 }, { x1: 1260, x2: 1420, y: 230 }, { x1: 1450, x2: 1620, y: 160 }, { x1: 1640, x2: 1780, y: 100 }, { x1: 1820, x2: 2060, y: 210 }]],
+    { name: '珊瑚王國', pal: 'coral', sea: 1, home: 9, need: 100, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 230 }, { x1: 520, x2: 700, y: 160 }, { x1: 740, x2: 900, y: 240 }, { x1: 920, x2: 1080, y: 170 }, { x1: 1100, x2: 1220, y: 110 }, { x1: 1260, x2: 1420, y: 230 }, { x1: 1450, x2: 1620, y: 160 }, { x1: 1640, x2: 1780, y: 100 }, { x1: 1820, x2: 2060, y: 210 }]],
       ropes: [{ x: 340, y1: 230, y2: GY }, { x: 760, y1: 240, y2: GY }, { x: 1280, y1: 230, y2: GY }, { x: 1840, y1: 210, y2: GY }],
       bubbles: [505, 910, 1090, 1435, 1630], spawns: layout('puffer', 'seahorse', 'coralguard', 'mermqueen'),
       zones: [[260, '珊瑚入口'], [700, '海葵花園'], [1200, '珍珠大道'], [2100, '人魚宮殿'], [9e9, '女王的珊瑚王座']],
       portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }], start: 150 },
     // ---- 沉沒古城（Lv 106～110）：機關門會定時開關、天花板的石柱會崩落 ----
-    { name: '沉沒古城', pal: 'ruins', home: 9, need: 110, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 300, x2: 520, y: 236 }, { x1: 460, x2: 660, y: 172 }, { x1: 720, x2: 880, y: 236 }, { x1: 860, x2: 1040, y: 176 }, { x1: 1000, x2: 1180, y: 116 }, { x1: 1260, x2: 1420, y: 236 }, { x1: 1440, x2: 1600, y: 176 }, { x1: 1620, x2: 1780, y: 116 }, { x1: 1820, x2: 2060, y: 220 }]],
+    { name: '沉沒古城', pal: 'ruins', sea: 1, home: 9, need: 110, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 300, x2: 520, y: 236 }, { x1: 460, x2: 660, y: 172 }, { x1: 720, x2: 880, y: 236 }, { x1: 860, x2: 1040, y: 176 }, { x1: 1000, x2: 1180, y: 116 }, { x1: 1260, x2: 1420, y: 236 }, { x1: 1440, x2: 1600, y: 176 }, { x1: 1620, x2: 1780, y: 116 }, { x1: 1820, x2: 2060, y: 220 }]],
       ropes: [{ x: 320, y1: 236, y2: GY }, { x: 480, y1: 172, y2: 236 }, { x: 740, y1: 236, y2: GY }, { x: 880, y1: 176, y2: 236 }, { x: 1020, y1: 116, y2: 176 }, { x: 1280, y1: 236, y2: GY }, { x: 1460, y1: 176, y2: 236 }, { x: 1640, y1: 116, y2: 176 }, { x: 1840, y1: 220, y2: GY }],
       gate: { x: 1220, open: 4500, shut: 3500 }, fall: [560, 980, 1520, 1940], spawns: layout('fishman', 'ruinghost', 'ancientguard', 'ruinlord'),
       zones: [[260, '古城外牆'], [700, '沉沒街道'], [1200, '神殿廣場'], [2100, '石像迴廊'], [9e9, '守護神的祭壇']],
       portals: [{ x: 60, to: 10, tx: 2490, label: '← 深淵海溝' }, { x: 2560, to: 13, tx: 150, cap: 120, label: '冰封海淵' }], start: 150 },
     // ---- 冰封海淵（Lv 111～115）：海流會把人往一邊推 ----
-    { name: '冰封海淵', pal: 'icesea', home: 9, need: 120, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 246 }, { x1: 500, x2: 680, y: 186 }, { x1: 700, x2: 860, y: 236 }, { x1: 880, x2: 1040, y: 176 }, { x1: 1060, x2: 1200, y: 116 }, { x1: 1240, x2: 1400, y: 246 }, { x1: 1420, x2: 1580, y: 186 }, { x1: 1600, x2: 1760, y: 126 }, { x1: 1800, x2: 2060, y: 216 }]],
+    { name: '冰封海淵', pal: 'icesea', sea: 1, home: 9, need: 120, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 246 }, { x1: 500, x2: 680, y: 186 }, { x1: 700, x2: 860, y: 236 }, { x1: 880, x2: 1040, y: 176 }, { x1: 1060, x2: 1200, y: 116 }, { x1: 1240, x2: 1400, y: 246 }, { x1: 1420, x2: 1580, y: 186 }, { x1: 1600, x2: 1760, y: 126 }, { x1: 1800, x2: 2060, y: 216 }]],
       ropes: [{ x: 340, y1: 246, y2: GY }, { x: 520, y1: 186, y2: 246 }, { x: 720, y1: 236, y2: GY }, { x: 900, y1: 176, y2: 236 }, { x: 1080, y1: 116, y2: 176 }, { x: 1260, y1: 246, y2: GY }, { x: 1440, y1: 186, y2: 246 }, { x: 1620, y1: 126, y2: 186 }, { x: 1820, y1: 216, y2: GY }],
       currents: [[420, 820, 1], [1000, 1380, -1], [1560, 2000, 1]], spawns: layout('icejelly', 'narwhal', 'iceseal', 'iceking'),
       zones: [[260, '冰層裂口'], [700, '極光淺海'], [1200, '冰柱森林'], [2100, '寒流深淵'], [9e9, '海獸王的冰窟']],
       portals: [{ x: 60, to: 12, tx: 2490, label: '← 沉沒古城' }, { x: 2560, to: 14, tx: 150, cap: 120, label: '海底火山' }], start: 150 },
     // ---- 海底火山（Lv 116～120，目前的最終地圖）：熱泉會定時噴發 ----
-    { name: '海底火山', pal: 'volcano', home: 9, need: 120, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 470, y: 230 }, { x1: 400, x2: 600, y: 166 }, { x1: 700, x2: 840, y: 240 }, { x1: 860, x2: 1020, y: 180 }, { x1: 1040, x2: 1190, y: 120 }, { x1: 1240, x2: 1380, y: 230 }, { x1: 1400, x2: 1560, y: 170 }, { x1: 1580, x2: 1760, y: 110 }, { x1: 1800, x2: 2060, y: 214 }]],
+    { name: '海底火山', pal: 'volcano', sea: 1, home: 9, need: 120, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 470, y: 230 }, { x1: 400, x2: 600, y: 166 }, { x1: 700, x2: 840, y: 240 }, { x1: 860, x2: 1020, y: 180 }, { x1: 1040, x2: 1190, y: 120 }, { x1: 1240, x2: 1380, y: 230 }, { x1: 1400, x2: 1560, y: 170 }, { x1: 1580, x2: 1760, y: 110 }, { x1: 1800, x2: 2060, y: 214 }]],
       ropes: [{ x: 340, y1: 230, y2: GY }, { x: 420, y1: 166, y2: 230 }, { x: 720, y1: 240, y2: GY }, { x: 880, y1: 180, y2: 240 }, { x: 1060, y1: 120, y2: 180 }, { x: 1260, y1: 230, y2: GY }, { x: 1420, y1: 170, y2: 230 }, { x: 1600, y1: 110, y2: 170 }, { x: 1820, y1: 214, y2: GY }],
       geysers: [640, 1120, 1500, 1790, 2010], spawns: layout('lavacrab', 'fireeel', 'ventgolem', 'lavadragon'),
       zones: [[260, '火山裂谷'], [700, '熔岩海床'], [1200, '熱泉群'], [2100, '火山口邊緣'], [9e9, '熔岩海龍的巢穴']],
@@ -367,13 +382,13 @@
     zhuque: { n: '朱雀', d: '攻擊吸血：造成傷害的 5% 回復成 HP', col: '#ff4a2a' },
   };
   function stats(c) {
-    const w = WEAPONS[c.cls][c.wep] || WEAPONS[c.cls][0], a = ARMORS[c.arm] || ARMORS[0], pt = c.pet, s = c.st || {}, B = {};
+    const w = WEAPONS[c.cls][c.wep] || WEAPONS[c.cls][0], a = ARMORS[c.arm] || ARMORS[0], pt = c.pet, s = c.st || {}, B = {}, eW = 1 + enhB(enhOf(c, 'w', c.wep)), eA = 1 + enhB(enhOf(c, 'a', c.arm));
     for (const o of [w[5], a[6]]) if (o) for (const k in o) B[k] = (B[k] || 0) + o[k];
     const E = { str: eff(s.str), vit: eff(s.vit), int: eff(s.int), dex: eff(s.dex) }, main = MAIN[c.cls] || ['str'];
-    const hp = Math.round((c.base.hp * JOBHP[c.job] + a[2] + E.vit * 8) * (pt === 'xuanwu' ? 1.1 : 1) * (1 + (B.hpP || 0)));
+    const hp = Math.round((c.base.hp * JOBHP[c.job] + a[2] * eA + E.vit * 8) * (pt === 'xuanwu' ? 1.1 : 1) * (1 + (B.hpP || 0)));
     const atkStat = mainAtk(c.cls, s) + (main.includes('str') ? 0 : E.str * .3);
-    const atk = Math.round(((c.base.atk + w[1]) * JOBATK[c.job] + atkStat) * (pt === 'qinglong' ? 1.15 : 1) * (1 + (B.atkP || 0)));
-    const def = Math.round((c.base.def + a[1] + E.vit * .4) * (pt === 'xuanwu' ? 1.4 : 1) * (1 + (B.defP || 0)));
+    const atk = Math.round(((c.base.atk + w[1] * eW) * JOBATK[c.job] + atkStat) * (pt === 'qinglong' ? 1.15 : 1) * (1 + (B.atkP || 0)));
+    const def = Math.round((c.base.def + a[1] * eA + E.vit * .4) * (pt === 'xuanwu' ? 1.4 : 1) * (1 + (B.defP || 0)));
     const mp = Math.round(c.base.mp * JOBHP[c.job] + E.int * 6);
     const r = v => Math.round(v * 1000) / 1000;
     return { hp, mp, atk, def, crit: Math.min(80, Math.round((c.base.crit + c.job * 3 + E.dex * .1 + (B.crit || 0)) * 10) / 10),
@@ -451,6 +466,13 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-28f', notes: [
+      ['🔨 新 NPC：鐵匠 老鐵（潮聲港）', '可以把武器和防具強化到 +15！+1～+5 必定成功；+8 以上失敗會降 1 級；+11 以上失敗還有機率毀損（商店裝備會消失，傳說和神話裝備會被打回 +0）。+11 開始每一級加成 +40%，+15 時裝備本身的數值是原本的 3.6 倍。'],
+      ['💎 強化材料', '強化石（珊瑚王國以後的小怪）、高級強化石（深淵海溝以後）、神話強化石（克拉肯以後的 Boss）。打怪時有出手的人和同地圖的隊友都會各自獲得。暗黑 Boss 掉落 ×5。'],
+      ['📜 卷軸', '加成卷軸：成功率 +10%（鐵匠販售）。高級加成卷軸：成功率 +20%（只從海洋地圖和暗黑 Boss 掉落）。守護卷軸：+11 以上失敗時不會毀損（鐵匠販售）。'],
+      ['🔁 強化移植', '可以把一件裝備的強化移到另一件同類裝備上，等級 -3、成功率 70%，失敗時原本那件的強化會歸零。'],
+      ['🎒 裝備改成收藏制', '商店買過的裝備都會留在「裝備」裡，可以隨時換回來；不要的商店裝備可以賣掉，拿回 30% 金幣。'],
+    ] },
     { v: '2026-11-28e', notes: [
       ['🪸 新地圖：珊瑚王國（Lv 90～100）', '在潮聲港找船長老海，現在可以選擇出海到「珊瑚王國」。這裡有河豚兵、海馬騎士、珊瑚守衛，最深處是人魚女王。站進上升的氣泡柱會被托到高處。'],
       ['🏛️ 新地圖：沉沒古城（Lv 106～110）', '打倒深淵海皇・克拉肯，等級上限突破到 110，就能從深淵海溝最深處前往沉沒古城。小心定時開關的機關門和天花板崩落的石柱。最深處的古城守護神打倒後，等級上限突破到 120。'],
@@ -532,6 +554,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { MAXTOP, CAPBOSS, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);

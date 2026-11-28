@@ -293,6 +293,12 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const share = Math.min(1, dmg / total + .3), ld = d.lv - c.lv, ef = ld < -10 ? .3 : ld < -5 ? .65 : 1;
       // 低等玩家跟打高等怪：照樣有經驗，但單次最多約 1.5 級，避免一隻王直接衝十幾級
       let e = Math.max(1, Math.round(d.exp * ef * share)); if (ld > 12) e = Math.min(e, Math.round(D.needExp(c.lv) * 1.5));
+      // 強化材料：海洋地圖
+      if (D.MAPS[m.mi].sea || (d.boss && m.dark)) { const got = {}, give = (k2, v) => { if (v > 0) { c.mat[k2] = (c.mat[k2] || 0) + v; got[k2] = v; } }, mul = m.dark ? 5 : 1, deep = D.MAPS[m.mi].deep, sea = D.MAPS[m.mi].sea;
+        if (d.boss) { if (sea) { give('s1', ri(5, 10) * mul); give('s2', ri(2, 4) * mul); if (deep) give('s3', ri(1, 3) * mul + Math.max(0, Math.floor((d.lv - 105) / 5))); if (Math.random() < .15) give('luck', 1); if (Math.random() < .1) give('guard', 1); }
+          if (Math.random() < .05) give('luck2', 1); }
+        else { if (Math.random() < .08) give('s1', 1); if (deep && Math.random() < .02) give('s2', 1); if (Math.random() < .01) give('luck2', 1); }
+        if (Object.keys(got).length) ns.to('u:' + uid).emit('mat', got); }
       const lv0 = c.lv, up = D.addExp(c, e);
       ns.to('u:' + uid).emit('gain', { exp: e, lv: c.lv, up, newJob: up && D.JOBLV.some(j => j > lv0 && j <= c.lv) });
       if (up) ns.to(w.room).emit('lvup', { id: uid });
@@ -515,11 +521,59 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       else if (k === 'a') { const it = D.ARMORS[i]; if (!it || !(i === c.shopA || c.own.a.includes(i))) return no('還沒有這件防具'); if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); c.arm = i; }
       else return no(''); save(); ack && ack({ ok: true, me: me(uid) });
     });
+    // ---------------- 背包：賣掉商店裝備 ----------------
+    const gearList = (c, k) => k === 'w' ? D.WEAPONS[c.cls] : D.ARMORS, tierOf = (c, k, i) => (gearList(c, k)[i] || [])[k === 'w' ? 4 : 5] || 0, priceOf = (c, k, i) => (gearList(c, k)[i] || [])[k === 'w' ? 3 : 4] || 0;
+    const fixShopBest = c => { for (const k of ['w', 'a']) { const ord = k === 'w' ? D.SHOPW : D.SHOPA; let best = ord[0]; for (const i of c.own[k]) if (!tierOf(c, k, i) && ord.indexOf(i) > ord.indexOf(best)) best = i; if (k === 'w') c.shopW = best; else c.shopA = best; } };
+    const loseGear = (c, k, i) => { c.own[k] = c.own[k].filter(x => x !== i); delete c.enh[k][i];
+      if (!c.own[k].length) c.own[k].push(0);   // 至少留一件最基本的
+      const cur = k === 'w' ? 'wep' : 'arm'; if (c[cur] === i) { const L = gearList(c, k), lvI = k === 'w' ? 2 : 3, ok = c.own[k].filter(x => (L[x] || [])[lvI] <= c.lv); c[cur] = ok.sort((a, b) => L[b][1] - L[a][1])[0] ?? 0; }
+      if (k === 'w' && c.lookW === i) delete c.lookW; if (k === 'a' && c.lookA === i) delete c.lookA; fixShopBest(c); };
+    socket.on('sellGear', ({ k, i } = {}, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); i = i | 0;
+      if (!c.own[k].includes(i)) return no('沒有這件裝備'); if (tierOf(c, k, i)) return no('傳說和神話裝備不能賣');
+      if ((k === 'w' ? c.wep : c.arm) === i) return no('正在穿的裝備不能賣，先換上別件');
+      const g = Math.floor(priceOf(c, k, i) * D.SELLR); loseGear(c, k, i); c.gold += g; save(); ack && ack({ ok: true, me: me(uid), gold: g });
+    });
+    // ---------------- 鐵匠 老鐵：強化、移植、賣卷軸（只在潮聲港） ----------------
+    const atSmith = () => { if (!w || w.mi !== 9) return '要在潮聲港找鐵匠 老鐵'; const n = D.MAPS[9].npcs.find(x => x.kind === 'smith'); return Math.abs(pl.x - n.x) > 90 ? '離鐵匠太遠了' : ''; };
+    const gearName = (c, k, i) => (gearList(c, k)[i] || ['?'])[0];
+    socket.on('enh', ({ k, i, luck, guard } = {}, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); { const e = atSmith(); if (e) return no(e); }
+      i = i | 0; if (!c.own[k].includes(i)) return no('沒有這件裝備');
+      const cur = D.enhOf(c, k, i), n = cur + 1; if (n > D.ENHMAX) return no(`已經強化到 +${D.ENHMAX} 了`);
+      const E = D.ENH[n], m = c.mat; if ((m[E.mat] || 0) < E.num) return no(`需要 ${D.MATN[E.mat]} ×${E.num}`); if (c.gold < E.gold) return no(`需要 ${E.gold.toLocaleString()} 金幣`);
+      if (luck && luck !== 'luck' && luck !== 'luck2') luck = null; if (luck && !(m[luck] > 0)) return no(`沒有${D.MATN[luck]}`);
+      guard = !!guard && n >= 11; if (guard && !(m.guard > 0)) return no('沒有守護卷軸');
+      m[E.mat] -= E.num; c.gold -= E.gold; if (luck) m[luck]--; if (guard) m.guard--;
+      const rate = Math.min(1, E.rate + (luck ? D.SCROLL[luck].add : 0)), nm = gearName(c, k, i), t = tierOf(c, k, i);
+      let res;
+      if (Math.random() < rate) { c.enh[k][i] = n; res = { r: 'ok', n };
+        if (n >= 10) ns.emit('sys', { t: `🔥 ${nameOf(uid)} 成功把「${nm}」強化到 +${n}！` }); }
+      else if (E.brk && !guard && Math.random() < E.brk) {
+        if (t) { c.enh[k][i] = 0; res = { r: 'reset', n: 0 }; ns.emit('sys', { t: `💥 ${nameOf(uid)} 的「${nm}」在強化 +${n} 時失敗，被打回 +0……` }); }
+        else { loseGear(c, k, i); res = { r: 'broke' }; ns.emit('sys', { t: `💥 ${nameOf(uid)} 的「${nm}」在強化 +${n} 時碎掉了……` }); }
+      } else { const nn = E.down ? Math.max(0, cur - 1) : cur; c.enh[k][i] = nn; res = { r: 'fail', n: nn, down: nn < cur, saved: !!(E.brk && guard) }; }
+      save(); ack && ack({ ok: true, ...res, me: me(uid) });
+    });
+    socket.on('xfer', ({ k, from, to } = {}, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); { const e = atSmith(); if (e) return no(e); }
+      from = from | 0; to = to | 0; if (from === to || !c.own[k].includes(from) || !c.own[k].includes(to)) return no('要選兩件不同的裝備');
+      const n = D.enhOf(c, k, from), nn = Math.max(0, n - D.XFER.lose); if (n < 1) return no('原本那件沒有強化');
+      if (D.enhOf(c, k, to) >= nn) return no(`移植後只剩 +${nn}，沒有比目標裝備現在的強化高`);
+      const g = D.XFER.gold * n; if (c.gold < g) return no(`需要 ${g.toLocaleString()} 金幣`); c.gold -= g;
+      const ok = Math.random() < D.XFER.rate; c.enh[k][from] = 0; if (ok) c.enh[k][to] = nn;
+      save(); ack && ack({ ok: true, success: ok, n: nn, me: me(uid) });
+    });
+    socket.on('buyScroll', ({ s: sc, n } = {}, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c) return no(''); { const e = atSmith(); if (e) return no(e); }
+      const S0 = D.SCROLL[sc]; if (!S0 || !S0.price) return no('這個卷軸買不到'); n = Math.max(1, Math.min(10, n | 0 || 1));
+      if (c.gold < S0.price * n) return no('金幣不足'); c.gold -= S0.price * n; c.mat[sc] = (c.mat[sc] || 0) + n; save(); ack && ack({ ok: true, me: me(uid) });
+    });
     socket.on('look', ({ k, i } = {}, ack) => {   // 外觀欄：選一件擁有的傳說以上裝備當外觀（null = 顯示身上裝備）
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c) return no(''); D.gearOk(c);
       if (i == null) { if (k === 'w') delete c.lookW; else delete c.lookA; }
-      else if (k === 'w') { i = i | 0; if (!c.own.w.includes(i)) return no('只能選擁有的傳說以上武器'); c.lookW = i; }
-      else if (k === 'a') { i = i | 0; if (!c.own.a.includes(i)) return no('只能選擁有的傳說以上防具'); c.lookA = i; }
+      else if (k === 'w') { i = i | 0; if (!c.own.w.includes(i) || !(D.WEAPONS[c.cls][i] || [])[4]) return no('只能選擁有的傳說以上武器'); c.lookW = i; }
+      else if (k === 'a') { i = i | 0; if (!c.own.a.includes(i) || !(D.ARMORS[i] || [])[5]) return no('只能選擁有的傳說以上防具'); c.lookA = i; }
       else return no(''); save(); ack && ack({ ok: true, me: me(uid) });
     });
     socket.on('bEngage', ({ i } = {}, ack) => {
@@ -625,15 +679,15 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       } else if (k === 'wep') {
         i = i | 0; const it = D.WEAPONS[c.cls][i]; D.gearOk(c);
         if (!it || it[4]) return no(it && it[4] ? `${D.TIERN[it[4]]}武器只能打倒 Boss 取得` : '無法購買');
-        if (D.SHOPW.indexOf(i) <= D.SHOPW.indexOf(c.shopW)) return no('你已經有更好的商店武器了');
+        if (c.own.w.includes(i)) return no('已經擁有這把武器了（在「裝備」裡可以換上）');
         if (c.lv < it[2]) return no(`需要 Lv ${it[2]}`); if (c.gold < it[3]) return no('金幣不足');
-        c.gold -= it[3]; c.shopW = i; c.wep = i;
+        c.gold -= it[3]; c.own.w.push(i); c.wep = i; if (D.SHOPW.indexOf(i) > D.SHOPW.indexOf(c.shopW)) c.shopW = i;
       } else if (k === 'arm') {
         i = i | 0; const it = D.ARMORS[i]; D.gearOk(c);
         if (!it || it[5]) return no(it && it[5] ? `${D.TIERN[it[5]]}防具只能打倒 Boss 取得` : '無法購買');
-        if (D.SHOPA.indexOf(i) <= D.SHOPA.indexOf(c.shopA)) return no('你已經有更好的商店防具了');
+        if (c.own.a.includes(i)) return no('已經擁有這件防具了（在「裝備」裡可以換上）');
         if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); if (c.gold < it[4]) return no('金幣不足');
-        c.gold -= it[4]; c.shopA = i; c.arm = i;
+        c.gold -= it[4]; c.own.a.push(i); c.arm = i; if (D.SHOPA.indexOf(i) > D.SHOPA.indexOf(c.shopA)) c.shopA = i;
       } else if (k === 'mount') {
         const mt = D.MOUNTS[i]; if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
         if (!mt || !mt.price) return no('這個坐騎買不到，只能打 Boss 取得'); if (c.mounts.includes(i)) return no('已經擁有了');
