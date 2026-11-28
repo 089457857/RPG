@@ -21,7 +21,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
   if (!S.rpgAlt) S.rpgAlt = {};
   const MAXSLOT = D.MAXSLOT || 6;
   const alt = uid => { const a = (S.rpgAlt[uid] ||= { slots: [], act: 0 }); while (a.slots.length < MAXSLOT) a.slots.push(null); return a; };
-  const slotList = uid => { const a = alt(uid); return a.slots.map((c, i) => { const x = i === a.act ? S.rpg[uid] : c; return x ? { nm: x.nm || '', cls: x.cls, lv: x.lv, job: x.job, jobName: D.CL[x.cls].jobs[x.job], map: D.MAPS[x.map || 0].name } : null; }); };
+  const slotList = uid => { const a = alt(uid); return a.slots.map((c, i) => { const x = i === a.act ? S.rpg[uid] : c; return x ? { nm: x.nm || '', cls: x.cls, lv: x.lv, job: x.job, jobName: D.jobName(x), map: D.MAPS[x.map || 0].name } : null; }); };
 
   const ns = io.of('/rpg');
   const rnd = (a, b) => a + Math.random() * (b - a), ri = (a, b) => Math.floor(rnd(a, b + 1)), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -116,6 +116,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     else if (m.kx) { m.x += m.kx * 1.6; m.kx *= .64; if (Math.abs(m.kx) < .1) m.kx = 0; }
     else if (m.hurt < 6 && !(m.warn > 0) && !(m.dash > 0) && !(m.root > 0)) {
       const tp = m.aggro && m.target ? w.players.get(m.target) : null, home = m.x < m.a ? 1 : m.x > m.b ? -1 : 0;
+      if (tp && tp.fakeT > Date.now()) { m.aggro = 0; m.target = null; }   // 戰五渣裝死：怪物失去目標
       // 仇恨中的小怪可以追出自己的區域（最多 LEASH 像素）；目標跑太遠就放棄，走回原本的區域
       if (tp && !d.boss && (tp.x < m.a - LEASH - 160 || tp.x > m.b + LEASH + 160)) { m.aggro = 0; m.target = null; }
       if (tp && !tp.dead && m.aggro && Math.abs(tp.y - seg.y) < 60) { m.f = tp.x < m.x ? -1 : 1; m.vx = d.spd * 1.5 * m.f; }
@@ -253,7 +254,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ns.to(w.room).volatile.emit('st', { m, p });   // 網路塞住時丟掉舊的狀態，不要排隊造成延遲
     }
   }, 100);
-  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now()), c.lookW ?? c.wep ?? 0, c.lookA ?? c.arm ?? 0, c.elem || '', c.helm || 0, c.cape || 0, ...['fashion', 'wlook', 'clook', 'hlook', 'dragon'].map(k => (c.wear && c.wear[k]) || '')]; }
+  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now()), c.lookW ?? c.wep ?? 0, c.lookA ?? c.arm ?? 0, c.elem || '', c.helm || 0, c.cape || 0, ...['fashion', 'wlook', 'clook', 'hlook', 'dragon'].map(k => (c.wear && c.wear[k]) || ''), pl.fk ? 1 : 0]; }
 
   // ---------------- 擊殺與經驗 ----------------
   function kill(w, m, killer) {
@@ -305,6 +306,12 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
           if (Math.random() < .05) give('luck2', 1); }
         else { if (Math.random() < .08) give('s1', 1); if (deep && Math.random() < .02) give('s2', 1); if (Math.random() < .01) give('luck2', 1); }
         if (Object.keys(got).length) ns.to('u:' + uid).emit('mat', got); }
+      if (c.cls === 'novice' && c.lv >= D.NOVLV) e = Math.max(1, Math.round(e * D.NOVEXP));   // 戰五渣 10 等之後經驗減半
+      // 龍蛋：只有戰五渣在蘑菇森林打怪會掉，巨菇王第 5 次必掉（不公告）
+      if (c.cls === 'novice' && !c.egg && D.EGG.maps.includes(m.mi) && D.EGG.rate[m.t]) {
+        if (m.t === 'king') c.eggK = (c.eggK || 0) + 1;
+        if (Math.random() < D.EGG.rate[m.t] || (m.t === 'king' && c.eggK >= D.EGG.pity)) { c.egg = 1; ns.to('u:' + uid).emit('notice', { t: '🥚 你撿到了一顆溫熱的龍蛋！10 等之後帶去像素村找「龍語者」' }); }
+      }
       const lv0 = c.lv, up = D.addExp(c, e);
       ns.to('u:' + uid).emit('gain', { exp: e, lv: c.lv, up, newJob: up && D.JOBLV.some(j => j > lv0 && j <= c.lv) });
       if (up) ns.to(w.room).emit('lvup', { id: uid });
@@ -488,6 +495,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     });
     socket.on('create', ({ cls, slot, nm } = {}, ack) => {
       if (!D.CL[cls]) return ack && ack({ ok: false });
+      if (!isGM(uid)) cls = 'novice';   // 新角色一律從戰五渣開始（GM 測試可以直接建立任何職業）
       if (D.HIDDEN[cls] && !isGM(uid)) return ack && ack({ ok: false, msg: '這個職業還沒開放' });
       nm = String(nm || '').trim(); if (nm) { const er = nameErr(uid, nm, null); if (er) return ack && ack({ ok: false, msg: er }); }
       const a = alt(uid); slot = slot == null ? a.act : slot | 0; if (slot < 0 || slot >= MAXSLOT) return ack && ack({ ok: false });
@@ -520,12 +528,13 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       pl.x = clamp(+p.x || 0, 0, D.WW); pl.y = clamp(+p.y || 0, -100, D.WH + 60); pl.f = p.f < 0 ? -1 : 1; pl.act = p.act ? 1 : 0; pl.rope = p.rope ? 1 : 0; pl.dead = p.dead ? 1 : 0;
       if (isPvp(w)) { pl.dead = pl.php <= 0 ? 1 : 0; } else { const hp = clamp(Math.round(+p.hp || 0), 0, 100); if (hp < (pl.hpPct ?? 100) && !pl.dead) addAg(uid, pl, Math.min(15, (pl.hpPct ?? 100) - hp) * D.AWK.hurtPer); pl.hpPct = hp; }
       if (pl.bf && pl.bf.fight && pl.bf.fight.u.has(uid)) pl.x = clamp(pl.x, pl.bf.fight.x1, pl.bf.fight.x2); else pl.bf = null;
+      if (pl.fakeT) { if (!p.fk) pl.fakeT = 0; } pl.fk = p.fk ? 1 : 0;
       pl.clone = p.clone ? 1 : 0; if (p.gy != null) pl.gy = clamp(+p.gy || 0, -100, D.WH + 60); pl.mount = p.mount && (char(uid)?.lv || 0) >= D.MOUNTLV && awkEl(pl, Date.now()) < 0 ? (char(uid).mnt || 'horse') : 0;
     });
     socket.on('elem', ({ e } = {}, ack) => {   // 巨龍使者：一轉時免費選屬性，之後找轉職教官花金幣更換
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || c.cls !== 'dragon') return no('');
       if (!D.ELEM[e]) return no('沒有這個屬性'); if (c.job < 1) return no('一轉後才能選擇龍的屬性'); if (c.elem === e) return no('已經是這個屬性了');
-      if (c.elem) { if (!w || w.mi !== 0) return no('要在像素村找轉職教官更換'); if (c.gold < D.ELEMSWAP) return no(`更換屬性需要 ${D.ELEMSWAP.toLocaleString()} 金幣`); c.gold -= D.ELEMSWAP; }
+      if (c.elem) { if (!w || w.mi !== 0) return no('要在像素村找龍語者更換'); if (c.gold < D.ELEMSWAP) return no(`更換屬性需要 ${D.ELEMSWAP.toLocaleString()} 金幣`); c.gold -= D.ELEMSWAP; }
       c.elem = e; D.fix(c); save(); pushMe(uid); ack && ack({ ok: true, me: me(uid) });
       if (w) ns.to(w.room).emit('sys', { t: `🐉 ${nameOf(uid)} 的龍覺醒了「${D.ELEM[e].n}」之力！`, quiet: 1 });
     });
@@ -649,7 +658,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       }
     });
     socket.on('cast', (p = {}) => { if (!w || !char(uid)) return; if (!D.SK[char(uid).cls][p.k] && p.k !== 'dj') return;
-      { const sk = D.SK[char(uid).cls][p.k], now = Date.now(); if (sk && sk.g && sk.g.buff === 'guard') pl.guardT = now + 15000; if (char(uid).cls === 'mech' && p.k === 's5') pl.shieldT = now + 10000; } socket.to(w.room).emit('cast', { id: uid, k: p.k, x: +p.x || 0, y: +p.y || 0, f: p.f < 0 ? -1 : 1 }); });
+      { const sk = D.SK[char(uid).cls][p.k], now = Date.now(); if (sk && sk.g && sk.g.buff === 'guard') pl.guardT = now + 15000; if (char(uid).cls === 'mech' && p.k === 's5') pl.shieldT = now + 10000; if (char(uid).cls === 'novice' && p.k === 's3' && !D.skillLock(char(uid), 's3')) pl.fakeT = now + 3000; } socket.to(w.room).emit('cast', { id: uid, k: p.k, x: +p.x || 0, y: +p.y || 0, f: p.f < 0 ? -1 : 1 }); });
     // 天使的輔助技能：轉送給附近的隊友（含自己），由各自的瀏覽器套用效果
     socket.on('aid', ({ k } = {}, ack) => {
       const c = char(uid); if (!w || !c || c.cls !== 'angel' || !['s1', 's3', 's4', 's6'].includes(k) || D.skillLock(c, k)) return;
@@ -820,7 +829,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const mounts = Object.keys(D.MOUNTS).filter(k => (D.MOUNTS[k].lv || 0) <= lv); if (!mounts.length) mounts.push('horse');
       Object.assign(c, { gm: 1, lv, job, exp: 0, wep, arm, gold: 9999999, pot: 999, eth: 999, ap: (lv - 1) * D.APL, map: w ? w.mi : (old.map || 0), mounts,
         mnt: mounts.includes(old.mnt) ? old.mnt : mounts[mounts.length - 1], pet: lv >= D.PETLV && D.PETS[pet] ? pet : null });
-      if (old.nm) c.nm = old.nm; if (old.wear) c.wear = old.wear; if (old.rnN) c.rnN = old.rnN; { const cp = Math.max(old.cap || 0, lv > 110 ? 120 : lv > 100 ? 110 : lv > D.MAXLV ? 100 : 0); if (cp) c.cap = cp; } if (lv >= D.AWK.lv && job >= 4) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
+      if (old.nm) c.nm = old.nm; if (old.wear) c.wear = old.wear; if (old.rnN) c.rnN = old.rnN; { const cp = Math.max(old.cap || 0, lv > 110 ? 120 : lv > 100 ? 110 : lv > D.MAXLV ? 100 : 0); if (cp) c.cap = cp; } if (lv >= D.AWK.lv && (job >= 4 || cls === 'novice')) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
       // 套用每一級的能力成長（和正常升級一樣），GM 角色的強度才會等於真正練到這個等級的角色
       const gr = D.CL[cls].grow; for (let l = 1; l < lv; l++) { c.base.hp += gr.hp; c.base.mp += gr.mp; c.base.atk = Math.round((c.base.atk + gr.atk) * 10) / 10; c.base.def = Math.round((c.base.def + gr.def) * 10) / 10; }
       S.rpg[uid] = c; save();
@@ -840,7 +849,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     // ---- 守護靈覺醒：第一次按＝啟動，覺醒中再按＝終結技（一次） ----
     socket.on('awk', (_, ack) => {
       const c = char(uid), now = Date.now(), no = msg => ack && ack({ ok: false, msg }); if (!c || !w) return no('');
-      const g = D.GUARD[c.cls]; if (!c.awk) return no(`80 級四轉後，找轉職教官完成「覺醒試煉」才能喚醒守護靈`);
+      const g = D.GUARD[c.cls]; if (!c.awk) return no(`80 級四轉後（戰五渣 80 級即可），找像素村的師傅完成「覺醒試煉」才能喚醒守護靈`);
       if (!g.ready) return no(`${g.n} 還在準備中，下次更新開放`);
       const el = awkEl(pl, now);
       if (el >= 0) {
@@ -859,10 +868,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('awkTrial', (_, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c) return no('');
       if (c.awk) return no('你已經喚醒過守護靈了');
-      if (c.lv < D.AWK.lv || c.job < 4) return no(`要 Lv ${D.AWK.lv} 並完成四轉`);
+      if (c.lv < D.AWK.lv || (c.job < 4 && c.cls !== 'novice')) return no(`要 Lv ${D.AWK.lv} 並完成四轉`);
       if (!D.GUARD[c.cls].ready) return no(`${D.GUARD[c.cls].n} 還在準備中，下次更新開放`);
-      if (!w || w.mi !== 0) return no('要在像素村找轉職教官');
-      const opts = Object.keys(D.CL).filter(k => k !== c.cls && !D.HIDDEN[k]), rc = opts[ri(0, opts.length - 1)];
+      if (!w || w.mi !== 0) return no('要在像素村找師傅');
+      const opts = Object.keys(D.CL).filter(k => k !== c.cls && !D.HIDDEN[k] && D.MON['rival_' + k]), rc = opts[ri(0, opts.length - 1)];
       const tw = mkWorld(8, [{ t: 'rival_' + rc, s: 0, a: 1000, b: 1600 }], 'trial:' + uid); trials.set(uid, tw);
       ret = { mi: 0, x: 120 }; ack && ack({ ok: true, rival: D.MON['rival_' + rc].name }); enter(8, 300, tw);
       socket.emit('notice', { t: `覺醒試煉開始！打倒「${D.MON['rival_' + rc].name}」就能喚醒守護靈「${D.GUARD[c.cls].n}」` });
@@ -936,11 +945,29 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     // ---- 更新公告：每個帳號每個版本只看一次 ----
     socket.on('newsSeen', ({ v } = {}) => { const u = S.users[uid]; if (u && v === D.VERSION) { u.seenVer = D.VERSION; save(); } });
     // ---- 轉職試煉 ----
+    // ---- 戰五渣拜師：10 等後找像素村的師傅選職業（巨龍使者要有龍蛋）----
+    socket.on('apprentice', ({ cls } = {}, ack) => {
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w) return no('');
+      if (c.cls !== 'novice') return no('你已經有師父了');
+      if (!D.CL[cls] || cls === 'novice' || !D.MASTERS[cls]) return no('沒有這位師傅');
+      if (c.lv < D.NOVLV) return no(`要 Lv ${D.NOVLV} 才能拜師`);
+      if (w.mi !== 0) return no('要在像素村找師傅');
+      const npc = (D.MAPS[0].npcs || []).find(n => n.kind === 'master' && n.cls === cls); if (!npc || Math.abs(pl.x - npc.x) > 90) return no('離師傅太遠了');
+      if (D.HIDDEN[cls] && !isGM(uid)) return no('龍蛋還沒孵化，再等等吧');
+      if (cls === 'dragon' && !c.egg && !isGM(uid)) return no('沒有龍蛋，龍是不會認你的');
+      // 能力值依新職業重新計算（等於這個職業從 1 等練到現在）
+      const gr = D.CL[cls].grow, b = { ...D.CL[cls].base }; for (let l = 1; l < c.lv; l++) { b.hp += gr.hp; b.mp += gr.mp; b.atk = Math.round((b.atk + gr.atk) * 10) / 10; b.def = Math.round((b.def + gr.def) * 10) / 10; }
+      c.cls = cls; c.job = 0; c.base = b; c.slots = [...D.DEFSLOTS]; if (!D.WEAPONS[cls][c.wep]) c.wep = 0; if (c.lookW != null && !D.WEAPONS[cls][c.lookW]) delete c.lookW;
+      if (cls === 'dragon') delete c.egg;
+      D.fix(c); save(); pushMe(uid); ack && ack({ ok: true, me: me(uid) });
+      ns.to(w.room).emit('sys', { t: cls === 'dragon' ? `🐉 ${nameOf(uid)} 的龍蛋孵化了！拜入龍語者門下，成為「巨龍使者」！` : `🎓 ${nameOf(uid)} 拜入${D.MASTERS[cls].name}門下，成為「${D.CL[cls].jobs[0]}」！` });
+    });
     socket.on('trial', (_, ack) => {
       const c = char(uid); if (!c) return ack && ack({ ok: false });
+      if (c.cls === 'novice') return ack && ack({ ok: false, msg: '戰五渣要先拜師才能轉職' });
       const next = c.job + 1; if (next > 4) return ack && ack({ ok: false, msg: '已經完成所有轉職' });
       if (c.lv < D.JOBLV[next]) return ack && ack({ ok: false, msg: `需要 Lv ${D.JOBLV[next]}` });
-      if (!w || w.mi !== 0) return ack && ack({ ok: false, msg: '要在像素村找轉職教官' });
+      if (!w || w.mi !== 0) return ack && ack({ ok: false, msg: '要在像素村找你的師傅' });
       const tw = mkWorld(8, [{ t: 'trial' + next, s: 0, a: 1000, b: 1600 }], 'trial:' + uid); trials.set(uid, tw);
       ret = { mi: 0, x: 120 }; ack && ack({ ok: true }); enter(8, 300, tw);
       socket.emit('notice', { t: `轉職試煉開始！打倒「${D.MON['trial' + next].name}」就能轉職成「${D.CL[c.cls].jobs[next]}」` });

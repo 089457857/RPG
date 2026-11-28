@@ -5,6 +5,8 @@
   const capOf = c => (c && c.cap) || MAXLV;
   const MAXSLOT = 6; // 每個帳號最多 6 個角色
   const CL = {
+    novice: { name: '戰五渣', col: '#e8dcc0', col2: '#b8a888', desc: '所有冒險者的起點。拿著插了大便的樹枝，10 等後到像素村拜師選職業。也可以一路當戰五渣到底……', base: { hp: 72, mp: 30, atk: 10, def: 4, crit: 5 }, grow: { hp: 14, mp: 4, atk: 2.4, def: 1.0 },
+      jobs: ['戰五渣', '戰五渣', '戰五渣', '戰五渣', '戰五渣'], jobDesc: ['', '', '', '', ''] },
     warrior: { name: '戰士', col: '#d8433a', col2: '#8c2a24', desc: '近戰揮砍，血厚耐打，一刀打一排。', base: { hp: 100, mp: 30, atk: 12, def: 6, crit: 5 }, grow: { hp: 22, mp: 4, atk: 2.9, def: 1.7 }, dr: .75,
       jobs: ['戰士', '騎士', '聖騎士', '龍騎士', '劍聖'], jobDesc: ['', '鍛鍊劍技的騎士，破甲斬能讓敵人受到更多傷害。', '受聖光守護的騎士，召喚光柱審判周圍一切。', '與龍魂締約，龍息能焚盡前方一整排敵人。', '劍道的極致，五把巨劍接連飛出貫穿一切。'] },
     mage: { name: '法師', col: '#8a5cf0', col2: '#4b2c9a', desc: '遠程魔法彈，範圍爆炸與連鎖雷電。', base: { hp: 60, mp: 80, atk: 15, def: 3, crit: 5 }, grow: { hp: 11, mp: 10, atk: 2.7, def: .7 },
@@ -33,6 +35,13 @@
     mech: { atk: { n: '雷射槍', cd: 28, d: '瞬間命中直線上第一隻敵人' }, s1: { n: '散彈砲', mp: 6, cd: 45, d: '近距離扇形散射，最多打 5 隻' }, s2: { n: '追蹤飛彈', mp: 14, cd: 90, lv: 3, d: '3 枚飛彈自動追蹤最近的敵人' }, s3: { n: '自動砲台', mp: 24, cd: 420, job: 1, d: '架設砲台 12 秒，自動射擊附近敵人' }, s4: { n: '地雷陣', mp: 32, cd: 130, job: 2, d: '在前方埋下 4 顆地雷，稍後連環引爆' }, s5: { n: '能量護盾', mp: 40, cd: 600, job: 3, d: '10 秒內受到的傷害減少 40%' }, s6: { n: '軌道衛星砲', mp: 84, cd: 240, job: 4, d: '衛星雷射對目標位置連續轟擊 6 次' } },
     demon: { atk: { n: '魔爪', cd: 24, d: '撕裂前方 2 隻，命中時回復少量 HP' }, s1: { n: '暗影吞噬', mp: 7, cd: 50, d: '吞噬前方最多 4 隻，每命中一隻回復 4% HP' }, s2: { n: '地獄鎖鏈', mp: 12, cd: 80, lv: 3, d: '把附近的敵人拉到面前並造成傷害' }, s3: { n: '惡魔化', mp: 20, cd: 600, job: 1, d: '消耗 10% HP，15 秒內攻擊 +30%、移動速度 +15%' }, s4: { n: '詛咒之霧', mp: 32, cd: 130, job: 2, d: '前方毒霧持續 4 秒，不斷侵蝕敵人' }, s5: { n: '深淵之門', mp: 48, cd: 120, job: 3, d: '深淵之手抓住前方敵人，1 秒後重重砸下' }, s6: { n: '靈魂收割', mp: 80, cd: 240, job: 4, d: '收割周圍敵人並回血，直接處決 HP 低於 15% 的一般怪' } },
     angel: { atk: { n: '光之羽', cd: 26, d: '扇形射出 3 片光羽' }, s1: { n: '治癒之光', mp: 10, cd: 90, d: '治療自己和附近隊友 20% HP' }, s2: { n: '聖十字', mp: 14, cd: 80, lv: 3, d: '在最近的敵人身上炸開十字聖光，上下左右都打得到' }, s3: { n: '祝福', mp: 24, cd: 600, job: 1, d: '自己和附近隊友 20 秒內攻擊 +20%' }, s4: { n: '天使之翼', mp: 36, cd: 480, job: 2, d: '自己和附近隊友 6 秒內受到的傷害減半' }, s5: { n: '審判之劍', mp: 50, cd: 120, job: 3, d: '聖劍從天而降，刺向最多 6 隻敵人' }, s6: { n: '神聖復活', mp: 90, cd: 420, job: 4, d: '復活附近倒地的隊友、治療全隊並重創周圍敵人' } },
+  };
+  SK.novice = {
+    atk: { n: '敲大便', cd: 24, d: '拿大便樹枝由上往下敲' },
+    s1: { n: '亂揮', mp: 4, cd: 70, d: '閉著眼睛亂揮一通，周圍亂打 3 下（很廢）' },
+    s2: { n: '丟大便', mp: 10, cd: 90, lv: 30, d: '把大便丟出去，打中的敵人會暈眩', ef: 'st' },
+    s3: { n: '裝死', mp: 12, cd: 600, lv: 50, d: '倒地裝死 3 秒：期間不會受傷，怪物也會失去目標（移動就會起身）' },
+    s4: { n: '戰五渣的逆襲', mp: 30, cd: 150, lv: 70, d: '賭上一切的一擊：10% 機率打出超高傷害，失敗就只是揮空。「傳說中的戰五渣」每次都會成功' },
   };
   SK.dragon = {
     atk: { n: '龍息彈', cd: 28, d: '龍吐出屬性火球；二轉後連吐兩發、四轉後一次三發', g: { type: 'proj', mult: 1.0, pierce: 0, col: '#ff8a3a', spd: 5 } },
@@ -75,6 +84,7 @@
   };
   const CC_RES = .6, CC_IMM = 5000;
   const EFSK = {
+    novice: { s2: 'st' },
     warrior: { a0: 'st', c2: 'st' },
     mage: { s1: 'bn', s2: 'pz', s3: 'fz', a0: 'sl', c1: 'bn', c2: 'fz', b3: 'pz' },
     rogue: { a0: 'ps', c3: 'ps' },
@@ -104,9 +114,63 @@
   const efOf = (cls, c) => { const s = new Set(Object.values(EFSK[cls] || {})); if (cls === 'dragon' && c && ELEM[c.elem]) s.add(ELEM[c.elem].ef); return s; };
   // 還沒開放給一般玩家的職業（只有 GM 能建立）
   const HIDDEN = { dragon: 1 };
+  // ---- 戰五渣 ----
+  const NOVLV = 10, NOVEXP = 0.5, LEGLV = 100, LEGATK = 2.2, LEGHP = 2.0;   // 10 等可拜師；10 等後經驗減半；100 等「傳說中的戰五渣」
+  const legendNov = c => !!c && c.cls === 'novice' && c.lv >= LEGLV;
+  const jobName = c => legendNov(c) ? '傳說中的戰五渣' : CL[c.cls].jobs[c.job || 0];
+  // 龍蛋：只有戰五渣在蘑菇森林打怪會掉；巨菇王第 5 次必掉
+  const EGG = { maps: [15, 16, 17], rate: { slime: .01, shroom: .03, stump: .05, king: .2 }, pity: 5 };
+  // 像素村的師傅：low 未滿 10 等的戰五渣、ready 可以拜師的戰五渣、mine 自己的徒弟、other 別家的徒弟
+  const MASTERS = {
+    warrior: { name: '鐵壁 老岩', x: 300, intro: '劍要拿得穩，人要站得直。跟著我，把你練成一面打不倒的牆！',
+      low: ['想練劍術嗎，菜鳥？先把木棍拿穩再說！', '戰五渣啊……先去史萊姆草原練到 10 等再來找我。', '你那根樹枝上插的是……算了，我不想知道。'],
+      ready: ['嗯，看你也有點樣子了。要不要拜我為師？', '10 等了？來吧，我教你真正的劍術！', '把那根大便樹枝丟掉，換一把真正的劍！'],
+      mine: ['徒弟！最近有沒有偷懶？', '揮劍一萬次了沒？', '記住，騎士永遠不會背對敵人。'],
+      other: ['整天躲在後面放魔法，算什麼英雄！', '你師父教得還行嘛……不過還是我的徒弟比較強。', '哼，換作是我的徒弟，早就把那隻王砍了。'] },
+    mage: { name: '魔導婆婆 梅琳', x: 390, intro: '魔法不是用蠻力，是用腦袋。孩子，要學會讓世界聽你的話。',
+      low: ['呵呵……孩子，你身上有魔力的味道喔。', '再長大一點吧，10 等的時候婆婆教你變魔法。', '那坨東西……要不要婆婆幫你變不見？'],
+      ready: ['呵呵，時候到了。要不要跟婆婆學魔法？', '你的魔力在發光呢，來當我的徒弟吧。', '火、冰、雷……想先學哪一個呀？'],
+      mine: ['乖徒弟，有沒有好好讀書呀？', '魔力不夠就喝藥水，別逞強。', '婆婆年輕的時候，一顆隕石就能收工喔。'],
+      other: ['揮刀揮劍的，多累呀。', '你這孩子挺有天分的，可惜跟錯師父了。', '呵呵，有空來喝杯茶吧。'] },
+    rogue: { name: '無影', x: 480, intro: '……看不見的刀，才是最快的刀。',
+      low: ['……你剛剛完全沒發現我吧？', '……太弱了。10 等再說。', '……那個樹枝，很臭。'],
+      ready: ['……想學怎麼消失嗎？', '……你走路的聲音太大了。跟我學。', '……10 等了。可以教你了。'],
+      mine: ['……我一直在看著你。', '……剛剛那一刀，太慢。', '……不錯。'],
+      other: ['……你的背後，全是破綻。', '……吵死了。', '……'] },
+    archer: { name: '獵人 蘿莎', x: 570, intro: '最好的戰鬥，就是敵人還沒碰到你就結束了。',
+      low: ['站遠一點，我可不保證不會射偏喔～', '小不點，10 等之後再來找姐姐吧！', '那根樹枝……拿來當箭靶剛剛好。'],
+      ready: ['眼神不錯嘛！要不要跟我學射箭？', '想從很遠的地方一箭解決敵人嗎？', '來，弓給你，試試看！'],
+      mine: ['今天有射中幾隻呀？', '記得，保持距離！', '箭不夠了要記得買喔～'],
+      other: ['衝那麼前面不怕痛嗎？', '嘿，要不要比賽誰先打倒那隻？', '你師父的招式挺帥的嘛。'] },
+    brawler: { name: '鐵拳 大熊', x: 660, intro: '武器？那是給弱者用的！男人就用拳頭說話！',
+      low: ['武器？那是給弱者用的！男人就用拳頭！', '小鬼，練到 10 等再來給我揍……不是，給我教！', '那根樹枝丟掉！用拳頭！'],
+      ready: ['好！有骨氣！來當我的徒弟！', '想要一拳打飛一隻王嗎？跟我來！', '先做一百個伏地挺身再說！'],
+      mine: ['徒弟！拳頭有沒有變硬？', '吃飽了沒！吃飽才有力氣揍人！', '哈哈哈！好樣的！'],
+      other: ['你那細胳膊……要不要來跟我練練？', '別躲在武器後面！', '哼，拳頭才是最強的！'] },
+    mech: { name: '齒輪博士', x: 750, intro: '科學就是力量！……還有爆炸。很多爆炸。',
+      low: ['別碰那個按鈕！……好吧，反正它本來就會爆。', '10 等以下的不准進實驗室，太危險了。', '那根樹枝……可以拿來當燃料嗎？'],
+      ready: ['你！對，就是你！要不要當我的助手……我是說徒弟！', '想要一台會自己開槍的砲台嗎？', '科學需要你！'],
+      mine: ['我的新發明又爆炸了，你看到了嗎？', '記得定期上油！', '這次的實驗……應該不會失敗吧？'],
+      other: ['用魔法？太不科學了！', '你的裝備需要升級，要不要改造一下？', '嗯……你那個招式的原理是什麼？'] },
+    demon: { name: '墮魔 卡隆', x: 840, intro: '力量是有代價的。你，願意付出多少？',
+      low: ['……人類的小鬼，你的靈魂太弱了。', '等你 10 等，我再考慮要不要收你。', '那根樹枝……連惡魔都嫌臭。'],
+      ready: ['你心裡有黑暗的味道……要不要跟我簽約？', '想要用不完的力量嗎？', '來吧，擁抱你的惡魔之力。'],
+      mine: ['吸了多少血了？', '別被力量吞噬了……或者，被吞噬也不錯。', '哼哼，不錯的殺氣。'],
+      other: ['你的靈魂聞起來……很好吃。', '天使的徒弟最討厭了。', '……'] },
+    angel: { name: '聖女 塞蕾娜', x: 930, intro: '守護別人，也是一種強大。願光與你同在。',
+      low: ['願光保佑你，小小的冒險者。', '等你 10 等，我會教你守護的力量。', '那根樹枝……也是一種信仰嗎？'],
+      ready: ['你願意成為守護大家的那道光嗎？', '來吧，我教你治癒與祝福。', '天使的翅膀，正在等你。'],
+      mine: ['今天有幫隊友補血嗎？', '記得，光永遠在你身後。', '你做得很好。'],
+      other: ['受傷了嗎？來，我幫你看看。', '惡魔的徒弟……唉，願光指引他。', '祝你一路平安。'] },
+    dragon: { name: '龍語者', x: 1060, intro: '龍不是被馴服的，是被認可的。牠會跟著你一起長大。',
+      low: ['這傢伙年輕的時候，可是能噴火燒掉一座山的……', '小鬼，蘑菇森林裡偶爾會掉出奇怪的蛋喔。', '……（老龍打了個大呵欠）'],
+      ready: ['你身上……有龍蛋的氣息。', '帶著龍蛋來了嗎？讓我看看。', '龍蛋在發熱……牠想出來了。'],
+      mine: ['你的龍長大了不少啊。', '別忘了，龍是你的夥伴，不是工具。', '老龍說，牠很想念你的龍。'],
+      other: ['沒有龍蛋，龍是不會認你的。', '……（老龍睜開一隻眼睛看了你一下）', '這片天空，以前到處都是龍。'] },
+  };
   // 技能欄位：X C V B N M 六格可以自由配置
   const SLOTN = 6, DEFSLOTS = ['s1', 's2', 's3', 's4', 's5', 's6'];
-  const JOBLV = [0, 15, 30, 45, 60], JOBATK = [1, 1.15, 1.32, 1.5, 1.7], JOBHP = [1, 1.1, 1.22, 1.36, 1.5];
+  const JOBLV = [0, 25, 40, 55, 70], JOBATK = [1, 1.15, 1.32, 1.5, 1.7], JOBHP = [1, 1.1, 1.22, 1.36, 1.5];
   // [名稱, 攻擊, 等級, 價格]
   const WEAPONS = {
     warrior: [['木劍', 0, 1, 0], ['鐵劍', 8, 8, 300], ['騎士長劍', 20, 16, 1600], ['聖銀大劍', 36, 24, 5200], ['屠龍巨劍', 58, 32, 13000], ['神諭聖劍', 82, 40, 30000], ['龍牙劍', 112, 50, 62000], ['天罰之刃', 150, 60, 115000]],
@@ -118,15 +182,17 @@
     demon: [['骨刃', 0, 1, 0], ['血爪', 8, 8, 300], ['惡魔鐮', 20, 16, 1600], ['夢魘鐮刀', 36, 24, 5200], ['煉獄魔鐮', 58, 32, 13000], ['魂噬者', 82, 40, 30000], ['冥火魔鐮', 112, 50, 62000], ['深淵之鐮', 150, 60, 115000]],
     angel: [['羽杖', 0, 1, 0], ['祈禱權杖', 8, 8, 300], ['光之權杖', 20, 16, 1600], ['熾天權杖', 36, 24, 5200], ['天使聖杖', 58, 32, 13000], ['星輝聖杖', 82, 40, 30000], ['晨星權杖', 112, 50, 62000], ['天堂之鑰', 150, 60, 115000]],
   };
+  WEAPONS.novice = [['大便樹枝', 0, 1, 0], ['硬大便樹枝', 8, 8, 300], ['鐵杵大便', 20, 16, 1600], ['金邊大便杖', 36, 24, 5200], ['彩虹大便棍', 58, 32, 13000], ['鑽石大便棒', 82, 40, 30000], ['龍糞神木', 112, 50, 62000], ['天界聖糞杖', 150, 60, 115000]];
   // 傳說專屬武器：商店不賣，只會從「虛空裂隙」的怪物身上隨機掉落（第 5 個欄位 1 = 傳說）
   WEAPONS.dragon = [['幼龍之珠', 0, 1, 0], ['青銅龍珠', 8, 8, 300], ['赤炎龍珠', 20, 16, 1600], ['蒼雷龍珠', 36, 24, 5200], ['寒冰龍珠', 58, 32, 13000], ['暗影龍珠', 82, 40, 30000], ['龍王寶珠', 112, 50, 62000], ['龍神之心', 150, 60, 115000]];
-  const LEGEND = { dragon: '燭龍之眼', warrior: '軒轅劍', mage: '太初法典', rogue: '月影雙刃・朧', archer: '后羿射日弓', brawler: '盤古神拳', mech: '創世機神砲', demon: '路西法之鐮', angel: '米迦勒之劍' };
+  const LEGEND = { novice: '神獸大便杖', dragon: '燭龍之眼', warrior: '軒轅劍', mage: '太初法典', rogue: '月影雙刃・朧', archer: '后羿射日弓', brawler: '盤古神拳', mech: '創世機神砲', demon: '路西法之鐮', angel: '米迦勒之劍' };
   for (const k in WEAPONS) WEAPONS[k].push([LEGEND[k], 230, 80, 0, 1, { crit: 3 }, { c1: '#ff4fd8', c2: '#ffe680', fx: 'star' }]);
   const LEGI = 8, LEGGOLD = 50000;
   // ===== 100 等裝備擴充 =====
   // 武器格式：[名稱, 攻擊, 需求等級, 價格, 等級（0 商店／1 傳說／2 神話）, 額外能力, 外觀]
   // 索引：0～7 商店、8 舊傳說、9～10 商店（Lv90／100）、11～15 傳說、16～18 神話
   const WNEW = {
+    novice: [['宇宙大便棍', '終極大便樹'], ['麒麟糞杖', '鳳凰糞杖', '白澤糞杖', '饕餮糞杖', '貔貅糞杖'], ['混沌大便', '太初之糞', '永恆黃金大便']],
     dragon: [['真龍寶珠', '太古龍晶'], ['應龍之珠', '蛟龍逆鱗', '螭吻寶珠', '睚眥血珠', '狻猊炎珠'], ['祖龍神珠', '燭龍神目', '鴻蒙龍元']],
     warrior: [['破軍戰刃', '霸王神劍'], ['赤霄神劍', '湛盧', '干將', '莫邪', '屠神之刃'], ['誅仙劍', '戮仙劍', '絕仙劍']],
     mage: [['大魔導杖', '永恆星杖'], ['神農百草杖', '伏羲八卦杖', '女媧補天石', '崑崙仙杖', '玄冥寒杖'], ['鴻蒙紫氣杖', '混沌源杖', '太極陰陽杖']],
@@ -372,10 +438,10 @@
     { t: boss, s: 0, a: 2140, b: 2460 }];
   const MAPS = [
     // ---- 第 0 張：像素村（新手村；重生點、轉職教官、商店、鐵匠）----
-    { name: '像素村', pal: 'forest', town: true, safe: true, home: 0, spawns: [], xr: 1500, houses: [40, 400, 900, 1180],
-      seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 560, x2: 760, y: 240 }], ropes: [{ x: 580, y1: 240, y2: GY }],
-      npcs: [{ x: 300, kind: 'job', name: '轉職教官 艾倫' }, { x: 640, kind: 'shop', name: '商人 老陳' }, { x: 820, kind: 'smith', name: '鐵匠 老錘' }],
-      zones: [[9e9, '像素村']], portals: [{ x: 1440, to: 15, tx: 150, label: '蘑菇森林 →' }], start: 200, signs: [[1400, '往蘑菇森林']] },
+    { name: '像素村', pal: 'forest', town: true, safe: true, home: 0, spawns: [], xr: 2100, houses: [40, 1200, 1640],
+      seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, { x1: 1460, x2: 1620, y: 240 }], ropes: [{ x: 1480, y1: 240, y2: GY }],
+      npcs: [{ x: 1340, kind: 'shop', name: '商人 老陳' }, { x: 1540, kind: 'smith', name: '鐵匠 老錘' }],
+      zones: [[9e9, '像素村']], portals: [{ x: 2040, to: 15, tx: 150, label: '蘑菇森林 →' }], start: 200, signs: [[2000, '往蘑菇森林'], [200, '師傅街']] },
     { name: '冰雪山谷', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 330, x2: 480, y: 262 }, { x1: 450, x2: 640, y: 224 }, { x1: 700, x2: 860, y: 262 }, { x1: 830, x2: 1000, y: 224 }, { x1: 970, x2: 1160, y: 186 }, { x1: 1250, x2: 1420, y: 262 }, { x1: 1390, x2: 1580, y: 224 }, { x1: 1550, x2: 1760, y: 186 }, { x1: 1730, x2: 1960, y: 148 }, { x1: 1950, x2: 2090, y: 110 }]], ropes: [{ x: 2000, y1: 110, y2: GY }, { x: 1120, y1: 186, y2: GY }], pal: 'snow', spawns: layout('snowslime', 'icewolf', 'yeti', 'frost'), zones: [[260, '山谷入口'], [700, '雪原'], [1200, '冰柱林'], [2100, '暴風雪坡'], [9e9, '冰霜巨人之巔']],
       portals: [{ x: 60, to: 19, tx: 1340, label: '← 霜鈴村' }], start: 150, home: 19 },
     { name: '熔岩深淵', seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 330, x2: 450, y: 230 }, { x1: 380, x2: 560, y: 160 }, { x1: 700, x2: 820, y: 240 }, { x1: 860, x2: 1000, y: 190 }, { x1: 1020, x2: 1170, y: 130 }, { x1: 1230, x2: 1360, y: 230 }, { x1: 1400, x2: 1540, y: 170 }, { x1: 1570, x2: 1740, y: 110 }, { x1: 1800, x2: 2050, y: 220 }]], ropes: [{ x: 350, y1: 230, y2: GY }, { x: 420, y1: 160, y2: 230 }, { x: 720, y1: 240, y2: GY }, { x: 880, y1: 190, y2: GY }, { x: 1040, y1: 130, y2: GY }, { x: 1250, y1: 230, y2: GY }, { x: 1420, y1: 170, y2: GY }, { x: 1590, y1: 110, y2: GY }, { x: 1820, y1: 220, y2: GY }], pal: 'lava', spawns: layout('fireslime', 'imp', 'golem', 'balrog'), zones: [[260, '深淵入口'], [700, '焦土'], [1200, '熔岩河'], [2100, '惡魔迴廊'], [9e9, '炎魔王的王座']],
@@ -437,7 +503,7 @@
   const SEG_B = MAPS[1].seg, ROPES_B = MAPS[1].ropes, SEG_C = MAPS[3].seg, ROPES_C = MAPS[3].ropes;
   MAPS[15] = { name: '蘑菇森林 1・史萊姆草原', pal: 'forest', home: 0, rec: 1,
     spawns: [...G('slime', 9, 260, 1900), ...P('slime', 1, 2, 3, 4, 6, 7), ...G('shroom', 3, 1950, 2450), ...P('shroom', 8, 9)],
-    zones: [[9e9, '史萊姆草原']], portals: [{ x: 60, to: 0, tx: 1340, label: '← 像素村' }, { x: 2560, to: 16, tx: 150, label: '蘑菇小徑 →' }], start: 150 };
+    zones: [[9e9, '史萊姆草原']], portals: [{ x: 60, to: 0, tx: 1980, label: '← 像素村' }, { x: 2560, to: 16, tx: 150, label: '蘑菇小徑 →' }], start: 150 };
   MAPS[16] = { name: '蘑菇森林 2・蘑菇小徑', pal: 'forest', home: 0, seg: SEG_B, ropes: ROPES_B,
     spawns: [...G('slime', 3, 200, 600), ...G('shroom', 9, 600, 2000), ...P('shroom', 1, 2, 3, 4, 5, 6, 7), ...G('stump', 3, 2050, 2450), ...P('stump', 9, 10)],
     zones: [[9e9, '蘑菇小徑']], portals: [{ x: 60, to: 15, tx: 2490, label: '← 史萊姆草原' }, { x: 2560, to: 17, tx: 150, label: '樹墩森林 →' }], start: 150 };
@@ -490,6 +556,19 @@
     grave: { d: '……活人很少走到這裡。暗黑神殿更深的地方，等那些路打開了，我會帶你去。', opts: [] },
     nova: { d: '我在星與星之間旅行。虛空的深處還有更多裂縫，等它們穩定下來，我再帶你過去。', opts: [] },
   };
+  // ---- 村莊嚮導的分層捷徑：每做好一層，在 LAYERS 對應位置填上 { to: 該層第1張地圖 id, need: 前一層 Boss id }，選單就會自動多一個選項 ----
+  // 每次搭乘都收費；要先打倒前一層 Boss 才開放；送到該層第 1 張地圖入口
+  const LAYERS = {
+    snowback: { area: '冰雪', fees: [300, 500, 800, 1200], maps: [null, null, null, null] },
+    lavaback: { area: '熔岩', fees: [1500, 2000, 2500, 3000], maps: [null, null, null, null] },
+    seaback: { area: '海洋', fees: [4000, 5000, 6500, 8000], maps: [null, null, null, null] },
+    skyback: { area: '天空', fees: [9000, 10000, 11500, 13000], maps: [null, null, null, null] },
+    grave: { area: '暗黑', fees: [16000, 18000, 20000, 22000], maps: [null, null, null, null] },
+    nova: { area: '虛空', fees: [26000, 28000, 31000, 35000], maps: [null, null, null, null] },
+  };
+  for (const g in LAYERS) { const L = LAYERS[g];
+    L.maps.forEach((m, i) => { if (m && m.to != null) GUIDES[g].opts.push({ place: `${L.area}第 ${i + 2} 層`, to: m.to, tx: m.tx ?? 150, fee: L.fees[i], each: 1, need: m.need }); }); }
+  for (const k in MASTERS) MAPS[0].npcs.push({ x: MASTERS[k].x, kind: 'master', cls: k, name: MASTERS[k].name });
   const HOMESCROLL = { price: 2000, cast: 2000 };   // 回城卷軸：雜貨商販售，唸 2 秒，被打會中斷
   // 升級經驗：前期和以前差不多，後期大幅變難（滿等總經驗約為舊版的 4 倍）
   // 升級所需經驗（2026-11-27h 改版）：依「每級要打幾隻當地小怪」設計，從約 4 隻慢慢爬到 100 等前約 130 隻，1→100 約 5000 隻
@@ -499,7 +578,7 @@
   // 能力值：每升 1 級得 3 點，可分配到 力量／體質／智慧／敏捷
   const APL = 3, APRESET = 20000;
   // 能力值 2.0：每個職業有主屬性（決定攻擊力）；每一項都有攻擊與生存效果；點越多效率越低
-  const MAIN = { dragon: ['int'], warrior: ['str'], brawler: ['str'], mage: ['int'], angel: ['int'], rogue: ['dex'], archer: ['dex'], mech: ['str', 'int'], demon: ['str', 'vit'] };
+  const MAIN = { novice: ['str'], dragon: ['int'], warrior: ['str'], brawler: ['str'], mage: ['int'], angel: ['int'], rogue: ['dex'], archer: ['dex'], mech: ['str', 'int'], demon: ['str', 'vit'] };
   const STATS = {
     str: { n: '力量', d: '攻擊力 +0.3、擊退距離 +0.2%' },
     vit: { n: '體質', d: 'HP +8、防禦 +0.4、受傷後無敵時間 +0.3%' },
@@ -511,7 +590,7 @@
   const effRate = n => (n || 0) < 100 ? 1 : (n || 0) < 200 ? .7 : .4;
   // 主屬性給的攻擊力：單主屬性每點 +1.3；雙主屬性每點 +1.3 × 0.75（兩項分開點比較划算）
   function mainAtk(cls, s) { const m = MAIN[cls] || ['str']; const k = m.length > 1 ? .75 : 1; return m.reduce((a, x) => a + eff(s[x]) * 1.3 * k, 0); }
-  function newChar(cls) { return { slots: [...DEFSLOTS], cls, lv: 1, exp: 0, gold: 20, pot: 5, eth: 3, base: { ...CL[cls].base }, job: 0, wep: 0, arm: 0, map: 0, ap: 0, apv: 2, xv: 2, st: { str: 0, vit: 0, int: 0, dex: 0 } }; }
+  function newChar(cls) { return { slots: cls === 'novice' ? ['s1', 's2', 's3', 's4', '', ''] : [...DEFSLOTS], cls, lv: 1, exp: 0, gold: 20, pot: 5, eth: 3, base: { ...CL[cls].base }, job: 0, wep: 0, arm: 0, map: 0, ap: 0, apv: 2, xv: 2, st: { str: 0, vit: 0, int: 0, dex: 0 } }; }
   // 舊存檔補上能力值（依目前等級補發點數）
   function fix(c) { gearOk(c); if (c && c.cls === 'dragon') { c.pet = c.lv >= PETLV && ELEM[c.elem] ? ELEM[c.elem].pet : null; if (!c.mounts) c.mounts = []; const has = c.mounts.includes('mydragon'); if (c.job >= 4 && !has) c.mounts.push('mydragon'); if (c.job < 4 && has) { c.mounts = c.mounts.filter(x => x !== 'mydragon'); if (c.mnt === 'mydragon') c.mnt = c.mounts[0] || 'horse'; } } if (c && c.xv !== 2) { c.xv = 2; if (c.exp > 0 && c.lv < capOf(c)) c.exp = Math.min(needExp(c.lv) - 1, Math.floor(c.exp / needExpOld(c.lv) * needExp(c.lv))); } if (c && !c.st) { c.st = { str: 0, vit: 0, int: 0, dex: 0 }; c.ap = (c.lv - 1) * APL; } if (c && c.apv !== 2) { c.apv = 2; c.gold = (c.gold || 0) + APRESET; c.apComp = 1; } /* 能力值改版補償：每個既有角色一次 20,000 金幣 */ if (c && !c.slots) c.slots = [...DEFSLOTS]; if (c && !c.mounts) c.mounts = ['horse']; if (c && !c.mnt) c.mnt = 'horse'; return c; }
   // 寵物：65 等解鎖，四選一；之後可花金幣更換
@@ -527,11 +606,12 @@
     const hm = HELMS[c.helm || 0] || HELMS[0], cp = CAPES[c.cape || 0] || CAPES[0], eH = 1 + enhB(enhOf(c, 'h', c.helm)), eC = 1 + enhB(enhOf(c, 'c', c.cape));
     for (const o of [w[5], a[6], hm[6], cp[6]]) if (o) for (const k in o) B[k] = (B[k] || 0) + o[k];
     const E = { str: eff(s.str), vit: eff(s.vit), int: eff(s.int), dex: eff(s.dex) }, main = MAIN[c.cls] || ['str'];
-    const hp = Math.round((c.base.hp * JOBHP[c.job] + a[2] * eA + hm[2] * eH + E.vit * 8) * (pt === 'xuanwu' ? 1.1 : 1) * (1 + (B.hpP || 0)));
+    const leg = c.cls === 'novice' && c.lv >= LEGLV, jA = leg ? LEGATK : JOBATK[c.job], jH = leg ? LEGHP : JOBHP[c.job];
+    const hp = Math.round((c.base.hp * jH + a[2] * eA + hm[2] * eH + E.vit * 8) * (pt === 'xuanwu' ? 1.1 : 1) * (1 + (B.hpP || 0)));
     const atkStat = mainAtk(c.cls, s) + (main.includes('str') ? 0 : E.str * .3);
-    const atk = Math.round(((c.base.atk + w[1] * eW) * JOBATK[c.job] + atkStat) * (pt === 'qinglong' ? 1.15 : 1) * (1 + (B.atkP || 0)));
+    const atk = Math.round(((c.base.atk + w[1] * eW) * jA + atkStat) * (pt === 'qinglong' ? 1.15 : 1) * (1 + (B.atkP || 0)));
     const def = Math.round((c.base.def + a[1] * eA + hm[1] * eH + E.vit * .4) * (pt === 'xuanwu' ? 1.4 : 1) * (1 + (B.defP || 0)));
-    const mp = Math.round(c.base.mp * JOBHP[c.job] + E.int * 6);
+    const mp = Math.round(c.base.mp * jH + E.int * 6);
     const r = v => Math.round(v * 1000) / 1000;
     return { hp, mp, atk, def, crit: Math.min(80, Math.round((c.base.crit + c.job * 3 + E.dex * .1 + (B.crit || 0) + cp[1] * eC) * 10) / 10), eva: r(Math.min(EVAMAX, cp[2] * eC + (B.eva || 0))),
       critD: r(1.7 + E.dex * .0025 + (B.critD || 0)), skillB: r(E.int * .0012 + (B.skillB || 0)), cdr: r(Math.min(.35, E.int * .001 + (B.cdr || 0))), potB: r(E.int * .002), healB: r(E.int * .002),
@@ -572,6 +652,7 @@
   // 0～4 秒骨架、4～8 秒鎧甲、8～30 秒完全體，30～60 秒效果線性降到 0；結束後冷卻 1 分鐘，冷卻中覺醒值不累積
   const AWK = { lv: 80, dur: 60000, full: 30000, cd: 60000, max: 100, dr: .6, atk: 2.5, pvpDr: .3, pvpAtk: 1.5, drCap: .8, finBoss: 1.35, finWin: 3500, perSec: 1.7, hurtPer: .35 };
   const GUARD = {
+    novice: { n: '大便守護靈', fin: '天降巨便', gdm: 2.0, fdm: 1.6, d: '頭上頂著大便的紫色守護靈，普攻變成巨大大便橫掃', fd: '一坨巨大的大便從天而降', col: '#b48aff', ready: 1 },
     warrior: { n: '劍魂武神', fin: '天斷', gdm: 2.0, fdm: 1.111, d: '金色巨大劍士，普攻變成巨劍橫掃', fd: '巨劍從天劈下，重創單一敵人', col: '#ffd23f', ready: 1 },
     mage: { n: '元素巨靈', fin: '四象天墜', gdm: 2.125, fdm: 2.083, d: '四色元素巨人，普攻變成元素衝擊', fd: '四色隕星砸滿畫面', col: '#7fd3ff', ready: 1 },
     rogue: { n: '影之修羅', fin: '千影斷罪', gdm: 1.417, fdm: 0.833, d: '多臂暗影修羅，普攻變成多刃亂斬', fd: '瞬移連斬附近最強的敵人', col: '#b46aff', ready: 1 },
@@ -588,6 +669,7 @@
   const BOSSREGEN = { every: 5000, pct: .2 };   // Boss 偵測不到可攻擊的玩家時：每 5 秒回 20%
   const AWSKLV = 90, AWSK_MULT = 1.3;
   const AWSK = {
+    novice: { s2: { n: '大便神・大便流星雨', d: '守護靈從天上丟下一整片大便，打中的敵人暈眩' }, s4: { n: '大便神・終極逆襲', d: '守護靈陪你一起逆襲，傷害再提高' }, s3: { n: '大便神・集體裝死', d: '自己和同地圖隊友回復 50% HP，並在 8 秒內受到傷害 -40%', sup: { heal: 0.5, shield: 1 } } },
     warrior: { s6: { n: '武神・萬劍天降', d: '巨劍從天而降，連續 5 波砸向附近所有敵人' }, b4: { n: '武神・天崩斬', d: '守護靈揮動巨劍旋斬，範圍更大、重擊 4 次' }, c4: { n: '武神・不滅金身', d: '自己和同地圖隊友回復 50% HP，並在 8 秒內受到傷害 -40%', sup: { heal: .5, shield: 1 } } },
     mage: { s6: { n: '元素・四象崩界', d: '火、冰、風、雷四種元素輪流轟炸附近所有敵人' }, b4: { n: '元素・群星殞落', d: '兩處同時降下星辰，各轟炸 3 次' }, c4: { n: '元素・共鳴風暴', d: '元素同時打向最近的 10 隻敵人' } },
     rogue: { s6: { n: '修羅・千刃煉獄', d: '標記更大範圍的敵人，修羅的手臂一起處刑' }, b4: { n: '修羅・影獄亂舞', d: '暗影同時撕裂最近的 12 隻敵人' }, c4: { n: '修羅・永夜', d: '自己和同地圖隊友 20 秒內攻擊 +25%、移動與冷卻加快，並無敵 2 秒', sup: { pow: 1, haste: 1, inv: 1 } } },
@@ -608,6 +690,12 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-28n', notes: [
+      ['💩 新職業：戰五渣', '新角色一律從「戰五渣」開始：拿著插了大便的樹枝，有敲大便、亂揮，30 等丟大便、50 等裝死、70 等「戰五渣的逆襲」。10 等之後經驗減半，但也可以一路當戰五渣到底。'],
+      ['🎓 像素村師傅街', '轉職教官退休了！像素村來了九位師傅，各自教一個職業。10 等的戰五渣找師傅拜師就能選職業；之後在 25、40、55、70 等回去找自己的師傅接受轉職試煉。路過時師傅還會跟你聊天。'],
+      ['🥚 龍蛋', '戰五渣在蘑菇森林打怪，有機會撿到龍蛋（巨菇王更容易掉）。帶著龍蛋去找龍語者，才能成為巨龍使者。'],
+      ['👑 傳說中的戰五渣', '撐到 100 等的戰五渣會成為「傳說中的戰五渣」：攻擊 ×2.2、HP ×2，逆襲每次都成功，所有職業中最強。80 等一樣有守護靈——頭上頂著大便的那種。'],
+      ['🔁 舊角色', '已經有職業的角色維持原樣，不會被打回戰五渣。'] ] },
     { v: '2026-11-28m', notes: [
       ['🏡 像素村獨立', '像素村變成獨立的村莊：轉職教官艾倫、商人老陳、鐵匠老錘都在這裡，在蘑菇森林倒下會回到像素村。'],
       ['🍄 蘑菇森林三張', '蘑菇森林拆成史萊姆草原、蘑菇小徑、樹墩森林三張地圖，巨菇王在樹墩森林最深處。'],
@@ -731,6 +819,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
