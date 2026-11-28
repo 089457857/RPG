@@ -915,9 +915,10 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('guide', ({ g, i } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w) return no('');
       const G = D.GUIDES[g]; const npc = G && (D.MAPS[w.mi].npcs || []).find(n => n.kind === 'guide' && n.g === g);
-      if (!npc) return no('這裡沒有這位接待員'); if (Math.abs(pl.x - npc.x) > 90) return no('離接待員太遠了');
+      if (!npc) return no('這裡沒有這位接待員'); if (Math.abs(pl.x - npc.x) > 90 || Math.abs(pl.y - (npc.y || D.GY)) > 40) return no('離接待員太遠了');
       const o = G.opts[i | 0]; if (!o) return no('沒有這條路線');
       if (o.need && !(c.slain || {})[o.need] && !isGM(uid)) return no(`要先打倒「${D.MON[o.need].name}」才能直接前往${o.place}`);
+      if (o.key && !(c.walked || {})[o.key] && !(c.guide || {})[o.key] && !isGM(uid)) return no(G.walk || `你得先自己走一趟，認得路了我才能帶你去${o.place}`);
       c.guide ||= {}; let paid = 0;
       if (o.each || !c.guide[o.key]) { if (c.gold < o.fee) return no(`需要 ${o.fee.toLocaleString()} 金幣`); c.gold -= o.fee; paid = o.fee; if (!o.each) c.guide[o.key] = 1; }
       c.map = o.to; save(); pushMe(uid); ack && ack({ ok: true, paid, each: o.each ? 1 : 0 }); enter(o.to, o.tx ?? D.MAPS[o.to].start);
@@ -1031,6 +1032,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const pt = D.MAPS[w.mi].portals.find(p => p.to === to); if (!pt) return ack && ack({ ok: false });
       if (Math.abs(pl.x - pt.x) > 60) return ack && ack({ ok: false, msg: '離傳送門太遠' });
       if (pt.ret) { ack && ack({ ok: true }); goRet(); return; }
+      if (pt.unlock) { c.walked ||= {}; if (!c.walked[pt.unlock]) { c.walked[pt.unlock] = 1; pushMe(uid); socket.emit('notice', { t: `🗺 你認得路了！之後在風語驛站或村莊找接待員就能直接往返。` }); } }
       if (pt.gate && !(c.slain || {})[pt.gate] && !isGM(uid)) return ack && ack({ ok: false, msg: `要先打倒「${D.MON[pt.gate].name}」，${pt.label.replace(/ →$/, '')}才會為你開啟` });
             c.map = to; save(); ack && ack({ ok: true }); enter(to, pt.tx);
     });
