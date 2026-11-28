@@ -59,7 +59,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     if (allChars().some(([, c]) => c !== self && c.nm && c.nm.toLowerCase() === k)) return '這個名字已經有人用了';
     return '';
   }
-  function me(uid) { const c = char(uid); return c ? { ...c, max: D.stats(c), gmOk: isGM(uid) } : null; }
+  function me(uid) { const c = char(uid); return c ? { ...c, max: D.stats(c), gmOk: isGM(uid), dia: (S.users[uid] && S.users[uid].dia) || 0 } : null; }
   const pushMe = uid => ns.to('u:' + uid).emit('me', me(uid));
 
   // ---------------- 模擬 ----------------
@@ -253,7 +253,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       ns.to(w.room).volatile.emit('st', { m, p });   // 網路塞住時丟掉舊的狀態，不要排隊造成延遲
     }
   }, 100);
-  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now()), c.lookW ?? c.wep ?? 0, c.lookA ?? c.arm ?? 0, c.elem || '']; }
+  function playerPub(pl) { const c = char(pl.uid) || {}; return [pl.uid, nameOf(pl.uid), c.cls, c.job || 0, c.wep || 0, c.lv || 1, Math.round(pl.x), Math.round(pl.y), pl.f, pl.act || 0, pl.rope ? 1 : 0, pl.dead ? 1 : 0, pl.hpPct ?? 100, pl.clone ? 1 : 0, c.pet || '', pl.mount || 0, plMask(pl, Date.now()), awkEl(pl, Date.now()), c.lookW ?? c.wep ?? 0, c.lookA ?? c.arm ?? 0, c.elem || '', c.helm || 0, c.cape || 0]; }
 
   // ---------------- 擊殺與經驗 ----------------
   function kill(w, m, killer) {
@@ -525,19 +525,22 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c) return no(''); D.gearOk(c); i = i | 0;
       if (k === 'w') { const it = D.WEAPONS[c.cls][i]; if (!it || !(i === c.shopW || c.own.w.includes(i))) return no('還沒有這把武器'); if (c.lv < it[2]) return no(`需要 Lv ${it[2]}`); c.wep = i; }
       else if (k === 'a') { const it = D.ARMORS[i]; if (!it || !(i === c.shopA || c.own.a.includes(i))) return no('還沒有這件防具'); if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); c.arm = i; }
+      else if (k === 'h' || k === 'c') { const L = k === 'h' ? D.HELMS : D.CAPES, it = L[i]; if (!it || (i && !c.own[k].includes(i))) return no('還沒有這件裝備'); if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); c[k === 'h' ? 'helm' : 'cape'] = i; }
       else return no(''); save(); ack && ack({ ok: true, me: me(uid) });
     });
     // ---------------- 背包：賣掉商店裝備 ----------------
-    const gearList = (c, k) => k === 'w' ? D.WEAPONS[c.cls] : D.ARMORS, tierOf = (c, k, i) => (gearList(c, k)[i] || [])[k === 'w' ? 4 : 5] || 0, priceOf = (c, k, i) => (gearList(c, k)[i] || [])[k === 'w' ? 3 : 4] || 0;
+    const GK = ['w', 'a', 'h', 'c'], SLOT = { w: 'wep', a: 'arm', h: 'helm', c: 'cape' };
+    const gearList = (c, k) => k === 'w' ? D.WEAPONS[c.cls] : k === 'a' ? D.ARMORS : k === 'h' ? D.HELMS : D.CAPES, tierOf = (c, k, i) => (gearList(c, k)[i] || [])[k === 'w' ? 4 : 5] || 0, priceOf = (c, k, i) => (gearList(c, k)[i] || [])[k === 'w' ? 3 : 4] || 0;
     const fixShopBest = c => { for (const k of ['w', 'a']) { const ord = k === 'w' ? D.SHOPW : D.SHOPA; let best = ord[0]; for (const i of c.own[k]) if (!tierOf(c, k, i) && ord.indexOf(i) > ord.indexOf(best)) best = i; if (k === 'w') c.shopW = best; else c.shopA = best; } };
     const loseGear = (c, k, i) => { c.own[k] = c.own[k].filter(x => x !== i); delete c.enh[k][i];
+      if (k === 'h' || k === 'c') { if (c[SLOT[k]] === i) c[SLOT[k]] = 0; return; }   // 頭盔、披風：直接卸下
       if (!c.own[k].length) c.own[k].push(0);   // 至少留一件最基本的
       const cur = k === 'w' ? 'wep' : 'arm'; if (c[cur] === i) { const L = gearList(c, k), lvI = k === 'w' ? 2 : 3, ok = c.own[k].filter(x => (L[x] || [])[lvI] <= c.lv); c[cur] = ok.sort((a, b) => L[b][1] - L[a][1])[0] ?? 0; }
       if (k === 'w' && c.lookW === i) delete c.lookW; if (k === 'a' && c.lookA === i) delete c.lookA; fixShopBest(c); };
     socket.on('sellGear', ({ k, i } = {}, ack) => {
-      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); i = i | 0;
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !GK.includes(k)) return no(''); i = i | 0;
       if (!c.own[k].includes(i)) return no('沒有這件裝備'); if (tierOf(c, k, i)) return no('傳說和神話裝備不能賣');
-      if ((k === 'w' ? c.wep : c.arm) === i) return no('正在穿的裝備不能賣，先換上別件');
+      if (c[SLOT[k]] === i) return no('正在穿的裝備不能賣，先換上別件');
       const g = Math.floor(priceOf(c, k, i) * D.SELLR); loseGear(c, k, i); c.gold += g; save(); ack && ack({ ok: true, me: me(uid), gold: g });
     });
     // ---------------- 鐵匠 老鐵：強化、移植、賣卷軸（只在潮聲港） ----------------
@@ -547,8 +550,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('enhStart', ({ k, i } = {}, ack) => { const c = char(uid); if (!c) return ack && ack({ ok: false }); { const e = atSmith(); if (e) return ack && ack({ ok: false, msg: e }); }
       pl.enhTok = { k, i: i | 0, t: Date.now() }; ack && ack({ ok: true }); });
     socket.on('enh', ({ k, i, luck, guard, perf, auto, skip, use, nodown } = {}, ack) => {
-      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); { const e = atSmith(); if (e) return no(e); }
-      i = i | 0; if (!c.own[k].includes(i)) return no('沒有這件裝備');
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !GK.includes(k)) return no(''); { const e = atSmith(); if (e) return no(e); }
+      i = i | 0; if (!c.own[k].includes(i) || ((k === 'h' || k === 'c') && !i)) return no('沒有這件裝備');
       const cur = D.enhOf(c, k, i), n = cur + 1; if (n > D.ENHMAX) return no(`已經強化到 +${D.ENHMAX} 了`);
       const E = D.ENH[n], m = c.mat, O = E.opts.find(x => x.mat === use) || E.opts[0]; if ((m[O.mat] || 0) < O.num) return no(`需要 ${D.MATN[O.mat]} ×${O.num}`); if (c.gold < E.gold) return no(`需要 ${E.gold.toLocaleString()} 金幣`);
       if (luck && luck !== 'luck' && luck !== 'luck2') luck = null; if (luck && !(m[luck] > 0)) return no(`沒有${D.MATN[luck]}`);
@@ -570,7 +573,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       save(); ack && ack({ ok: true, ...res, hb: Math.round(hb * 100), rate: Math.round(rate * 100), me: me(uid) });
     });
     socket.on('xfer', ({ k, from, to } = {}, ack) => {
-      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || (k !== 'w' && k !== 'a')) return no(''); { const e = atSmith(); if (e) return no(e); }
+      const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !GK.includes(k)) return no(''); { const e = atSmith(); if (e) return no(e); }
       from = from | 0; to = to | 0; if (from === to || !c.own[k].includes(from) || !c.own[k].includes(to)) return no('要選兩件不同的裝備');
       const n = D.enhOf(c, k, from), nn = Math.max(0, n - D.XFER.lose); if (n < 1) return no('原本那件沒有強化');
       if (D.enhOf(c, k, to) >= nn) return no(`移植後只剩 +${nn}，沒有比目標裝備現在的強化高`);
@@ -668,8 +671,8 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         const tier = d.t === 'leg' ? 1 : 2, pool = D.legPool(c, tier), tn = D.TIERN[tier];
         if (!pool.length) { const g = tier === 1 ? 200000 : 600000; c.gold += g; leg = { dup: 1, gold: g, tier }; }
         else { const it = pool[ri(0, pool.length - 1)]; let name;
-          if (it.k === 'w') { c.own.w.push(it.i); name = D.WEAPONS[c.cls][it.i][0]; } else if (it.k === 'a') { c.own.a.push(it.i); name = D.ARMORS[it.i][0]; } else { c.mounts.push(it.id); name = D.MOUNTS[it.id].n; }
-          leg = { name, tier, kind: it.k }; ns.emit('sys', { t: `${tier === 2 ? '🌌' : '✦'} ${nameOf(uid)} 獲得了${tn}${it.k === 'w' ? '武器' : it.k === 'a' ? '防具' : '坐騎'}「${name}」！` }); }
+          if (it.k === 'w') { c.own.w.push(it.i); name = D.WEAPONS[c.cls][it.i][0]; } else if (it.k === 'a') { c.own.a.push(it.i); name = D.ARMORS[it.i][0]; } else if (it.k === 'h') { c.own.h.push(it.i); name = D.HELMS[it.i][0]; } else if (it.k === 'c') { c.own.c.push(it.i); name = D.CAPES[it.i][0]; } else { c.mounts.push(it.id); name = D.MOUNTS[it.id].n; }
+          leg = { name, tier, kind: it.k }; ns.emit('sys', { t: `${tier === 2 ? '🌌' : '✦'} ${nameOf(uid)} 獲得了${tn}${({ w: '武器', a: '防具', h: '頭盔', c: '披風' })[it.k] || '坐騎'}「${name}」！` }); }
       } else c[d.t] = (c[d.t] || 0) + 1;
       ns.to(w.room).emit('dgone', { id, by: uid }); save(); pushMe(uid); ack && ack({ ok: true, t: d.t, v: d.v, leg });
     });
@@ -702,6 +705,12 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
         if (c.own.a.includes(i)) return no('已經擁有這件防具了（在「裝備」裡可以換上）');
         if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); if (c.gold < it[4]) return no('金幣不足');
         c.gold -= it[4]; c.own.a.push(i); c.arm = i; if (D.SHOPA.indexOf(i) > D.SHOPA.indexOf(c.shopA)) c.shopA = i;
+      } else if (k === 'helm' || k === 'cape') {
+        const kk = k === 'helm' ? 'h' : 'c', L = kk === 'h' ? D.HELMS : D.CAPES; i = i | 0; const it = L[i]; D.gearOk(c);
+        if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
+        if (!it || !i || it[5]) return no(it && it[5] ? `${D.TIERN[it[5]]}裝備只能打倒 Boss 取得` : '無法購買'); if (c.own[kk].includes(i)) return no('已經擁有了（在「裝備」裡可以換上）');
+        if (c.lv < it[3]) return no(`需要 Lv ${it[3]}`); if (c.gold < it[4]) return no('金幣不足');
+        c.gold -= it[4]; c.own[kk].push(i); c[kk === 'h' ? 'helm' : 'cape'] = i;
       } else if (k === 'mount') {
         const mt = D.MOUNTS[i]; if (!w || !D.MAPS[w.mi].town) return no('要在村莊（晨露村、潮聲港）才能購買');
         if (!mt || !mt.price) return no('這個坐騎買不到，只能打 Boss 取得'); if (c.mounts.includes(i)) return no('已經擁有了');
@@ -731,6 +740,24 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       c.slots = slots.map(String); save(); ack && ack({ ok: true, me: me(uid) });
     });
     // ---- GM 測試角色：直接變成指定職業／轉數／等級，裝備給到該等級最好的（不列入任何排行榜） ----
+    // ---------------- 鑽石：GM 手動發放（留紀錄）、商城購買 ----------------
+    const findUser = nm => { nm = String(nm || '').trim().toLowerCase(); if (!nm) return null; for (const [u, us] of Object.entries(S.users)) if (String(us.name || '').toLowerCase() === nm) return u;
+      for (const u of Object.keys(S.users)) if (String(nameOf(u) || '').toLowerCase() === nm) return u; return null; };
+    socket.on('giveDia', ({ name, n, note } = {}, ack) => {
+      const no = msg => ack && ack({ ok: false, msg }); if (!isGM(uid)) return no('只有 GM 帳號可以使用');
+      n = Math.round(Number(n) || 0); if (!n || Math.abs(n) > 1000000) return no('數量錯誤'); const to = findUser(name); if (!to) return no('找不到這個玩家（帳號名稱或角色名稱）');
+      const us = S.users[to]; us.dia = Math.max(0, (us.dia || 0) + n);
+      (S.diaLog = S.diaLog || []).push({ t: Date.now(), by: S.users[uid].name, to: us.name, n, note: String(note || '').slice(0, 40), bal: us.dia }); if (S.diaLog.length > 2000) S.diaLog.splice(0, S.diaLog.length - 2000);
+      save(); pushMe(to); ns.to('u:' + to).emit('notice', { t: n > 0 ? `💎 你獲得了 ${n} 顆鑽石！` : `💎 鑽石 ${n}` }); ack && ack({ ok: true, to: us.name, bal: us.dia, log: S.diaLog.slice(-15).reverse() });
+    });
+    socket.on('diaLog', (_, ack) => { if (!isGM(uid)) return ack && ack({ ok: false }); ack && ack({ ok: true, log: (S.diaLog || []).slice(-30).reverse() }); });
+    socket.on('cashBuy', ({ id, n } = {}, ack) => {
+      const c = char(uid), us = S.users[uid], no = msg => ack && ack({ ok: false, msg }); if (!c || !us) return no('');
+      const it = D.CASH.find(x => x.id === id); if (!it) return no('沒有這個商品'); n = Math.max(1, Math.min(10, n | 0 || 1)); const cost = D.cashPrice(it) * n;
+      if ((us.dia || 0) < cost) return no(`鑽石不足（需要 ${cost} 💎）`); us.dia -= cost; c.mat[it.mat] = (c.mat[it.mat] || 0) + it.q * n;
+      (S.cashLog = S.cashLog || []).push({ t: Date.now(), u: us.name, id, n, cost }); if (S.cashLog.length > 5000) S.cashLog.splice(0, S.cashLog.length - 5000);
+      save(); ack && ack({ ok: true, me: me(uid) });
+    });
     socket.on('gm', ({ cls, job, lv, pet } = {}, ack) => {
       const no = msg => ack && ack({ ok: false, msg });
       if (!isGM(uid)) return no('只有 GM 帳號可以使用');

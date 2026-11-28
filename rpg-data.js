@@ -146,6 +146,26 @@
     WSHOP2.forEach(([a, l, p], j) => WEAPONS[k].push([n[0][j], a, l, p, 0]));
     WLEG.forEach(([a, l, b, lk], j) => WEAPONS[k].push([n[1][j], a, l, 0, 1, b, lk]));
     WMYTH.forEach(([a, l, b, lk], j) => WEAPONS[k].push([n[2][j], a, l, 0, 2, b, lk])); }
+  // ---- 頭盔、披風（2026-11-28k）：[名稱, 數值1, 數值2, 需求等級, 價格, 等級(0 商店／1 傳說／2 神話), 額外加成, 外觀]
+  // 頭盔：數值1 = 防禦、數值2 = HP；披風：數值1 = 爆擊率（%）、數值2 = 閃避（0.01 = 1%）。第 0 件是「沒有裝備」
+  const HELMS = [['（無頭盔）', 0, 0, 1, 0, 0], ['皮帽', 3, 20, 5, 500, 0, null, { c1: '#8a5a3a', c2: '#c8905a' }], ['鐵盔', 7, 50, 15, 2500, 0, null, { c1: '#8a8a94', c2: '#c8ccd4' }],
+    ['鋼盔', 12, 90, 25, 8000, 0, null, { c1: '#5a6a7a', c2: '#a8b8c8' }], ['騎士盔', 18, 150, 35, 20000, 0, null, { c1: '#c8ccd4', c2: '#ffd23f' }], ['精金盔', 26, 230, 45, 45000, 0, null, { c1: '#d8a83a', c2: '#fff2a0' }],
+    ['秘銀盔', 36, 330, 60, 90000, 0, null, { c1: '#9fdfff', c2: '#ffffff' }], ['龍鱗盔', 48, 460, 80, 180000, 0, null, { c1: '#c8302a', c2: '#ffb04a' }], ['天穹盔', 62, 620, 100, 350000, 0, null, { c1: '#ffffff', c2: '#ffd23f' }],
+    ['雷神之冠', 75, 760, 85, 0, 1, { skillB: .08 }, { c1: '#4a4ab8', c2: '#ffe64a', fx: 'void' }], ['不死鳥羽冠', 78, 800, 90, 0, 1, { crit: 5 }, { c1: '#ff4a2a', c2: '#ffd23f', fx: 'flame' }],
+    ['虛空王冠', 82, 840, 95, 0, 1, { atkP: .05 }, { c1: '#1a0a2a', c2: '#3affc8', fx: 'void' }],
+    ['海皇冠冕', 96, 980, 100, 0, 2, { hpP: .1, atkP: .05 }, { c1: '#2a6ab8', c2: '#bff6ff', fx: 'frost' }], ['創世神冠', 100, 1020, 100, 0, 2, { skillB: .1, critD: .2 }, { c1: '#ffffff', c2: '#ffd23f', fx: 'cosmos' }]];
+  const CAPES = [['（無披風）', 0, 0, 1, 0, 0], ['粗布披風', 1, 0, 5, 600, 0, null, { c1: '#8a7a5a', c2: '#b8a880' }], ['旅人披風', 2, 0, 15, 3000, 0, null, { c1: '#3a6a3a', c2: '#7aaa6a' }],
+    ['獵手披風', 3, 0, 25, 9000, 0, null, { c1: '#5a3a2a', c2: '#a87a4a' }], ['騎士披風', 4, 0, 35, 22000, 0, null, { c1: '#2a4ab8', c2: '#ffd23f' }], ['精靈披風', 5, .01, 45, 48000, 0, null, { c1: '#2ec48a', c2: '#bfffe0' }],
+    ['暗影披風', 6, .02, 60, 95000, 0, null, { c1: '#2a1a3a', c2: '#b46aff' }], ['龍翼披風', 7, .03, 80, 190000, 0, null, { c1: '#8a1a1a', c2: '#ff6a2a' }], ['天穹披風', 8, .04, 100, 360000, 0, null, { c1: '#f4f4ff', c2: '#ffd23f' }],
+    ['鳳凰之翼', 10, .05, 85, 0, 1, { critD: .2 }, { c1: '#ff4a2a', c2: '#ffd23f', fx: 'flame' }], ['星辰斗篷', 9, .06, 90, 0, 1, { cdr: .05 }, { c1: '#1a2a6a', c2: '#ffe680', fx: 'cosmos' }],
+    ['血月披風', 10, .04, 95, 0, 1, { atkP: .05 }, { c1: '#5a0a1a', c2: '#ff2a4a', fx: 'chaos' }],
+    ['虛空之幕', 12, .07, 100, 0, 2, { critD: .3 }, { c1: '#0a0a1a', c2: '#3affc8', fx: 'void' }], ['海皇戰袍', 12, .08, 100, 0, 2, { hpP: .08, atkP: .04 }, { c1: '#2a6ab8', c2: '#bff6ff', fx: 'frost' }]];
+  const SHOPH = [1, 2, 3, 4, 5, 6, 7, 8], SHOPC = [1, 2, 3, 4, 5, 6, 7, 8], EVAMAX = .15;
+  // ---- 鑽石商城：price 是基本價格，實際價格 = price × CASHMUL（之後開放給其他玩家時改成 10） ----
+  const CASHMUL = 1;
+  const CASH = [{ id: 's1x10', n: '強化石 ×10', mat: 's1', q: 10, price: 5 }, { id: 's2x5', n: '高級強化石 ×5', mat: 's2', q: 5, price: 10 }, { id: 'guard', n: '守護卷軸', mat: 'guard', q: 1, price: 3 },
+    { id: 'luck', n: '加成卷軸', mat: 'luck', q: 1, price: 2 }, { id: 'luck2', n: '高級加成卷軸', mat: 'luck2', q: 1, price: 6 }, { id: 'nodown', n: '防降級卷軸', mat: 'nodown', q: 1, price: 10 }];
+  const cashPrice = it => it.price * CASHMUL;
   const SHOPW = [0, 1, 2, 3, 4, 5, 6, 7, 9, 10];   // 商店武器的升級順序
   const TIERN = ['', '傳說', '神話'];
   const BONUSN = { crit: v => `爆擊率 +${v}%`, critD: v => `爆擊傷害 +${Math.round(v * 100)}%`, skillB: v => `技能傷害 +${Math.round(v * 100)}%`, cdr: v => `冷卻縮短 ${Math.round(v * 100)}%`,
@@ -167,7 +187,8 @@
     if (c.shopW == null) c.shopW = 0; if (c.shopA == null) c.shopA = 0;
     // 2026-11-28f：商店裝備也改成收藏制（舊存檔把目前最好的商店裝備放進背包）
     if (!c.own.v2) { c.own.v2 = 1; if (!c.own.w.includes(c.shopW)) c.own.w.push(c.shopW); if (!c.own.a.includes(c.shopA)) c.own.a.push(c.shopA); }
-    if (!c.enh) c.enh = { w: {}, a: {} }; if (!c.mat) c.mat = {};
+    if (!c.enh) c.enh = { w: {}, a: {} }; if (!c.enh.h) c.enh.h = {}; if (!c.enh.c) c.enh.c = {}; if (!c.mat) c.mat = {};
+    if (!c.own.h) c.own.h = []; if (!c.own.c) c.own.c = []; if (c.helm == null) c.helm = 0; if (c.cape == null) c.cape = 0;
     return c; }
   // ---- 裝備強化（潮聲港的鐵匠 老鐵） ----
   // ENH[n]：強化到 +n 的成功率、這一級的加成、需要的材料和金幣、失敗是否降級、失敗時的毀損機率
@@ -186,7 +207,9 @@
   function legPool(c, tier) { gearOk(c); const ws = WEAPONS[c.cls].map((w, i) => w[4] === tier ? i : -1).filter(i => i >= 0 && !c.own.w.includes(i)).map(i => ({ k: 'w', i }));
     const as = ARMORS.map((a, i) => a[5] === tier ? i : -1).filter(i => i >= 0 && !c.own.a.includes(i)).map(i => ({ k: 'a', i }));
     const ms = Object.keys(MOUNTS).filter(id => MOUNTS[id].tier === tier && !(c.mounts || []).includes(id)).map(id => ({ k: 'm', id }));
-    return [...ws, ...as, ...ms]; }
+    const hs = HELMS.map((a, i) => a[5] === tier && i ? i : -1).filter(i => i >= 0 && !c.own.h.includes(i)).map(i => ({ k: 'h', i }));
+    const cs = CAPES.map((a, i) => a[5] === tier && i ? i : -1).filter(i => i >= 0 && !c.own.c.includes(i)).map(i => ({ k: 'c', i }));
+    return [...ws, ...as, ...hs, ...cs, ...ms]; }
   const SHOP = { pot: 25, eth: 30, pot10: 240, rest: 15 };
   // 藥水依角色等級漲價（紅藥水；藍藥水再貴 20%；10 瓶裝打 96 折；完全休息和紅藥水同價）
   const POTMAX = 100;   // 紅、藍藥水各自最多攜帶 100 瓶（已經超過的保留，用到 100 以下才能補）
@@ -386,15 +409,16 @@
   };
   function stats(c) {
     const w = WEAPONS[c.cls][c.wep] || WEAPONS[c.cls][0], a = ARMORS[c.arm] || ARMORS[0], pt = c.pet, s = c.st || {}, B = {}, eW = 1 + enhB(enhOf(c, 'w', c.wep)), eA = 1 + enhB(enhOf(c, 'a', c.arm));
-    for (const o of [w[5], a[6]]) if (o) for (const k in o) B[k] = (B[k] || 0) + o[k];
+    const hm = HELMS[c.helm || 0] || HELMS[0], cp = CAPES[c.cape || 0] || CAPES[0], eH = 1 + enhB(enhOf(c, 'h', c.helm)), eC = 1 + enhB(enhOf(c, 'c', c.cape));
+    for (const o of [w[5], a[6], hm[6], cp[6]]) if (o) for (const k in o) B[k] = (B[k] || 0) + o[k];
     const E = { str: eff(s.str), vit: eff(s.vit), int: eff(s.int), dex: eff(s.dex) }, main = MAIN[c.cls] || ['str'];
-    const hp = Math.round((c.base.hp * JOBHP[c.job] + a[2] * eA + E.vit * 8) * (pt === 'xuanwu' ? 1.1 : 1) * (1 + (B.hpP || 0)));
+    const hp = Math.round((c.base.hp * JOBHP[c.job] + a[2] * eA + hm[2] * eH + E.vit * 8) * (pt === 'xuanwu' ? 1.1 : 1) * (1 + (B.hpP || 0)));
     const atkStat = mainAtk(c.cls, s) + (main.includes('str') ? 0 : E.str * .3);
     const atk = Math.round(((c.base.atk + w[1] * eW) * JOBATK[c.job] + atkStat) * (pt === 'qinglong' ? 1.15 : 1) * (1 + (B.atkP || 0)));
-    const def = Math.round((c.base.def + a[1] * eA + E.vit * .4) * (pt === 'xuanwu' ? 1.4 : 1) * (1 + (B.defP || 0)));
+    const def = Math.round((c.base.def + a[1] * eA + hm[1] * eH + E.vit * .4) * (pt === 'xuanwu' ? 1.4 : 1) * (1 + (B.defP || 0)));
     const mp = Math.round(c.base.mp * JOBHP[c.job] + E.int * 6);
     const r = v => Math.round(v * 1000) / 1000;
-    return { hp, mp, atk, def, crit: Math.min(80, Math.round((c.base.crit + c.job * 3 + E.dex * .1 + (B.crit || 0)) * 10) / 10),
+    return { hp, mp, atk, def, crit: Math.min(80, Math.round((c.base.crit + c.job * 3 + E.dex * .1 + (B.crit || 0) + cp[1] * eC) * 10) / 10), eva: r(Math.min(EVAMAX, cp[2] * eC + (B.eva || 0))),
       critD: r(1.7 + E.dex * .0025 + (B.critD || 0)), skillB: r(E.int * .0012 + (B.skillB || 0)), cdr: r(Math.min(.35, E.int * .001 + (B.cdr || 0))), potB: r(E.int * .002), healB: r(E.int * .002),
       spdB: r(Math.min(.3, E.dex * .0008 + (B.spdB || 0))), kbB: r(E.str * .002), invB: r(E.vit * .003) };
   }
@@ -469,6 +493,12 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-28k', notes: [
+      ['🪖 新裝備欄位：頭盔、披風', '村莊商店多了「頭盔」和「披風」分頁，各 8 階（Lv 5～100）。頭盔加防禦和 HP，披風加爆擊率，高階披風還有「閃避」（被攻擊時有機率完全不受傷，最高 15%）。Boss 也會掉落傳說／神話版本，都可以在鐵匠那裡強化。'],
+      ['🧍 新的裝備介面', '「裝備」改成紙娃娃介面：中間是你的角色，四周是武器、防具、頭盔、披風等欄位，點一下就能換裝。'],
+      ['🎒 背包', '新增「背包」按鈕，分成裝備、消耗品、材料、時裝四個分頁。'],
+      ['💎 鑽石商城', '新增鑽石和「商城」：可以用鑽石購買強化石、各種卷軸和防降級卷軸。鑽石是帳號共用的，目前由管理員發放。外觀和轉蛋即將推出！'],
+    ] },
     { v: '2026-11-28j', notes: [
       ['⚖️ 強化規則調整', '失敗不再必定降級：+8～+10 失敗 30% 降 1 級、3% 毀損；+11～+13 失敗 50% 降級；+14～+15 失敗 70% 降級（+11 起毀損 10%～30%）。守護卷軸改成 +8 起就能用。'],
       ['🪨 材料更彈性', '一般強化石可以用到 +10（+8～+10 要 3 顆、成功率 25%）；高級強化石可以用在 +11 以上（要 2 顆、成功率打七折）。強化頁可以選要用哪一種材料。'],
@@ -573,6 +603,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
