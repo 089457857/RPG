@@ -1,7 +1,7 @@
 // 屁眼王國大冒險 — 伺服器與瀏覽器共用的遊戲資料
 (function (root) {
-  const MAXLV = 80, MAXLV2 = 100, MAXTOP = 120;   // 擊敗虛空之主 → 100、克拉肯 → 110、古城守護神 → 120
-  const CAPBOSS = { voidking: 100, kraken: 110, ruinlord: 120 };
+  const MAXLV = 80, MAXLV2 = 100, MAXTOP = 120;   // 擊敗天穹泰坦 → 100、黑龍王 → 120
+  const CAPBOSS = { titan: 100, dragon: 120 };   // 天穹泰坦 → 100、黑龍王 → 120（虛空之主是最終 Boss）
   const capOf = c => (c && c.cap) || MAXLV;
   const MAXSLOT = 6; // 每個帳號最多 6 個角色
   const CL = {
@@ -113,7 +113,7 @@
   for (const c in REBAL.cd) for (const k in REBAL.cd[c]) { SK[c][k].cd = REBAL.cd[c][k]; if (REBAL.dm[c] && REBAL.dm[c][k]) SK[c][k].dm = REBAL.dm[c][k]; }
   const efOf = (cls, c) => { const s = new Set(Object.values(EFSK[cls] || {})); if (cls === 'dragon' && c && ELEM[c.elem]) s.add(ELEM[c.elem].ef); return s; };
   // 還沒開放給一般玩家的職業（只有 GM 能建立）
-  const HIDDEN = { dragon: 1 };
+  const HIDDEN = {};
   // ---- 戰五渣 ----
   const NOVLV = 10, NOVEXP = 0.5, LEGLV = 100, LEGATK = 2.2, LEGHP = 2.0;   // 10 等可拜師；10 等後經驗減半；100 等「傳說中的戰五渣」
   const legendNov = c => !!c && c.cls === 'novice' && c.lv >= LEGLV;
@@ -299,7 +299,7 @@
     ['鴻蒙仙衣', 240, 3400, 100, 0, 2, { hpP: .12, skillB: .1 }, { c1: '#ffffff', c2: '#ffd23f', fx: 'cosmos' }], ['混沌戰甲', 260, 3600, 100, 0, 2, { defP: .15, atkP: .06 }, { c1: '#1a0a2a', c2: '#ff2a6a', fx: 'chaos' }]);
   const SHOPA = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   // 掉落：傳說 0.5%（Lv55 以上的 Boss）、神話 0.1%（深淵海溝以後的 Boss，以及所有暗黑版 Boss）；暗黑版機率 ×5
-  const LOOT = { leg: .005, myth: .001, legLv: 55, mythMap: 10, darkMul: 5 };
+  const LOOT = { leg: .005, myth: .001, legLv: 68, mythMap: 10, darkMul: 5 };
   // 每位玩家擁有的傳說／神話裝備：c.own = { w: [武器索引], a: [防具索引] }；商店買到的最好裝備：c.shopW / c.shopA；外觀：c.lookW / c.lookA
   function gearOk(c) { if (!c) return c; if (!c.own) { c.own = { w: [], a: [] }; if (c.wep === LEGI) c.own.w.push(LEGI); c.shopW = c.wep === LEGI ? 7 : (c.wep || 0); c.shopA = c.arm || 0; }
     if (c.shopW == null) c.shopW = 0; if (c.shopA == null) c.shopA = 0;
@@ -436,6 +436,28 @@
     { t: B, s: 0, a: 700, b: 1200 }, { t: B, s: 0, a: 700, b: 1200 }, { t: B, s: 0, a: 700, b: 1200 }, { t: B, s: 3 }, { t: B, s: 3 }, { t: B, s: 4 }, { t: B, s: 4 }, { t: B, s: 5 }, { t: B, s: 5 },
     { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 0, a: 1200, b: 2080 }, { t: C, s: 6 }, { t: C, s: 6 }, { t: B, s: 7 }, { t: C, s: 7 }, { t: C, s: 8 }, { t: C, s: 8 }, { t: C, s: 9 }, { t: C, s: 9 },
     { t: boss, s: 0, a: 2140, b: 2460 }];
+  // ===== 2026-11-28 主線改版：依新順序重新分配怪物等級 =====
+  // 蘑菇 1–10 → 冰雪 12–28 → 熔岩 30–46 → 海洋 46–66 → 天空 68–84 → 暗黑 86–102 → 虛空 104–120
+  // 血量／攻擊／經驗／金幣照「現有怪物的等級曲線」換算：調到幾等，就換成原本同等級怪物的水準
+  const LVMAP = {
+    snowslime: 12, icewolf: 18, yeti: 24, frost: 28,
+    fireslime: 30, imp: 36, golem: 42, balrog: 46,
+    puffer: 46, seahorse: 47, coralguard: 48, mermqueen: 50,
+    siren: 50, crab: 51, pirate: 52, kraken: 54,
+    fishman: 54, ruinghost: 55, ancientguard: 56, ruinlord: 58,
+    icejelly: 58, narwhal: 59, iceseal: 60, iceking: 62,
+    lavacrab: 62, fireeel: 63, ventgolem: 64, lavadragon: 66,
+    seraph: 68, stargolem: 74, phoenix: 80, titan: 84,
+    knight: 86, gargoyle: 91, reaper: 96, dragon: 102,
+    voidling: 104, chaosknight: 110, abyssmage: 116, voidking: 120,
+  };
+  { const KEYS = ['hp', 'atk', 'exp'], curve = boss => { const pts = {}; for (const k in MON) { const m = MON[k]; if (!!m.boss !== boss || m.trial || m.rival || k.startsWith('trial') || !(m.lv > 0)) continue; (pts[m.lv] ||= []).push(m); }
+      const lvs = Object.keys(pts).map(Number).sort((a, b) => a - b), at = {}; for (const l of lvs) { at[l] = {}; for (const f of [...KEYS, 'gold']) at[l][f] = pts[l].reduce((a, m) => a + Math.log(f === 'gold' ? (m.gold[0] + m.gold[1]) / 2 || 1 : m[f] || 1), 0) / pts[l].length; }
+      return (lv, f) => { if (lv <= lvs[0]) return at[lvs[0]][f]; if (lv >= lvs[lvs.length - 1]) return at[lvs[lvs.length - 1]][f]; let i = 0; while (lvs[i + 1] < lv) i++; const a = lvs[i], b = lvs[i + 1], t = (lv - a) / (b - a); return at[a][f] + (at[b][f] - at[a][f]) * t; }; };
+    const CN = curve(false), CB = curve(true);
+    for (const k in LVMAP) { const m = MON[k]; if (!m) continue; const C = m.boss ? CB : CN, o = m.lv, n = LVMAP[k]; if (o === n) continue;
+      for (const f of KEYS) m[f] = Math.max(1, Math.round(m[f] * Math.exp(C(n, f) - C(o, f))));
+      const gm = Math.exp(C(n, 'gold') - C(o, 'gold')); m.gold = m.gold.map(g => Math.max(1, Math.round(g * gm))); m.lv = n; } }
   const MAPS = [
     // ---- 第 0 張：像素村（新手村；重生點、轉職教官、商店、鐵匠）----
     { name: '像素村', pal: 'forest', town: true, safe: true, home: 0, spawns: [], xr: 2100, houses: [40, 1200, 1640],
@@ -467,31 +489,31 @@
       npcs: [{ x: 120, kind: 'guide', g: 'seaback', name: '漁夫 阿潮' }, { x: 300, kind: 'shop', name: '雜貨商 阿珠' }, { x: 760, kind: 'smith', name: '鐵匠 老鐵' }, { x: 2330, kind: 'boat', name: '船長 老海' }], dock: 2240,
       zones: [[700, '港口入口'], [1800, '漁村市集'], [9e9, '碼頭']], portals: [{ x: 40, to: 26, tx: 2490, label: '← 海岸小徑' }], signs: [[80, '往海岸小徑']], start: 200 },
     // ---- 第 8 張地圖：深淵海溝（Lv 101～105）----
-    { name: '深淵海溝', pal: 'abyss', sea: 1, home: 9, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 500, y: 236 }, { x1: 520, x2: 680, y: 176 }, { x1: 720, x2: 880, y: 246 }, { x1: 900, x2: 1040, y: 186 }, { x1: 1060, x2: 1200, y: 126 }, { x1: 1240, x2: 1400, y: 236 }, { x1: 1420, x2: 1580, y: 176 }, { x1: 1600, x2: 1760, y: 120 }, { x1: 1800, x2: 2060, y: 206 }]],
+    { name: '深淵海溝', pal: 'abyss', ocean: 1, home: 9, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 500, y: 236 }, { x1: 520, x2: 680, y: 176 }, { x1: 720, x2: 880, y: 246 }, { x1: 900, x2: 1040, y: 186 }, { x1: 1060, x2: 1200, y: 126 }, { x1: 1240, x2: 1400, y: 236 }, { x1: 1420, x2: 1580, y: 176 }, { x1: 1600, x2: 1760, y: 120 }, { x1: 1800, x2: 2060, y: 206 }]],
       ropes: [{ x: 340, y1: 236, y2: GY }, { x: 540, y1: 176, y2: 236 }, { x: 740, y1: 246, y2: GY }, { x: 920, y1: 186, y2: GY }, { x: 1080, y1: 126, y2: 186 }, { x: 1260, y1: 236, y2: GY }, { x: 1440, y1: 176, y2: 236 }, { x: 1620, y1: 120, y2: 176 }, { x: 1820, y1: 206, y2: GY }],
       spawns: layout('siren', 'crab', 'pirate', 'kraken'), zones: [[260, '沉船淺灘'], [700, '珊瑚礁'], [1200, '海盜船骸'], [2100, '深淵斷崖'], [9e9, '海皇的巢穴']],
-      portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }, { x: 2560, to: 12, tx: 150, cap: 110, label: '沉沒古城' }], start: 150, deep: 1, need: 100 },
+      portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }, { x: 2560, to: 12, tx: 150, cap: 110, label: '沉沒古城' }], start: 150, need: 100 },
     // ---- 第 9 張海洋地圖：珊瑚王國（Lv 90～100；和虛空裂隙並行，搭船前往）----
     // bubbles：上升氣泡柱，站進去會被托上高處
-    { name: '珊瑚王國', pal: 'coral', sea: 1, home: 9, need: 100, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 230 }, { x1: 520, x2: 700, y: 160 }, { x1: 740, x2: 900, y: 240 }, { x1: 920, x2: 1080, y: 170 }, { x1: 1100, x2: 1220, y: 110 }, { x1: 1260, x2: 1420, y: 230 }, { x1: 1450, x2: 1620, y: 160 }, { x1: 1640, x2: 1780, y: 100 }, { x1: 1820, x2: 2060, y: 210 }]],
+    { name: '珊瑚王國', pal: 'coral', ocean: 1, home: 9, need: 100, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 230 }, { x1: 520, x2: 700, y: 160 }, { x1: 740, x2: 900, y: 240 }, { x1: 920, x2: 1080, y: 170 }, { x1: 1100, x2: 1220, y: 110 }, { x1: 1260, x2: 1420, y: 230 }, { x1: 1450, x2: 1620, y: 160 }, { x1: 1640, x2: 1780, y: 100 }, { x1: 1820, x2: 2060, y: 210 }]],
       ropes: [{ x: 340, y1: 230, y2: GY }, { x: 760, y1: 240, y2: GY }, { x: 1280, y1: 230, y2: GY }, { x: 1840, y1: 210, y2: GY }],
       bubbles: [505, 910, 1090, 1435, 1630], spawns: layout('puffer', 'seahorse', 'coralguard', 'mermqueen'),
       zones: [[260, '珊瑚入口'], [700, '海葵花園'], [1200, '珍珠大道'], [2100, '人魚宮殿'], [9e9, '女王的珊瑚王座']],
       portals: [{ x: 60, to: 9, tx: 2200, label: '← 搭船回潮聲港' }], start: 150 },
     // ---- 沉沒古城（Lv 106～110）：機關門會定時開關、天花板的石柱會崩落 ----
-    { name: '沉沒古城', pal: 'ruins', sea: 1, home: 9, need: 110, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 300, x2: 520, y: 236 }, { x1: 460, x2: 660, y: 172 }, { x1: 720, x2: 880, y: 236 }, { x1: 860, x2: 1040, y: 176 }, { x1: 1000, x2: 1180, y: 116 }, { x1: 1260, x2: 1420, y: 236 }, { x1: 1440, x2: 1600, y: 176 }, { x1: 1620, x2: 1780, y: 116 }, { x1: 1820, x2: 2060, y: 220 }]],
+    { name: '沉沒古城', pal: 'ruins', ocean: 1, home: 9, need: 110, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 300, x2: 520, y: 236 }, { x1: 460, x2: 660, y: 172 }, { x1: 720, x2: 880, y: 236 }, { x1: 860, x2: 1040, y: 176 }, { x1: 1000, x2: 1180, y: 116 }, { x1: 1260, x2: 1420, y: 236 }, { x1: 1440, x2: 1600, y: 176 }, { x1: 1620, x2: 1780, y: 116 }, { x1: 1820, x2: 2060, y: 220 }]],
       ropes: [{ x: 320, y1: 236, y2: GY }, { x: 480, y1: 172, y2: 236 }, { x: 740, y1: 236, y2: GY }, { x: 880, y1: 176, y2: 236 }, { x: 1020, y1: 116, y2: 176 }, { x: 1280, y1: 236, y2: GY }, { x: 1460, y1: 176, y2: 236 }, { x: 1640, y1: 116, y2: 176 }, { x: 1840, y1: 220, y2: GY }],
       gate: { x: 1220, open: 4500, shut: 3500 }, fall: [560, 980, 1520, 1940], spawns: layout('fishman', 'ruinghost', 'ancientguard', 'ruinlord'),
       zones: [[260, '古城外牆'], [700, '沉沒街道'], [1200, '神殿廣場'], [2100, '石像迴廊'], [9e9, '守護神的祭壇']],
       portals: [{ x: 60, to: 10, tx: 2490, label: '← 深淵海溝' }, { x: 2560, to: 13, tx: 150, cap: 120, label: '冰封海淵' }], start: 150 },
     // ---- 冰封海淵（Lv 111～115）：海流會把人往一邊推 ----
-    { name: '冰封海淵', pal: 'icesea', sea: 1, home: 9, need: 120, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 246 }, { x1: 500, x2: 680, y: 186 }, { x1: 700, x2: 860, y: 236 }, { x1: 880, x2: 1040, y: 176 }, { x1: 1060, x2: 1200, y: 116 }, { x1: 1240, x2: 1400, y: 246 }, { x1: 1420, x2: 1580, y: 186 }, { x1: 1600, x2: 1760, y: 126 }, { x1: 1800, x2: 2060, y: 216 }]],
+    { name: '冰封海淵', pal: 'icesea', ocean: 1, home: 9, need: 120, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 480, y: 246 }, { x1: 500, x2: 680, y: 186 }, { x1: 700, x2: 860, y: 236 }, { x1: 880, x2: 1040, y: 176 }, { x1: 1060, x2: 1200, y: 116 }, { x1: 1240, x2: 1400, y: 246 }, { x1: 1420, x2: 1580, y: 186 }, { x1: 1600, x2: 1760, y: 126 }, { x1: 1800, x2: 2060, y: 216 }]],
       ropes: [{ x: 340, y1: 246, y2: GY }, { x: 520, y1: 186, y2: 246 }, { x: 720, y1: 236, y2: GY }, { x: 900, y1: 176, y2: 236 }, { x: 1080, y1: 116, y2: 176 }, { x: 1260, y1: 246, y2: GY }, { x: 1440, y1: 186, y2: 246 }, { x: 1620, y1: 126, y2: 186 }, { x: 1820, y1: 216, y2: GY }],
       currents: [[420, 820, 1], [1000, 1380, -1], [1560, 2000, 1]], spawns: layout('icejelly', 'narwhal', 'iceseal', 'iceking'),
       zones: [[260, '冰層裂口'], [700, '極光淺海'], [1200, '冰柱森林'], [2100, '寒流深淵'], [9e9, '海獸王的冰窟']],
       portals: [{ x: 60, to: 12, tx: 2490, label: '← 沉沒古城' }, { x: 2560, to: 14, tx: 150, cap: 120, label: '海底火山' }], start: 150 },
     // ---- 海底火山（Lv 116～120，目前的最終地圖）：熱泉會定時噴發 ----
-    { name: '海底火山', pal: 'volcano', sea: 1, home: 9, need: 120, deep: 1, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 470, y: 230 }, { x1: 400, x2: 600, y: 166 }, { x1: 700, x2: 840, y: 240 }, { x1: 860, x2: 1020, y: 180 }, { x1: 1040, x2: 1190, y: 120 }, { x1: 1240, x2: 1380, y: 230 }, { x1: 1400, x2: 1560, y: 170 }, { x1: 1580, x2: 1760, y: 110 }, { x1: 1800, x2: 2060, y: 214 }]],
+    { name: '海底火山', pal: 'volcano', ocean: 1, home: 9, need: 120, seg: [{ x1: 0, x2: WW, y: GY, g: 1 }, ...[{ x1: 320, x2: 470, y: 230 }, { x1: 400, x2: 600, y: 166 }, { x1: 700, x2: 840, y: 240 }, { x1: 860, x2: 1020, y: 180 }, { x1: 1040, x2: 1190, y: 120 }, { x1: 1240, x2: 1380, y: 230 }, { x1: 1400, x2: 1560, y: 170 }, { x1: 1580, x2: 1760, y: 110 }, { x1: 1800, x2: 2060, y: 214 }]],
       ropes: [{ x: 340, y1: 230, y2: GY }, { x: 420, y1: 166, y2: 230 }, { x: 720, y1: 240, y2: GY }, { x: 880, y1: 180, y2: 240 }, { x: 1060, y1: 120, y2: 180 }, { x: 1260, y1: 230, y2: GY }, { x: 1420, y1: 170, y2: 230 }, { x: 1600, y1: 110, y2: 170 }, { x: 1820, y1: 214, y2: GY }],
       geysers: [640, 1120, 1500, 1790, 2010], spawns: layout('lavacrab', 'fireeel', 'ventgolem', 'lavadragon'),
       zones: [[260, '火山裂谷'], [700, '熔岩海床'], [1200, '熱泉群'], [2100, '火山口邊緣'], [9e9, '熔岩海龍的巢穴']],
@@ -553,8 +575,8 @@
       { place: '風語驛站', to: 18, tx: 1440, fee: 15000, key: 'sky' },
       { place: '冥火鎮', to: 22, tx: 620, fee: 15000, each: 1, need: 'titan' },
       { place: '虛空前哨', to: 23, tx: 620, fee: 25000, each: 1, need: 'dragon' }] },
-    grave: { d: '……活人很少走到這裡。暗黑神殿更深的地方，等那些路打開了，我會帶你去。', opts: [] },
-    nova: { d: '我在星與星之間旅行。虛空的深處還有更多裂縫，等它們穩定下來，我再帶你過去。', opts: [] },
+    grave: { d: '……活人很少走到這裡。要回風語驛站的話，我可以帶你走一條捷徑。暗黑神殿更深的地方，等那些路打開了，我也會帶你去。', opts: [{ place: '風語驛站', to: 18, tx: 1440, fee: 16000, key: 'grave', nowalk: 1 }] },
+    nova: { d: '我在星與星之間旅行。想回風語驛站的話，我可以開一道星門送你回去。虛空的深處還有更多裂縫，等它們穩定下來，我再帶你過去。', opts: [{ place: '風語驛站', to: 18, tx: 1440, fee: 26000, key: 'nova', nowalk: 1 }] },
   };
   // ---- 村莊嚮導的分層捷徑：每做好一層，在 LAYERS 對應位置填上 { to: 該層第1張地圖 id, need: 前一層 Boss id }，選單就會自動多一個選項 ----
   // 每次搭乘都收費；要先打倒前一層 Boss 才開放；送到該層第 1 張地圖入口
@@ -568,6 +590,8 @@
   };
   for (const g in LAYERS) { const L = LAYERS[g];
     L.maps.forEach((m, i) => { if (m && m.to != null) GUIDES[g].opts.push({ place: `${L.area}第 ${i + 2} 層`, to: m.to, tx: m.tx ?? 150, fee: L.fees[i], each: 1, need: m.need }); }); }
+  // 強化材料與神話裝備：天空以後才會掉（sea：強化石／高級強化石，deep：神話強化石與神話裝備）
+  Object.assign(MAPS[4], { sea: 1 }); Object.assign(MAPS[3], { sea: 1, deep: 1 }); Object.assign(MAPS[5], { sea: 1, deep: 1 });
   for (const k in MASTERS) MAPS[0].npcs.push({ x: MASTERS[k].x, kind: 'master', cls: k, name: MASTERS[k].name });
   const HOMESCROLL = { price: 2000, cast: 2000 };   // 回城卷軸：雜貨商販售，唸 2 秒，被打會中斷
   // 升級經驗：前期和以前差不多，後期大幅變難（滿等總經驗約為舊版的 4 倍）
@@ -693,9 +717,13 @@
     { v: '2026-11-28n', notes: [
       ['💩 新職業：戰五渣', '新角色一律從「戰五渣」開始：拿著插了大便的樹枝，有敲大便、亂揮，30 等丟大便、50 等裝死、70 等「戰五渣的逆襲」。10 等之後經驗減半，但也可以一路當戰五渣到底。'],
       ['🎓 像素村師傅街', '轉職教官退休了！像素村來了九位師傅，各自教一個職業。10 等的戰五渣找師傅拜師就能選職業；之後在 25、40、55、70 等回去找自己的師傅接受轉職試煉。路過時師傅還會跟你聊天。'],
-      ['🥚 龍蛋', '戰五渣在蘑菇森林打怪，有機會撿到龍蛋（巨菇王更容易掉）。帶著龍蛋去找龍語者，才能成為巨龍使者。'],
+      ['🥚 龍蛋', '戰五渣在蘑菇森林打怪，有機會撿到龍蛋（巨菇王更容易掉）。帶著龍蛋去找龍語者，才能成為巨龍使者——巨龍使者正式開放！'],
+      ['🏚 冥火鎮・虛空前哨', '守墓人葛雷夫、星界旅人諾娃也能送你回風語驛站了（付一次之後來回免費）。'],
       ['👑 傳說中的戰五渣', '撐到 100 等的戰五渣會成為「傳說中的戰五渣」：攻擊 ×2.2、HP ×2，逆襲每次都成功，所有職業中最強。80 等一樣有守護靈——頭上頂著大便的那種。'],
-      ['🔁 舊角色', '已經有職業的角色維持原樣，不會被打回戰五渣。'] ] },
+      ['🔁 舊角色', '已經有職業的角色維持原樣，不會被打回戰五渣。'],
+      ['🗺 等級重新分配', '主線改成：蘑菇 1–10 → 冰雪 12–28 → 熔岩 30–46 → 海洋 46–66 → 天空 68–84 → 暗黑 86–102 → 虛空 104–120。船長不用突破上限就能出海。'],
+      ['⛓ 突破等級上限', '打倒天穹泰坦：上限 80 → 100；打倒黑龍王：上限 → 120。虛空之主是最終 Boss。'],
+      ['💎 強化材料', '強化石改成天空聖域以後才會掉；神話強化石和神話裝備改由暗黑神殿、虛空裂隙掉落。'] ] },
     { v: '2026-11-28m', notes: [
       ['🏡 像素村獨立', '像素村變成獨立的村莊：轉職教官艾倫、商人老陳、鐵匠老錘都在這裡，在蘑菇森林倒下會回到像素村。'],
       ['🍄 蘑菇森林三張', '蘑菇森林拆成史萊姆草原、蘑菇小徑、樹墩森林三張地圖，巨菇王在樹墩森林最深處。'],

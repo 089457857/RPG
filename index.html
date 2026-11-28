@@ -425,7 +425,7 @@ function slotK(key){const i=+key.slice(1)-1;return (P&&P.slots&&P.slots[i])||''}
 const BUFFN={pow:'攻擊 +25%（20 秒）',guard:'受到傷害 -30%（15 秒）',haste:'移動速度 +25%、技能冷卻縮短（20 秒）'};
 function doSkill(k,A,inner){const local=A===P;if(k==='dj'){if(!local)fx.push({t:'dj',x:A.x,y:A.y,f:A.f,life:14});return}const s=SK[A.cls][k];if(!s)return;
   if(local&&!inner){if(P.dead||P.rope||P.cd[k]>0)return;if(P.ccT>0){if(frame-(P.ccTip||-99)>40){P.ccTip=frame;toast(`${D.EF[P.ccK].n}中，無法攻擊`)}return}if(P.mount){if(frame-(P.mtT||-99)>60){P.mtT=frame;toast('騎乘中無法攻擊，按 F 下坐騎')}return}const lock=sklOk(k);if(lock){if(k!=='atk')toast(`${s.n}：${s.job?`需要${['','一','二','三','四'][s.job]}轉`:'需要 Lv '+s.lv}`);return}
-    if(s.mp&&P.mp<s.mp){toast('MP 不足');return}if(s.mp)P.mp-=s.mp;P.cd[k]=Math.round(s.cd*(P.pet==='baihu'?.8:1)*(P.bf.haste>0?.75:1)*(k==='atk'?1:1-(P.max.cdr||0)));sock.emit('cast',{k,x:Math.round(P.x),y:Math.round(P.y),f:P.f})}
+    if(s.mp&&P.mp<s.mp){toast('MP 不足');return}if(s.mp)P.mp-=s.mp;P.cd[k]=Math.round(s.cd*(P.pet==='baihu'?.8:1)*(P.bf.haste>0?.75:1)*(k==='atk'?1:1-(P.max.cdr||0)));if(P.cls==='novice'&&k==='s4')P.revOk=novLegend(P)||Math.random()<.1;sock.emit('cast',{k,x:Math.round(P.x),y:Math.round(P.y),f:P.f,r:P.cls==='novice'&&k==='s4'&&P.revOk?1:0})}
   A.act=16;A.actK=k;const f=A.f,x=A.x,y=A.y,isSk=k!=='atk'?k:0,H=local?(m,mu,o={})=>hitMon(m,mu,{...o,sk:isSk,g9:inner&&inner.g9?1:o.g9}):()=>{},cos=!local;
   const box=(w,h,mult,max,o)=>{let n=0;const x1=f>0?x:x-w,x2=f>0?x+w:x;for(const m of live()){if(n>=max)break;if(inBox(m,x1,x2,y-h,y+2)){H(m,mult,o);n++}}return n};
   const near=(r,yr)=>live().filter(m=>Math.abs(m.x-x)<r&&Math.abs(m.y-y)<(yr||120));
@@ -498,7 +498,7 @@ function doSkill(k,A,inner){const local=A===P;if(k==='dj'){if(!local)fx.push({t:
     case 'novice:s1':for(let w=0;w<3;w++)setTimeout(()=>{A.act=16;A.f=w%2?-A.f:A.f;fx.push({t:'slash',x:A.x+A.f*12,y:A.y-12,f:A.f,life:10,big:0});if(local){let n=0;for(const m of live())if(n<4&&Math.abs(m.x-A.x)<38&&Math.abs(m.y-A.y)<30){H(m,.6,{kb:1,stack:w});n++}}},w*150);break;
     case 'novice:s2':shots.push({sk:isSk,t:'poop',x:x+f*10,y:y-18,vx:f*4.4,life:46,mult:1.7,pierce:0,col:'#6b3f1d',cos});break;
     case 'novice:s3':if(local){P.fake=180;P.inv=Math.max(P.inv,180);toast('😵 裝死中……怪物不會理你（移動就會起身）')}fx.push({t:'poof',x,y:y-6,life:20});break;
-    case 'novice:s4':{const ok=novLegend(A)||(local?Math.random()<.1:A.revOk);if(local)A.revOk=ok;
+    case 'novice:s4':{const ok=novLegend(A)||!!A.revOk;
       if(ok){if(local)toast(novLegend(A)?'💥 傳說中的戰五渣・逆襲！':'💥 逆襲成功！！');fx.push({t:'charge',x,y:y-12,life:24,col:'#ffd23f'});for(let w=0;w<4;w++)setTimeout(()=>{A.act=16;fx.push({t:'boom',x:A.x+A.f*(30+w*18),y:A.y-14,life:22});fx.push({t:'gslash',x:A.x+A.f*50,y:A.y-16,w:120,col:'#ffd23f',life:12});if(local)for(const m of live()){const d=(m.x-A.x)*A.f;if(d>-10&&d<150&&Math.abs(m.y-A.y)<60)H(m,3.2,{kb:3,stack:w})}},200+w*150)}
       else{if(local)toast('……逆襲失敗，樹枝揮空了');fx.push({t:'poof',x:x+f*14,y:y-12,life:16});box(26,24,.3,1)}break}
     default:if(s.g){if(A.cls==='dragon')dgCast(s.g,A,local,H,box,near,cos,k);else genSkill(s.g,A,local,H,box,near,cos,k)}break;
@@ -1900,7 +1900,7 @@ function openSmith(){const render=()=>{const m=P.mat||{},L=gL(smK),ids=gOwn(smK)
         <div class="list">${ids.map(i=>`<div class="item${i===from||i===smI?' on':''}"><div><div class="nm">${nmOf(i)}</div></div><div class="row" style="margin:0;gap:4px"><button class="btn sm${i===from?' on':''}" data-fr="${i}">從這件</button><button class="btn sm${i===smI?' on':''}" data-pi="${i}">移到這件</button></div></div>`).join('')}</div>`}
     else body=`<p class="sub" style="margin:6px 0">強化石：+1～+10 都能用（+8 以上要 3 顆、成功率較低），也可以在海洋地圖打怪取得。守護卷軸：強化 +8 以上失敗時不會毀損（降級照機率判定）。防降級卷軸：+11 以上失敗時不會降級（只從深海 Boss 和暗黑 Boss 掉落）。加成卷軸：這次強化的成功率 +10%。<br>高級加成卷軸（+20%）買不到，只會從海洋地圖和暗黑 Boss 掉落。</p>
       <div class="list">${[['s1','強化石（+1～+7 用）'],['luck','加成卷軸'],['guard','守護卷軸']].map(([k,n])=>{const pr=D.SCROLL[k].price;return `<div class="item"><div><div class="nm">${n}（有 ${m[k]||0}）</div><div class="ds">${pr.toLocaleString()} 金幣</div></div><div class="row" style="margin:0;gap:4px"><button class="btn pri sm" data-buy="${k}" data-n="1" ${P.gold<pr?'disabled':''}>買 1 張</button><button class="btn sm" data-buy="${k}" data-n="5" ${P.gold<pr*5?'disabled':''}>買 5 張</button></div></div>`}).join('')}</div>`;
-    openPop(`<h2>🔨 鐵匠 老鐵</h2><p class="sub" style="margin:0">強化石在珊瑚王國以後的海洋地圖掉落；高級強化石在深淵海溝以後；神話強化石只有克拉肯以後的 Boss 會掉。</p>${mats}
+    openPop(`<h2>🔨 鐵匠 老鐵</h2><p class="sub" style="margin:0">強化石和高級強化石在天空聖域以後的地圖掉落；神話強化石只有暗黑神殿、虛空裂隙的 Boss 會掉。</p>${mats}
       <div class="tabs">${[['enh','強化'],['xfer','移植'],['shop','商店']].map(([k,t])=>`<button class="btn sm${smTab===k?' on':''}" data-st="${k}">${t}</button>`).join('')}　${smTab!=='shop'?[['w','武器'],['a','防具'],['h','頭盔'],['c','披風']].map(([k,t])=>`<button class="btn sm${smK===k?' on':''}" data-sk="${k}">${t}</button>`).join(''):''}</div>
       ${body}<div class="row"><button class="btn" data-close="1">離開</button></div>`,bt=>{const d=bt.dataset;
       if(d.st){smTab=d.st;return render()}if(d.sk){smK=d.sk;smI=null;smFrom=null;return render()}if(d.pi!=null){smI=+d.pi;return render()}if(d.fr!=null){smFrom=+d.fr;return render()}
@@ -2067,7 +2067,7 @@ $('#ptBtn').onclick=()=>{if(P&&$('#pop').hidden)openParty()};
 $('#ptYes').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:true},r=>{if(r&&!r.ok)toast(r.msg||'無法加入')});ptFrom=null;$('#ptReq').hidden=true};
 $('#ptNo').onclick=()=>{if(ptFrom)sock.emit('pAns',{from:ptFrom,ok:false});ptFrom=null;$('#ptReq').hidden=true};
 // ---------- 潮聲港碼頭 ----------
-function useGuide(n){const G=D.GUIDES[n.g];if(!G)return;if(G.opts.length!==1){openGuide(n);return}const o=G.opts[0];if(o.key&&!(P.walked||{})[o.key]&&!(P.guide||{})[o.key]&&!P.gmOk){toast(G.walk||`你得先自己走一趟，認得路了我才能帶你去${o.place}`);return}
+function useGuide(n){const G=D.GUIDES[n.g];if(!G)return;if(G.opts.length!==1){openGuide(n);return}const o=G.opts[0];if(o.key&&!o.nowalk&&!(P.walked||{})[o.key]&&!(P.guide||{})[o.key]&&!P.gmOk){toast(G.walk||`你得先自己走一趟，認得路了我才能帶你去${o.place}`);return}
   if(!o.each&&!(P.guide||{})[o.key]&&P.gold<o.fee){toast(`第一次搭乘需要 ${o.fee.toLocaleString()} 金幣`);return}
   const cost=o.each||!(P.guide||{})[o.key]?o.fee:0;
   openPop(`<h2>${esc(n.name)}</h2><p class="sub" style="margin:0;line-height:1.7">要前往<b>${o.place}</b>嗎？<br>${cost?(o.each?`每次搭乘 <b>${cost.toLocaleString()}</b> 金幣。`:`第一次搭乘需要 <b>${cost.toLocaleString()}</b> 金幣，付過之後來回都免費。`):'你已經付過費用，免費出發。'}</p>
@@ -2086,10 +2086,10 @@ function startRecall(){if(!P||P.dead||recall||!$('#pop').hidden)return;if(!((P.m
 function cancelRecall(msg){if(!recall)return;recall=null;sock.emit('recallCancel');if(msg)toast(msg);const el=$('#homeSlot');if(el)el.style.background=''}
 function recallTick(){const el=$('#homeSlot');if(!recall){return}const p=Math.min(1,(performance.now()-recall.t0)/D.HOMESCROLL.cast);if(el)el.style.background=`linear-gradient(90deg,#7fd3ffaa ${p*100}%,transparent 0)`;
   if(P&&P.dead){cancelRecall();return}if(p>=1){recall=null;if(el)el.style.background='';sock.emit('recall',{},r=>{if(!r||!r.ok)toast(r&&r.msg||'回城失敗')})}}
-function openBoat(){const ok=D.capOf(P)>=D.MAXLV2;
+function openBoat(){const ok=true;
   openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，今天要去哪裡？':`海上太危險了，只有突破極限的冒險者才能出海。<br>打倒<b>虛空之主</b>（有出手的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
-    <div class="jobs"><div class="job"><b>🪸 珊瑚王國</b><p>Lv 90～100 · 明亮的珊瑚海，最深處是人魚女王的宮殿。站進上升氣泡可以被托上高處。</p><button class="btn pri sm" data-sail="11" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div>
-    <div class="job"><b>🌊 深淵海溝</b><p>Lv 101～105 · 最深處住著深淵海皇・克拉肯，打倒牠可以把等級上限突破到 110，再往深處就是沉沒古城。</p><button class="btn pri sm" data-sail="10" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div></div>
+    <div class="jobs"><div class="job"><b>🪸 珊瑚王國</b><p>Lv 46～50 · 明亮的珊瑚海，最深處是人魚女王的宮殿。站進上升氣泡可以被托上高處。</p><button class="btn pri sm" data-sail="11" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div>
+    <div class="job"><b>🌊 深淵海溝</b><p>Lv 50～54 · 最深處住著深淵海皇・克拉肯，打倒牠再往深處就是沉沒古城、冰封海淵和海底火山。</p><button class="btn pri sm" data-sail="10" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div></div>
     <div class="row"><button class="btn" data-close="1">下次再說</button></div>`,bt=>{if(bt.dataset.close){closePop();return}
     if(bt.dataset.sail){bt.disabled=true;sock.emit('sail',{to:+bt.dataset.sail},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出海');bt.disabled=false;return}closePop()})}})}
 // ---------- 更新公告（每個帳號每個版本一次） ----------
@@ -2207,10 +2207,10 @@ function connect(){if(sock){sock.removeAllListeners();sock.disconnect()}showPane
   sock.on('heal',d=>{if(!P||P.dead)return;P.hp=Math.min(P.max.hp,P.hp+d.hp);if(Math.random()<.35)num(P.x+8,P.y-30,'+'+d.hp,'heal');ui()});
   sock.on('mat',d=>{if(!P)return;let k2=0;for(const [k,v] of Object.entries(d)){setTimeout(()=>num(P.x,P.y-52-k2*0,`${D.MATN[k]} +${v}`,'exp','#ffd23f'),k2*250);k2++}if(d.luck2||d.s3||d.nodown)toast(`獲得 ${Object.entries(d).map(([k,v])=>D.MATN[k]+' ×'+v).join('、')}`)});
   sock.on('gain',d=>{if(!P)return;num(P.x,P.y-42,`經驗 +${d.exp}`,'exp');if(d.up){fx.push({t:'lvup',x:P.x,y:P.y,life:90});
-    if(d.lv>=D.capOf(P)){const cp=D.capOf(P);toast(cp>=D.MAXTOP?`恭喜達到滿等 Lv ${cp}！`:cp>=110?`恭喜達到 Lv ${cp}！打倒沉沒古城的古城守護神可以突破到 Lv 120`:cp>=100?`恭喜達到 Lv ${cp}！打倒深淵海皇・克拉肯可以突破到 Lv 110`:`恭喜達到 Lv ${MAXLV}！打倒虛空之主可以突破到 Lv ${D.MAXLV2}`)}else if(d.lv>=D.PETLV&&d.lv-d.up<D.PETLV)toast(`Lv ${D.PETLV}！寵物系統解鎖，點「寵物」挑一隻夥伴`);else if(d.newJob)toast(`Lv ${d.lv}！可以轉職了，回像素村找轉職教官`);else if(d.lv===3)toast(`學會了新技能「${SK[P.cls].s2.n}」！按 C 使用`);else toast(`升級！Lv ${d.lv}　獲得 ${D.APL*d.up} 能力點數（按「能力」分配）`)}});
+    if(d.lv>=D.capOf(P)){const cp=D.capOf(P);toast(cp>=D.MAXTOP?`恭喜達到滿等 Lv ${cp}！`:cp>=100?`恭喜達到 Lv ${cp}！打倒暗黑神殿的黑龍王可以突破到 Lv ${D.MAXTOP}`:`恭喜達到 Lv ${MAXLV}！打倒天空聖域的天穹泰坦可以突破到 Lv ${D.MAXLV2}`)}else if(d.lv>=D.PETLV&&d.lv-d.up<D.PETLV)toast(`Lv ${D.PETLV}！寵物系統解鎖，點「寵物」挑一隻夥伴`);else if(d.newJob)toast(`Lv ${d.lv}！可以轉職了，回像素村找你的師傅`);else if(d.lv===3)toast(`學會了新技能「${SK[P.cls].s2.n}」！按 C 使用`);else toast(`升級！Lv ${d.lv}　獲得 ${D.APL*d.up} 能力點數（按「能力」分配）`)}});
   sock.on('me',m=>{const up=P&&m&&m.lv>P.lv;applyMe(m);if(up){P.hp=P.max.hp;P.mp=P.max.mp;ui()}});
   sock.on('lvup',d=>{const o=others.get(d.id);if(o)fx.push({t:'lvup',who:o,x:o.x,y:o.y,life:90})});
-  sock.on('cast',d=>{const o=others.get(d.id);if(!o)return;o.x=d.x;o.y=d.y;o.f=d.f;doSkill(d.k,o)});
+  sock.on('cast',d=>{const o=others.get(d.id);if(!o)return;o.x=d.x;o.y=d.y;o.f=d.f;o.revOk=!!d.r;doSkill(d.k,o)});
   sock.on('pleave',d=>others.delete(d.id));
   sock.on('chat',d=>{const t=esc(d.t);chatLog(`<span class="nm">${esc(d.name)}</span>：${t}`);if(d.id===myId){if(P){P.chat=d.t;P.chatT=300}}else{const o=others.get(d.id);if(o){o.chat=d.t;o.chatT=300}}});
   sock.on('sys',d=>{chatLog(`<span class="sys">${esc(d.t)}</span>`);if(!d.quiet)toast(d.t)});

@@ -325,12 +325,12 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (gate) ns.to('u:' + u).emit('notice', { t: `🚪 你打倒了${D.MON[m.t].name}，「${gate.label.replace(/ →$/, '')}」為你開啟了！` });
       pushMe(u);
     }
-    // 突破等級上限：虛空之主 → 100、克拉肯 → 110、古城守護神 → 120（有出手的玩家，和他們在同一張地圖的隊友）
+    // 突破等級上限：天穹泰坦 → 100、黑龍王 → 120（有出手的玩家，和他們在同一張地圖的隊友）
     const capTo = D.CAPBOSS[m.t];
     if (capTo) for (const u of new Set([killer, ...gain])) {
       const c = char(u); if (!c || !w.players.has(u) || D.capOf(c) >= capTo) continue;
       c.cap = capTo; pushMe(u);
-      const next = { 100: '可以到「潮聲港」找船長出海了', 110: '可以從深淵海溝最深處前往「沉沒古城」了', 120: '可以前往「冰封海淵」和「海底火山」了' }[capTo];
+      const next = { 100: '繼續往「暗黑神殿」前進吧', 120: '最後的戰場「虛空裂隙」在等著你' }[capTo];
       ns.to('u:' + u).emit('notice', { t: `🌊 你突破了極限！等級上限提升到 ${capTo}，${next}` });
       ns.emit('sys', { t: `🌊 ${nameOf(u)} 擊敗${D.MON[m.t].name}，突破等級上限到 ${capTo}！` });
     }
@@ -658,7 +658,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       }
     });
     socket.on('cast', (p = {}) => { if (!w || !char(uid)) return; if (!D.SK[char(uid).cls][p.k] && p.k !== 'dj') return;
-      { const sk = D.SK[char(uid).cls][p.k], now = Date.now(); if (sk && sk.g && sk.g.buff === 'guard') pl.guardT = now + 15000; if (char(uid).cls === 'mech' && p.k === 's5') pl.shieldT = now + 10000; if (char(uid).cls === 'novice' && p.k === 's3' && !D.skillLock(char(uid), 's3')) pl.fakeT = now + 3000; } socket.to(w.room).emit('cast', { id: uid, k: p.k, x: +p.x || 0, y: +p.y || 0, f: p.f < 0 ? -1 : 1 }); });
+      { const sk = D.SK[char(uid).cls][p.k], now = Date.now(); if (sk && sk.g && sk.g.buff === 'guard') pl.guardT = now + 15000; if (char(uid).cls === 'mech' && p.k === 's5') pl.shieldT = now + 10000; if (char(uid).cls === 'novice' && p.k === 's3' && !D.skillLock(char(uid), 's3')) pl.fakeT = now + 3000; } socket.to(w.room).emit('cast', { id: uid, k: p.k, x: +p.x || 0, y: +p.y || 0, f: p.f < 0 ? -1 : 1, r: p.r ? 1 : 0 }); });
     // 天使的輔助技能：轉送給附近的隊友（含自己），由各自的瀏覽器套用效果
     socket.on('aid', ({ k } = {}, ack) => {
       const c = char(uid); if (!w || !c || c.cls !== 'angel' || !['s1', 's3', 's4', 's6'].includes(k) || D.skillLock(c, k)) return;
@@ -829,7 +829,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       const mounts = Object.keys(D.MOUNTS).filter(k => (D.MOUNTS[k].lv || 0) <= lv); if (!mounts.length) mounts.push('horse');
       Object.assign(c, { gm: 1, lv, job, exp: 0, wep, arm, gold: 9999999, pot: 999, eth: 999, ap: (lv - 1) * D.APL, map: w ? w.mi : (old.map || 0), mounts,
         mnt: mounts.includes(old.mnt) ? old.mnt : mounts[mounts.length - 1], pet: lv >= D.PETLV && D.PETS[pet] ? pet : null });
-      if (old.nm) c.nm = old.nm; if (old.wear) c.wear = old.wear; if (old.rnN) c.rnN = old.rnN; { const cp = Math.max(old.cap || 0, lv > 110 ? 120 : lv > 100 ? 110 : lv > D.MAXLV ? 100 : 0); if (cp) c.cap = cp; } if (lv >= D.AWK.lv && (job >= 4 || cls === 'novice')) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
+      if (old.nm) c.nm = old.nm; if (old.wear) c.wear = old.wear; if (old.rnN) c.rnN = old.rnN; { const cp = Math.max(old.cap || 0, lv > 100 ? 120 : lv > D.MAXLV ? 100 : 0); if (cp) c.cap = cp; } if (lv >= D.AWK.lv && (job >= 4 || cls === 'novice')) { c.awk = 1; c.ag = D.AWK.max; } pl.awT = 0; pl.awCd = 0;   // 保留角色名字
       // 套用每一級的能力成長（和正常升級一樣），GM 角色的強度才會等於真正練到這個等級的角色
       const gr = D.CL[cls].grow; for (let l = 1; l < lv; l++) { c.base.hp += gr.hp; c.base.mp += gr.mp; c.base.atk = Math.round((c.base.atk + gr.atk) * 10) / 10; c.base.def = Math.round((c.base.def + gr.def) * 10) / 10; }
       S.rpg[uid] = c; save();
@@ -927,7 +927,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
       if (!npc) return no('這裡沒有這位接待員'); if (Math.abs(pl.x - npc.x) > 90 || Math.abs(pl.y - (npc.y || D.GY)) > 40) return no('離接待員太遠了');
       const o = G.opts[i | 0]; if (!o) return no('沒有這條路線');
       if (o.need && !(c.slain || {})[o.need] && !isGM(uid)) return no(`要先打倒「${D.MON[o.need].name}」才能直接前往${o.place}`);
-      if (o.key && !(c.walked || {})[o.key] && !(c.guide || {})[o.key] && !isGM(uid)) return no(G.walk || `你得先自己走一趟，認得路了我才能帶你去${o.place}`);
+      if (o.key && !o.nowalk && !(c.walked || {})[o.key] && !(c.guide || {})[o.key] && !isGM(uid)) return no(G.walk || `你得先自己走一趟，認得路了我才能帶你去${o.place}`);
       c.guide ||= {}; let paid = 0;
       if (o.each || !c.guide[o.key]) { if (c.gold < o.fee) return no(`需要 ${o.fee.toLocaleString()} 金幣`); c.gold -= o.fee; paid = o.fee; if (!o.each) c.guide[o.key] = 1; }
       c.map = o.to; save(); pushMe(uid); ack && ack({ ok: true, paid, each: o.each ? 1 : 0 }); enter(o.to, o.tx ?? D.MAPS[o.to].start);
