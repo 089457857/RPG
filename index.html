@@ -1351,7 +1351,7 @@ function drawNPC(n,ox,oy){const x=Math.round(n.x-ox),y=Math.round(GY-oy);if(x<-3
   R(x-6,y-1,12,2,'#0004');R(x-5,y-12,10,12,job?'#7a3a2a':'#3a7fd0');R(x-5,y-12,10,2,job?'#a85a3a':'#5a9ff0');R(x-6,y-22,12,10,'#f4c79c');
   if(job){R(x-7,y-25,14,4,'#c9ced9');R(x-1,y-28,2,3,'#ffd23f');R(x-6,y-12,12,2,'#ffd23f')}else{R(x-7,y-25,14,4,'#e8e8e8');R(x-4,y-14,8,2,'#eee')}
   R(x-2,y-18,2,2,'#1a1a1a');R(x+2,y-18,2,2,'#1a1a1a');
-  if(n.kind==='smith'){R(x-5,y-12,10,12,'#5a3a2a');R(x-4,y-11,8,9,'#8a5a3a');R(x-7,y-25,14,4,'#3a2a20');R(x-6,y-22,12,3,'#3a2a20');R(x+6,y-16,2,10,'#8a6a4a');R(x+4,y-19,6,4,'#9aa0a8');R(x-9,y-4,8,4,'#5a5a62');R(x-8,y-6,6,2,'#7a7a82');if(frame%40<6){R(x-6,y-9,2,2,'#ffb04a');R(x-3,y-11,1,1,'#ffe680')}}
+  if(n.kind==='smith'){R(x-5,y-12,10,12,'#5a3a2a');R(x-4,y-11,8,9,'#8a5a3a');R(x-7,y-25,14,4,'#3a2a20');R(x-6,y-22,12,3,'#3a2a20');{const hp=frame%48,up=hp<30?Math.min(6,hp/4):Math.max(0,6-(hp-30)*1.5);R(x-9,y-4,8,4,'#5a5a62');R(x-8,y-6,6,2,'#7a7a82');R(x-6,y-8,4,2,'#ff8a3a');R(x-3,y-12-up,2,8,'#8a6a4a');R(x-6,y-14-up,7,4,'#9aa0a8');if(hp>=42){R(x-9,y-11,2,2,'#ffb04a');R(x-2,y-12,1,1,'#ffe680');R(x-11,y-9,1,1,'#ffe680');R(x+1,y-10,2,1,'#ffb04a')}}}
   if(n.kind==='boat'){R(x-5,y-12,10,12,'#f4f4f4');for(let k=0;k<3;k++)R(x-5,y-11+k*4,10,2,'#2a5ab8');R(x-7,y-25,14,4,'#1a2a4a');R(x-4,y-27,8,2,'#ffd23f');R(x-6,y-15,12,2,'#e8e8e8')}
   const by=y-38+Math.sin(frame/12+n.x)*1.5;R(x-10,by,20,10,'#fff');R(x-1,by+10,2,2,'#fff')}
 function drawPortal(pt,ox,oy){const x=Math.round(pt.x-ox),y=Math.round(GY-oy);if(x<-30||x>IW+30)return;const lock=(pt.req&&P&&P.lv<pt.req)||(pt.cap&&P&&D.capOf(P)<pt.cap);
@@ -1623,6 +1623,61 @@ async function openInfo(){const c=CL[P.cls],sk=SK[P.cls];let top=null;try{top=aw
 // 裝備欄：換上擁有的武器／防具，另外可以選一件傳說以上的裝備當「外觀」
 let gearTab='w';
 
+// ================= 打鐵動畫（強化／移植） =================
+// o：{kind:'enh'|'xfer', isW, col, from, to, slow}；getRes() 在伺服器回覆前傳回 null；done() 動畫結束後呼叫
+function forgeAnim(o,getRes,done){let ov=document.getElementById('forgeOv');if(ov)ov.remove();ov=document.createElement('div');ov.id='forgeOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#000a;cursor:pointer';
+  const cv=document.createElement('canvas');cv.width=320;cv.height=180;cv.style.cssText='width:min(92vw,720px);image-rendering:pixelated;border-radius:12px;box-shadow:0 0 40px #ff7a2a55';ov.appendChild(cv);
+  const tip=document.createElement('div');tip.textContent='點一下跳過';tip.style.cssText='position:absolute;bottom:6%;color:#fff9;font:700 13px "Noto Sans TC",sans-serif';ov.appendChild(tip);document.body.appendChild(ov);
+  const c=cv.getContext('2d'),W=320,H=180,dur=o.slow?3000:1500,hits=o.slow?[.2,.45,.88]:[.25,.55,.85],parts=[],t0=performance.now();let skip=false,resT=0,res=null,shake=0,lastHit=-1,fin=false;
+  ov.onclick=()=>{skip=true};
+  const Rr=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))};
+  const spark=(x,y,n,cols,sp=3)=>{for(let k=0;k<n;k++){const a=Math.random()*Math.PI*2,v=.5+Math.random()*sp;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.5,l:30+Math.random()*25,c:cols[k%cols.length]})}};
+  // 裝備圖示：武器畫成劍、防具畫成胸甲
+  const item=(x,y,col,alpha=1,split=0)=>{c.globalAlpha=alpha;if(o.isW){Rr(x-26-split,y-3,30,6,'#d8dde6');Rr(x-26-split,y-3,30,2,'#ffffff');Rr(x-30-split,y-2,4,4,'#d8dde6');Rr(x+4+split,y-3,22,6,'#d8dde6');Rr(x+4+split,y-3,22,2,'#ffffff');Rr(x+26+split,y-8,4,16,col);Rr(x+30+split,y-2,12,4,'#6b4423');Rr(x+42+split,y-3,4,6,col)}
+    else{Rr(x-18-split,y-14,16,26,col);Rr(x+2+split,y-14,16,26,col);Rr(x-22-split,y-16,10,8,col);Rr(x+12+split,y-16,10,8,col);Rr(x-14-split,y-10,12,3,'#ffffff80');Rr(x-2,y-14,4,26,split?'#0000':'#00000040')}c.globalAlpha=1};
+  const ITEMY=118;
+  function frame2(now){if(fin)return;const t=now-t0;res=res||getRes();
+    if(skip&&res&&!resT)resT=now;if(!resT&&t>=dur&&res)resT=now;const rt=resT?now-resT:0;
+    const sx=shake>0?(Math.random()-.5)*shake:0,sy=shake>0?(Math.random()-.5)*shake:0;shake*=.85;c.save();c.translate(sx,sy);
+    // 背景：鍛造坊、火爐
+    const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1a0e0a');g.addColorStop(1,'#3a1a10');c.fillStyle=g;c.fillRect(-10,-10,W+20,H+20);
+    const fl=.6+.25*Math.sin(now/90)+.15*Math.sin(now/37);c.globalAlpha=.35*fl;Rr(10,40,80,140,'#ff6a2a');c.globalAlpha=.6*fl;Rr(24,90,52,90,'#ffb04a');c.globalAlpha=1;Rr(14,60,72,10,'#4a2a20');Rr(18,70,64,110,'#2a1814');Rr(30,120,40,40,'#ff7a2a');Rr(36,130,28,30,'#ffd23f');
+    for(let k=0;k<6;k++){const yy=118-((now/12+k*20)%60);Rr(40+((k*13)%24),yy,2,2,'#ffb04a')}
+    // 鐵砧
+    Rr(110,136,120,10,'#3a3a44');Rr(122,146,96,8,'#2a2a32');Rr(146,154,48,20,'#3a3a44');Rr(116,128,108,8,'#5a5a66');Rr(100,128,20,6,'#5a5a66');
+    // 標題
+    c.font='900 15px "Noto Sans TC",sans-serif';c.textAlign='center';c.fillStyle='#ffd23f';c.fillText(o.kind==='enh'?`+${o.from} → +${o.to}`:`移植 +${o.from} → +${o.to}`,W/2,24);
+    const glowA=resT?0:Math.min(1,t/dur);
+    if(o.kind==='enh'){
+      // 敲擊
+      if(!resT){for(let i=0;i<hits.length;i++){if(t>=hits[i]*dur&&lastHit<i){lastHit=i;shake=i===hits.length-1&&o.slow?6:3.5;spark(170,ITEMY,i===hits.length-1?28:16,['#ffe680','#ffb04a','#ffffff'])}}}
+      const nh=hits.find(h=>t<h*dur),ph=nh!==undefined?nh*dur-t:999,ang=resT?-1.1:ph<120?-1.1*(ph/120):Math.min(-.1,-1.1);
+      // 物品（成功後發光；毀損時裂開）
+      const broke=res&&res.r==='broke'&&resT,split=broke?Math.min(40,rt/18):0;
+      if(!broke||rt<1200){c.globalAlpha=.25+.35*glowA;Rr(120,ITEMY-16,100,32,o.col);c.globalAlpha=1;item(170,ITEMY,o.col,broke?Math.max(0,1-rt/1000):1,split)}
+      // 鐵鎚（右上方揮下來）
+      if(!resT){c.save();c.translate(250,70);c.rotate(ang);Rr(-78,-3,80,6,'#8a5a3a');Rr(-92,-12,18,24,'#9aa0a8');Rr(-92,-12,18,4,'#c8ccd4');c.restore()}
+      if(resT&&res){const R0=res.r;
+        if(R0==='ok'){c.globalAlpha=Math.max(0,.6-rt/800);Rr(0,0,W,H,'#ffe680');c.globalAlpha=1;for(let k=0;k<12;k++){const a=k/12*Math.PI*2+rt/600;c.strokeStyle='#ffd23f88';c.lineWidth=2;c.beginPath();c.moveTo(170,ITEMY);c.lineTo(170+Math.cos(a)*90,ITEMY+Math.sin(a)*60);c.stroke()}
+          if(rt<40)spark(170,ITEMY,40,['#ffd23f','#ffffff','#ffe680'],4);c.font='900 34px "Noto Sans TC",sans-serif';c.fillStyle='#ffd23f';c.fillText(`+${res.n}！`,W/2,72+Math.max(0,10-rt/20));c.font='900 14px "Noto Sans TC",sans-serif';c.fillStyle='#fff';c.fillText('強化成功',W/2,94)}
+        else if(R0==='fail'){for(let k=0;k<8;k++){const yy=ITEMY-rt/18-k*8;c.globalAlpha=Math.max(0,.5-rt/2400);Rr(150+((k*17)%40),yy,14,10,'#8a8a8a')}c.globalAlpha=1;c.font='900 26px "Noto Sans TC",sans-serif';c.fillStyle='#c8c8c8';c.fillText(res.down?`+${o.from} → +${res.n}`:'失敗',W/2,74);c.font='900 13px "Noto Sans TC",sans-serif';c.fillStyle='#fff';c.fillText(res.down?(res.saved?'強化失敗，降 1 級（守護卷軸保住了裝備）':'強化失敗，降 1 級'):'強化失敗，材料沒了',W/2,96)}
+        else if(R0==='broke'){if(rt<40){shake=10;spark(170,ITEMY,50,['#c8ccd4','#8a8a8a','#ff5a3a'],5)}c.globalAlpha=Math.min(.5,rt/1500);Rr(0,0,W,H,'#000');c.globalAlpha=1;c.font='900 28px "Noto Sans TC",sans-serif';c.fillStyle='#ff5a3a';c.fillText('💥 碎掉了……',W/2,74)}
+        else if(R0==='reset'){c.globalAlpha=Math.max(0,.5-rt/900);Rr(0,0,W,H,'#ff2a2a');c.globalAlpha=1;const shown=Math.max(0,Math.round(o.from*(1-Math.min(1,rt/900))));c.font='900 30px "Noto Sans TC",sans-serif';c.fillStyle='#ff7a7a';c.fillText(`+${shown}`,W/2,74);c.font='900 13px "Noto Sans TC",sans-serif';c.fillStyle='#fff';c.fillText('強化失敗，被打回 +0',W/2,96)}}}
+    else{// 移植：左右兩件裝備之間的光束
+      const L0=110,R1=230;Rr(L0-40,ITEMY+14,80,6,'#3a3a44');
+      const dim=res&&!res.success&&resT;item(L0,ITEMY,dim?'#555':o.col,dim?.5:1);item(R1,ITEMY,res&&res.success&&resT?'#ffd23f':'#8a8a8a',1);
+      if(!resT){const k2=Math.min(1,t/dur);c.globalAlpha=.4+.4*Math.sin(now/60);c.strokeStyle=o.col;c.lineWidth=3+k2*4;c.beginPath();c.moveTo(L0+20,ITEMY);c.lineTo(L0+20+(R1-L0-40)*k2,ITEMY+Math.sin(now/50)*3);c.stroke();c.globalAlpha=1;if(Math.random()<.4)spark(L0+20+(R1-L0-40)*k2,ITEMY,2,['#ffffff',o.col],1.5)}
+      else if(res){if(res.success){c.globalAlpha=Math.max(0,1-rt/900);c.strokeStyle='#ffd23f';c.lineWidth=8;c.beginPath();c.moveTo(L0+20,ITEMY);c.lineTo(R1-20,ITEMY);c.stroke();c.globalAlpha=1;if(rt<40)spark(R1,ITEMY,36,['#ffd23f','#ffffff'],4);c.font='900 26px "Noto Sans TC",sans-serif';c.fillStyle='#ffd23f';c.fillText(`移植成功！+${res.n}`,W/2,74)}
+        else{if(rt<40){shake=8;spark((L0+R1)/2,ITEMY,30,['#ff5a3a','#8a8a8a'],4)}c.font='900 24px "Noto Sans TC",sans-serif';c.fillStyle='#ff5a3a';c.fillText('移植失敗……',W/2,74);c.font='900 13px "Noto Sans TC",sans-serif';c.fillStyle='#fff';c.fillText('原本那件的強化歸零了',W/2,96)}}}
+    // 火花
+    for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.l--;Rr(p.x,p.y,2,2,p.c)}for(let i=parts.length-1;i>=0;i--)if(parts[i].l<=0)parts.splice(i,1);
+    if(!resT&&t>=dur&&!res){c.font='700 12px "Noto Sans TC",sans-serif';c.fillStyle='#fff9';c.fillText('……',W/2,46)}
+    c.restore();
+    if(resT&&(rt>(skip?700:1500))){fin=true;ov.remove();done(res);return}
+    requestAnimationFrame(frame2)}
+  requestAnimationFrame(frame2)}
+
 // ================= 鐵匠 老鐵（潮聲港）：強化、移植、卷軸 =================
 // 按兩下才執行的按鈕（避免手滑）
 const confirm2=(d,msg)=>{if(d.sure)return true;toast(msg+'（再按一次確定）');d.sure=1;setTimeout(()=>{d.sure=''},2500);return false};
@@ -1655,9 +1710,13 @@ function openSmith(){const render=()=>{const own=P.own||{w:[],a:[]},m=P.mat||{},
       if(d.lc!=null){smLuck=d.lc;return render()}if(d.gd){smGuard=!smGuard;return render()}
       if(d.buy){bt.disabled=true;sock.emit('buyScroll',{s:d.buy,n:+d.n},r=>{if(!r||!r.ok)toast(r&&r.msg||'失敗');else{applyMe(r.me);toast('買好了！');ui()}render()});return}
       if(d.go){const e0=D.enhOf(P,smK,smI),E=D.ENH[e0+1];if(E&&E.brk&&!smGuard&&!confirm2(d,`+${e0+1} 失敗有 ${Math.round(E.brk*100)}% 機率毀損，確定不用守護卷軸嗎？`))return;bt.disabled=true;
-        sock.emit('enh',{k:smK,i:smI,luck:smLuck||null,guard:smGuard},r=>{if(!r||!r.ok){toast(r&&r.msg||'失敗');return render()}applyMe(r.me);if(smLuck&&!(P.mat[smLuck]>0))smLuck='';if(smGuard&&!(P.mat.guard>0))smGuard=false;
+        const L0=smK==='w'?WEAPONS[P.cls]:ARMORS,t0=L0[smI][smK==='w'?4:5]||0,isW=smK==='w';let got=null,bad=false;
+        sock.emit('enh',{k:smK,i:smI,luck:smLuck||null,guard:smGuard},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();return render()}got=r});
+        forgeAnim({kind:'enh',isW,col:t0>=2?'#7affea':t0>=1?'#ff7ae0':'#bfe8ff',from:e0,to:e0+1,slow:e0+1>=11},()=>bad?{r:'fail'}:got,r=>{if(bad||!got)return;applyMe(r.me);if(smLuck&&!(P.mat[smLuck]>0))smLuck='';if(smGuard&&!(P.mat.guard>0))smGuard=false;
           fx.push({t:'lvup',x:P.x,y:P.y,life:r.r==='ok'?60:20});toast(r.r==='ok'?`✨ 強化成功！變成 +${r.n}`:r.r==='broke'?'💥 裝備碎掉了……':r.r==='reset'?'💥 強化失敗，被打回 +0……':r.down?`強化失敗，降到 +${r.n}${r.saved?'（守護卷軸保住了裝備）':''}`:'強化失敗，材料沒了');ui();render()});return}
-      if(d.xf){if(!confirm2(d,'移植失敗時原本那件會歸零，確定要移植嗎？'))return;bt.disabled=true;sock.emit('xfer',{k:smK,from:smFrom,to:smI},r=>{if(!r||!r.ok){toast(r&&r.msg||'失敗');return render()}applyMe(r.me);toast(r.success?`✨ 移植成功！變成 +${r.n}`:'💥 移植失敗，原本那件的強化歸零了……');smFrom=null;ui();render()});return}})};render()}
+      if(d.xf){if(!confirm2(d,'移植失敗時原本那件會歸零，確定要移植嗎？'))return;bt.disabled=true;const fe=D.enhOf(P,smK,smFrom),L0=smK==='w'?WEAPONS[P.cls]:ARMORS,t0=L0[smFrom][smK==='w'?4:5]||0;let got=null,bad=false;
+        sock.emit('xfer',{k:smK,from:smFrom,to:smI},r=>{if(!r||!r.ok){bad=true;toast(r&&r.msg||'失敗');document.getElementById('forgeOv')?.remove();return render()}got=r});
+        forgeAnim({kind:'xfer',isW:smK==='w',col:t0>=2?'#7affea':t0>=1?'#ff7ae0':'#bfe8ff',from:fe,to:Math.max(0,fe-D.XFER.lose),slow:false},()=>bad?{success:false}:got,r=>{if(bad||!got)return;applyMe(r.me);toast(r.success?`✨ 移植成功！變成 +${r.n}`:'💥 移植失敗，原本那件的強化歸零了……');smFrom=null;ui();render()});return}})};render()}
 function openGear(){const render=()=>{const own=P.own||{w:[],a:[]},isW=gearTab==='w',L=isW?WEAPONS[P.cls]:ARMORS,cur=isW?P.wep:P.arm,lk=isW?P.lookW:P.lookA,tierAt=it=>isW?it[4]:it[5],lvAt=it=>isW?it[2]:it[3];
     const ids=[...(isW?own.w:own.a)].filter((v,i,a)=>v!=null&&a.indexOf(v)===i).sort((a,b)=>(tierAt(L[b])||0)-(tierAt(L[a])||0)||(isW?L[b][1]-L[a][1]:L[b][1]-L[a][1]));
     const col=t=>t>=2?'#7affea':t>=1?'#ff7ae0':'#e6ebf3';
