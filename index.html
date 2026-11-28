@@ -2148,9 +2148,8 @@ function cancelRecall(msg){if(!recall)return;recall=null;sock.emit('recallCancel
 function recallTick(){const el=$('#homeSlot');if(!recall){return}const p=Math.min(1,(performance.now()-recall.t0)/D.HOMESCROLL.cast);if(el)el.style.background=`linear-gradient(90deg,#7fd3ffaa ${p*100}%,transparent 0)`;
   if(P&&P.dead){cancelRecall();return}if(p>=1){recall=null;if(el)el.style.background='';sock.emit('recall',{},r=>{if(!r||!r.ok)toast(r&&r.msg||'回城失敗')})}}
 function openBoat(){const ok=true;
-  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，今天要去哪裡？':`海上太危險了，只有突破極限的冒險者才能出海。<br>打倒<b>虛空之主</b>（有出手的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
-    <div class="jobs"><div class="job"><b>🪸 珊瑚王國</b><p>Lv 46～50 · 明亮的珊瑚海，最深處是人魚女王的宮殿。站進上升氣泡可以被托上高處。</p><button class="btn pri sm" data-sail="11" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div>
-    <div class="job"><b>🌊 深淵海溝</b><p>Lv 50～54 · 最深處住著深淵海皇・克拉肯，打倒牠再往深處就是沉沒古城、冰封海淵和海底火山。</p><button class="btn pri sm" data-sail="10" ${ok?'':'disabled'}>${ok?'⚓ 出海':'🔒 需要突破 100 等'}</button></div></div>
+  openPop(`<h2>船長 老海</h2><p class="sub" style="margin:0">${ok?'海象不錯，免費載你出海！':`海上太危險了，只有突破極限的冒險者才能出海。<br>打倒<b>虛空之主</b>（有出手的玩家和同地圖的隊友）就能把等級上限提升到 ${D.MAXLV2}，到時候再來找我。`}</p>
+    <div class="jobs"><div class="job"><b>🪸 珊瑚王國</b><p>Lv 46～66 · 五片海域：珊瑚王國 → 深淵海溝 → 沉沒古城 → 冰封海淵 → 海底火山，每片 3 張圖，最深處各有一隻海域霸主。打倒霸主之後，碼頭邊的漁夫阿潮可以直接載你到下一片海域。</p><button class="btn pri sm" data-sail="11" ${ok?'':'disabled'}>⚓ 出海</button></div></div>
     <div class="row"><button class="btn" data-close="1">下次再說</button></div>`,bt=>{if(bt.dataset.close){closePop();return}
     if(bt.dataset.sail){bt.disabled=true;sock.emit('sail',{to:+bt.dataset.sail},r=>{if(!r||!r.ok){toast(r&&r.msg||'無法出海');bt.disabled=false;return}closePop()})}})}
 // ---------- 更新公告（每個帳號每個版本一次） ----------

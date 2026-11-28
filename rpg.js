@@ -925,7 +925,7 @@ module.exports = function attachRPG({ io, app, S, save, dir, page = 'index.html'
     socket.on('sail', ({ to } = {}, ack) => {
       const c = char(uid), no = msg => ack && ack({ ok: false, msg }); if (!c || !w || w.mi !== 9) return no('要在潮聲港的碼頭搭船');
       const boat = D.MAPS[9].npcs.find(n => n.kind === 'boat'); if (Math.abs(pl.x - boat.x) > 90) return no('離船長太遠了');
-      to = to === 11 ? 11 : 10; c.map = to; save(); ack && ack({ ok: true }); enter(to, D.MAPS[to].start);
+      to = D.SEASTART; c.map = to; save(); ack && ack({ ok: true }); enter(to, D.MAPS[to].start);   // 船長只送到珊瑚王國第 1 張；各層捷徑找漁夫阿潮
     });
     // ---- 接待員：付一次，之後雙向免費 ----
     socket.on('guide', ({ g, i } = {}, ack) => {

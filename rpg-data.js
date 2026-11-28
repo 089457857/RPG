@@ -649,7 +649,7 @@
   Object.assign(MAPS[4], { sea: 1 }); Object.assign(MAPS[3], { sea: 1, deep: 1 }); Object.assign(MAPS[5], { sea: 1, deep: 1 });
   // ===== 五層區域產生器：每層 3 張（第 3 張有 Boss），原本的區域地圖改成第 5 層第 3 張 =====
   // cfg：area 區域名、vid 村莊、vname 村莊名、old 原地圖、nid 新地圖起始編號、guide 嚮導、seed、L 五層設定
-  const REGION = cfg => { let sd = 7; const rnd2 = () => (sd = (sd * 9301 + 49297) % 233280) / 233280, { area, vid, vname, old, guide, L } = cfg;
+  const REGION = cfg => { let sd = 7; const rnd2 = () => (sd = (sd * 9301 + 49297) % 233280) / 233280, { area, vid, vname, old, guide, L } = cfg, oldOf = l => cfg.olds ? cfg.olds[l] : l === 4 ? old : null, MECH = ['bubbles', 'gate', 'fall', 'currents', 'geysers', 'ocean'];
     // 平台產生器：一路往右排，高度一層一層變化，高的平台放繩子；Boss 圖右邊留給 Boss 戰場
     const lay = (seed, boss) => { sd = seed; const seg = [{ x1: 0, x2: WW, y: GY, g: 1 }], ropes = [], Y = [262, 224, 186, 148]; let x = 300, t = 0;
       while (x < (boss ? 1850 : 2300)) { const w = 140 + Math.round(rnd2() * 90); seg.push({ x1: x, x2: x + w, y: Y[t] });
@@ -657,24 +657,25 @@
         const up = t < 3 && rnd2() < .55, nt = t === 0 ? (rnd2() < .7 ? 1 : 0) : up ? t + 1 : Math.max(0, t - 1 - (rnd2() < .3 ? 1 : 0));
         x += nt > t ? w - 30 : w + 50 + Math.round(rnd2() * 60); t = nt; }
       return { seg, ropes }; };
-    const ids = []; let nid = cfg.nid; for (let l = 0; l < 5; l++) { ids.push([]); for (let k = 0; k < 3; k++) ids[l].push(l === 4 && k === 2 ? old : nid++); }
+    const ids = []; let nid = cfg.nid; for (let l = 0; l < 5; l++) { ids.push([]); for (let k = 0; k < 3; k++) ids[l].push(k === 2 && oldOf(l) != null ? oldOf(l) : nid++); }
     L.forEach((ly, l) => ly.maps.forEach((nm, k) => {
-      const id = ids[l][k], isB = k === 2, { seg, ropes } = id === old ? { seg: MAPS[old].seg, ropes: MAPS[old].ropes } : lay(cfg.seed + l * 17 + k * 5, isB);
+      const id = ids[l][k], isB = k === 2, o = oldOf(l), isOld = isB && o != null, { seg, ropes } = isOld ? { seg: MAPS[o].seg, ropes: MAPS[o].ropes } : lay(cfg.seed + l * 17 + k * 5, isB);
       const [a, b2, c] = ly.mobs, main = [a, b2, c][k], side = [b2, c, a][k], plat = seg.map((_, i) => i).filter(i => i > 0 && (!isB || seg[i].x2 < 2050));
       const spawns = [...G(main, isB ? 6 : 9, 200, isB ? 1950 : 2350), ...G(side, isB ? 3 : 4, 300, isB ? 1950 : 2350), ...plat.slice(0, 9).map((s2, i) => ({ t: i % 3 === 2 ? side : main, s: s2 }))];
       if (isB) spawns.push({ t: ly.boss, s: 0, a: 2140, b: 2460 });
       const prev = k > 0 ? ids[l][k - 1] : l > 0 ? ids[l - 1][2] : vid, next = k < 2 ? ids[l][k + 1] : l < 4 ? ids[l + 1][0] : null;
-      const portals = [{ x: 60, to: prev, tx: prev === vid ? 1340 : 2490, label: prev === vid ? `← ${vname}` : '←' }];
+      const portals = [{ x: 60, to: prev, tx: prev === vid ? cfg.vtx ?? 1340 : 2490, label: prev === vid ? cfg.vlabel ?? `← ${vname}` : '←' }];
       if (next != null) portals.push({ x: 2560, to: next, tx: 150, label: k < 2 ? '→' : `${L[l + 1].n} →`, ...(isB ? { gate: ly.boss } : {}) });
       // 原本地圖上的其他出口（例如地獄之門）保留
-      if (id === old) for (const pt of MAPS[old].portals) if (pt.x > 1000) portals.push(pt);
+      if (isOld) for (const pt of MAPS[o].portals) if (pt.gate && pt.to !== next) portals.push(pt);
+      const mech = {}; if (o != null) for (const k2 of MECH) if (MAPS[o][k2] != null) mech[k2] = MAPS[o][k2];
       const zones = isB ? [[2100, nm], [9e9, MON[ly.boss].name + '的巢穴']] : [[9e9, nm]];
-      MAPS[id] = { ...(id === old ? MAPS[old] : {}), name: `${area} ${l + 1}-${k + 1}・${nm}`, pal: ly.pal, home: vid, seg, ropes, spawns, zones, portals, start: 150,
+      MAPS[id] = { ...(isOld ? MAPS[o] : {}), ...mech, name: `${area} ${l + 1}-${k + 1}・${nm}`, pal: ly.pal, home: vid, seg, ropes, spawns, zones, portals, start: 150,
         signs: k === 0 ? [[200, `${ly.n}`]] : [] };
     }));
     // 村莊 → 第 1 層；嚮導的各層捷徑（送到每層第 1 張，要先打倒前一層 Boss，每次收費）
-    const vp = MAPS[vid].portals.findIndex(pt => pt.x > 1000); MAPS[vid].portals[vp] = { x: 1440, to: ids[0][0], tx: 150, label: `${L[0].n} →` };
-    MAPS[vid].signs = (MAPS[vid].signs || []).map(sg => sg[0] > 700 ? [sg[0], '往' + L[0].n] : sg);
+    const vp = MAPS[vid].portals.findIndex(pt => pt.x > 1000); if (vp >= 0) { MAPS[vid].portals[vp] = { x: 1440, to: ids[0][0], tx: 150, label: `${L[0].n} →` };
+    MAPS[vid].signs = (MAPS[vid].signs || []).map(sg => sg[0] > 700 ? [sg[0], '往' + L[0].n] : sg); }
     LAYERS[guide].maps = [1, 2, 3, 4].map(l => ({ to: ids[l][0], need: L[l - 1].boss }));
     return ids; };
   REGION({ area: '冰雪', vid: 19, vname: '霜鈴村', old: 1, nid: 28, guide: 'snowback', seed: 101, L: [
@@ -689,6 +690,15 @@
     { n: '硫磺溫泉', pal: 'sulfur', mobs: ['sulfurtoad', 'steamsprite', 'magmasnake'], boss: 'hydra', maps: ['硫磺池畔', '蒸汽谷', '九頭蛇沼'] },
     { n: '熔岩河', pal: 'magmariver', mobs: ['lavahound', 'golem', 'lavafish'], boss: 'lavacroc', maps: ['熔岩河岸', '浮石渡口', '巨鱷灣'] },
     { n: '熔岩巨像核心', pal: 'core', mobs: ['magmaknight', 'coreguard', 'flamewisp'], boss: 'balrog', maps: ['巨像之腳', '巨像體內', '炎魔王的熔爐'] } ] });
+  // 海洋：五片海域各拆成 3 張（原本的海域地圖是第 3 張，有 Boss）；船長免費送到珊瑚王國第 1 張，阿潮負責各層捷徑
+  const SEAMOB = i => [...new Set(MAPS[i].spawns.map(x => x.t).filter(t => !MON[t].boss))];
+  const SEAIDS = REGION({ area: '海洋', vid: 9, vname: '潮聲港', vtx: 2200, vlabel: '← 搭船回潮聲港', olds: [11, 10, 12, 13, 14], nid: 56, guide: 'seaback', seed: 331, L: [
+    { n: '珊瑚王國', pal: 'coral', mobs: SEAMOB(11), boss: 'mermqueen', maps: ['珊瑚入口', '海葵花園', '人魚宮殿'] },
+    { n: '深淵海溝', pal: 'abyss', mobs: SEAMOB(10), boss: 'kraken', maps: ['沉船淺灘', '海盜船骸', '海皇的巢穴'] },
+    { n: '沉沒古城', pal: 'ruins', mobs: SEAMOB(12), boss: 'ruinlord', maps: ['古城外牆', '沉沒街道', '守護神的祭壇'] },
+    { n: '冰封海淵', pal: 'icesea', mobs: SEAMOB(13), boss: 'iceking', maps: ['冰層裂口', '極光淺海', '海獸王的冰窟'] },
+    { n: '海底火山', pal: 'volcano', mobs: SEAMOB(14), boss: 'lavadragon', maps: ['火山裂谷', '熱泉群', '熔岩海龍的巢穴'] } ] });
+  const SEASTART = SEAIDS[0][0];
   for (const g in LAYERS) { const L = LAYERS[g];
     L.maps.forEach((m, i) => { if (m && m.to != null) GUIDES[g].opts.push({ place: `${L.area}第 ${i + 2} 層`, to: m.to, tx: m.tx ?? 150, fee: L.fees[i], each: 1, need: m.need }); }); }
   // 強化材料與神話裝備：天空以後才會掉（sea：強化石／高級強化石，deep：神話強化石與神話裝備）
@@ -814,6 +824,9 @@
   }
   // ---- 更新公告：改版時在 NEWS 最前面加一筆，每個帳號登入後會看到所有還沒看過的版本 ----
   const NEWS = [
+    { v: '2026-11-29c', notes: [
+      ['🌊 海洋拆分', '五片海域各拆成 3 張地圖，共 15 張：珊瑚王國 → 深淵海溝 → 沉沒古城 → 冰封海淵 → 海底火山。每片海域的第 3 張是原本的地圖，有海域霸主坐鎮；打倒霸主才能前往下一片海域。'],
+      ['⚓ 船長與阿潮', '船長老海免費送你到珊瑚王國第 1 張。打倒某片海域的霸主後，碼頭邊的漁夫阿潮可以直接載你到下一片海域（每次收費）。'] ] },
     { v: '2026-11-29b', notes: [
       ['🔥 熔岩五層', '熔岩區域擴建成 5 層、15 張地圖：火山口 → 黑曜石洞窟 → 硫磺溫泉 → 熔岩河 → 熔岩巨像核心。每層 Boss：火山蜥蜴王、黑曜巨蠍、熔岩九頭蛇、岩漿巨鱷，最深處是炎魔王的熔爐。'],
       ['🐾 12 種新怪物', '餘燼蝙蝠、熔岩蠕蟲、黑曜甲蟲、灰燼幽魂、硫磺蟾蜍、蒸汽精靈、熔岩蛇、炎犬、熔岩飛魚、熔岩騎士、核心守衛、火靈。'],
@@ -957,6 +970,6 @@
   const VERSION = NEWS[0].v;
   // 這個帳號還沒看過的版本（seen 是上次看過的版本；沒看過任何版本就全部給）
   const newsSince = seen => { const i = NEWS.findIndex(n => n.v === seen); return i < 0 ? NEWS : NEWS.slice(0, i); };
-  const D = { FREERESET, REQ, STN, reqMiss, resetCost, ITEMS, NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
+  const D = { SEASTART, FREERESET, REQ, STN, reqMiss, resetCost, ITEMS, NOVLV, NOVEXP, LEGLV, LEGATK, LEGHP, legendNov, jobName, EGG, MASTERS, COS, COSK, GACHA, HELMS, CAPES, SHOPH, SHOPC, EVAMAX, CASH, CASHMUL, cashPrice, ENH, ENHMAX, enhB, MATN, SCROLL, XFER, SELLR, enhOf, MAXTOP, CAPBOSS, GUIDES, HOMESCROLL, ELEM, ELEMSK, ELEMSWAP, HIDDEN, SHOPW, SHOPA, TIERN, bonusText, LOOT, gearOk, legPool, POTMAX, BOSSRESPAWN, DARK, FIGHT_MS, POTCD, shopPrice, BOSSREGEN, AWSK, AWSKLV, AWSK_MULT, AWK, GUARD, awkFx, VERSION, NEWS, newsSince, EF, EFSK, CC_RES, CC_IMM, efOf, MAXLV2, capOf, bossZone, MAXSLOT, MOUNTS, MAIN, eff, effRate, SLOTN, DEFSLOTS, MOUNTLV, LEGI, LEGGOLD, APL, APRESET, STATS, fix, PETLV, PETSWAP, PETS, MAXLV, CL, SK, JOBLV, JOBATK, JOBHP, WEAPONS, ARMORS, SHOP, MON, GY, WH, WW, SEG, ROPES, MAPS, needExp, newChar, stats, addExp, skillLock };
   if (typeof module !== 'undefined' && module.exports) module.exports = D; else root.RPGDATA = D;
 })(typeof window !== 'undefined' ? window : this);
